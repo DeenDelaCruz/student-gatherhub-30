@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -41,7 +40,7 @@ const EventCard = ({
   const handleEditEvent = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (canEdit) {
-      navigate(`/edit-event/${id}`);
+      navigate(`/edit-event/${id.toString()}`);
     } else {
       toast.info(`Viewing event: ${title}`);
     }
@@ -71,7 +70,7 @@ const EventCard = ({
       const { error } = await supabase
         .from("events")
         .update({ is_active: newStatus })
-        .eq("id", id);
+        .eq("id", id.toString());
         
       if (error) throw error;
       
