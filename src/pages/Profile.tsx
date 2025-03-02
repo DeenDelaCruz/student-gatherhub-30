@@ -1,25 +1,28 @@
 
-import { useState } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
-import { User, Calendar, Bell, Settings, ArrowRight } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { User, Calendar, Bell, Settings, ArrowRight, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const Profile = () => {
-  const [user] = useState({
-    name: "Admin Royal",
-    email: "admin.royal@university.edu",
-    year: "Senior",
-    events: {
-      attended: 12,
-      upcoming: 3
-    },
-    notifications: true
-  });
+  const { profile, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to log out. Please try again.");
+    }
+  };
 
   const menuItems = [
-    { icon: Calendar, label: "My Events", count: user.events.attended },
-    { icon: Bell, label: "Notifications", toggle: user.notifications },
+    { icon: Calendar, label: "My Events", count: profile?.events_attended || 0 },
+    { icon: Bell, label: "Notifications", toggle: profile?.notifications },
     { icon: Settings, label: "Account Settings" }
   ];
 
@@ -39,10 +42,10 @@ const Profile = () => {
               <User size={32} className="text-campus-accent" />
             </div>
             <div>
-              <h2 className="text-xl font-medium">{user.name}</h2>
-              <p className="text-gray-500 text-sm">{user.email}</p>
+              <h2 className="text-xl font-medium">{profile?.name || "Loading..."}</h2>
+              <p className="text-gray-500 text-sm">{profile?.email || "Loading..."}</p>
               <span className="inline-block bg-gray-100 text-xs px-2 py-1 rounded-full mt-1">
-                {user.year}
+                {profile?.year || "Student"}
               </span>
             </div>
           </div>
@@ -58,14 +61,14 @@ const Profile = () => {
           <div className="flex justify-between text-center">
             <div className="flex-1">
               <p className="text-2xl font-semibold text-campus-accent">
-                {user.events.attended}
+                {profile?.events_attended || 0}
               </p>
               <p className="text-sm text-gray-500">Events Attended</p>
             </div>
             <div className="w-px bg-gray-200"></div>
             <div className="flex-1">
               <p className="text-2xl font-semibold text-campus-purple">
-                {user.events.upcoming}
+                {profile?.events_upcoming || 0}
               </p>
               <p className="text-sm text-gray-500">Upcoming Events</p>
             </div>
@@ -106,6 +109,21 @@ const Profile = () => {
               </div>
             </div>
           ))}
+          
+          {/* Logout Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Button 
+              onClick={handleLogout}
+              className="w-full mt-4 bg-white hover:bg-red-50 text-red-600 border border-red-200 hover:border-red-300"
+            >
+              <LogOut size={18} className="mr-2" />
+              Logout
+            </Button>
+          </motion.div>
         </motion.div>
       </main>
       
