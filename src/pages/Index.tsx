@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Calendar from "@/components/Calendar";
@@ -107,8 +106,10 @@ const Index = () => {
             {filteredEvents.map((event) => (
               <EventCard
                 key={event.id}
+                id={event.id}
                 title={event.title}
                 imageSrc={event.imageSrc}
+                date={event.date}
                 onClick={() => handleEventClick(event.id)}
               />
             ))}
