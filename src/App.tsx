@@ -24,10 +24,24 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            
+            {/* Routes accessible to all authenticated users */}
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/scanner" element={<ProtectedRoute><Scanner /></ProtectedRoute>} />
-            <Route path="/people" element={<ProtectedRoute><People /></ProtectedRoute>} />
+            
+            {/* Routes with specific role requirements */}
+            <Route path="/scanner" element={
+              <ProtectedRoute allowedRoles={['admin', 'information_officer']}>
+                <Scanner />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/people" element={
+              <ProtectedRoute allowedRoles={['admin', 'information_officer']}>
+                <People />
+              </ProtectedRoute>
+            } />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
