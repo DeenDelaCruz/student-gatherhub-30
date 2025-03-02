@@ -11,6 +11,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 import CreateEvent from "@/pages/CreateEvent";
 import EditEvent from "@/pages/EditEvent";
+import EventDetails from "@/pages/EventDetails";
 
 const App = () => {
   return (
@@ -64,6 +65,14 @@ const App = () => {
             element={
               <ProtectedRoute allowedRoles={['information_officer', 'admin']}>
                 <EditEvent />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/event/:eventId" 
+            element={
+              <ProtectedRoute>
+                <EventDetails />
               </ProtectedRoute>
             } 
           />

@@ -83,6 +83,10 @@ const EventCard = ({
     }
   };
 
+  const handleCardClick = () => {
+    navigate(`/event/${id.toString()}`);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -93,7 +97,7 @@ const EventCard = ({
         !active && "opacity-60",
         className
       )}
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <div className="relative h-32 w-full overflow-hidden">
         <img 
