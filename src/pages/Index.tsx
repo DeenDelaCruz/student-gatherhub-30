@@ -1,64 +1,90 @@
+
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Calendar from "@/components/Calendar";
 import EventCard from "@/components/EventCard";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
-
-// Mock data for events
-const EVENTS = [
-  {
-    id: 1,
-    title: "Comp Sci General Assembly 2025",
-    imageSrc: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    date: new Date(2025, 0, 15)
-  },
-  {
-    id: 2,
-    title: "CICS Freshmen Orientation",
-    imageSrc: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    date: new Date(2025, 0, 18)
-  },
-  {
-    id: 3,
-    title: "Alumni Networking Event",
-    imageSrc: "https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    date: new Date(2025, 0, 21)
-  },
-  {
-    id: 4,
-    title: "Hackathon Spring 2025",
-    imageSrc: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    date: new Date(2025, 0, 25)
-  }
-];
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Event } from "@/types/event";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
 
 const Index = () => {
-  const [filteredEvents, setFilteredEvents] = useState(EVENTS);
+  const { user, profile, hasRole } = useAuth();
+  const navigate = useNavigate();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [username, setUsername] = useState("Admin Royal");
+  const [isLoading, setIsLoading] = useState(true);
+  const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
 
   useEffect(() => {
-    // Simulate receiving a notification
-    const timer = setTimeout(() => {
-      toast("New Event", {
-        description: "Hackathon Spring 2025 registration is now open!",
-        position: "top-center",
-        duration: 5000,
-      });
-    }, 3000);
+    const fetchEvents = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from("events")
+          .select("*")
+          .order('event_date', { ascending: true });
 
-    return () => clearTimeout(timer);
+        if (error) throw error;
+        
+        setEvents(data as Event[]);
+        setFilteredEvents(data as Event[]);
+      } catch (error: any) {
+        console.error("Error fetching events:", error);
+        toast.error(error.message || "Failed to fetch events");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvents();
+
+    // Subscribe to changes in the events table
+    const channel = supabase
+      .channel('events-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        (payload) => {
+          console.log('Change received!', payload);
+          fetchEvents(); // Refetch events when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  useEffect(() => {
+    // Simulate receiving a notification for the first event
+    if (events.length > 0 && !isLoading) {
+      const timer = setTimeout(() => {
+        toast("New Event", {
+          description: `${events[0].title} registration is now open!`,
+          position: "top-center",
+          duration: 5000,
+        });
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [events, isLoading]);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     if (!term.trim()) {
-      setFilteredEvents(EVENTS);
+      setFilteredEvents(events);
       return;
     }
     
-    const filtered = EVENTS.filter(event => 
+    const filtered = events.filter(event => 
       event.title.toLowerCase().includes(term.toLowerCase())
     );
     setFilteredEvents(filtered);
@@ -66,13 +92,18 @@ const Index = () => {
 
   const handleDateSelect = (date: Date) => {
     // Filter events by date
-    const filtered = EVENTS.filter(event => 
-      event.date.getDate() === date.getDate() &&
-      event.date.getMonth() === date.getMonth() &&
-      event.date.getFullYear() === date.getFullYear()
-    );
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
     
-    setFilteredEvents(filtered.length ? filtered : EVENTS);
+    const nextDay = new Date(selectedDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    
+    const filtered = events.filter(event => {
+      const eventDate = new Date(event.event_date);
+      return eventDate >= selectedDate && eventDate < nextDay;
+    });
+    
+    setFilteredEvents(filtered.length ? filtered : events);
     
     if (filtered.length) {
       toast(`${filtered.length} event(s) found on ${date.toLocaleDateString()}`);
@@ -81,9 +112,13 @@ const Index = () => {
     }
   };
 
-  const handleEventClick = (eventId: number) => {
+  const handleEventClick = (eventId: string | number) => {
     // In a real app, this would navigate to event details
     toast(`Opening details for event #${eventId}`);
+  };
+
+  const handleCreateEvent = () => {
+    navigate("/create-event");
   };
 
   return (
@@ -92,34 +127,55 @@ const Index = () => {
       
       <main className="flex-1 p-4">
         <div className="welcome-section mb-5 animate-fade-in">
-          <h1 className="text-xl font-medium">Hello, {username}!</h1>
+          <h1 className="text-xl font-medium">Hello, {profile?.name || "User"}!</h1>
         </div>
         
         <Calendar onDateSelect={handleDateSelect} />
         
         <div className="events-section">
-          <h2 className="text-lg font-medium mb-4 pb-2 border-b border-gray-200">
-            All active events
-          </h2>
-          
-          <div className="events-grid">
-            {filteredEvents.map((event) => (
-              <EventCard
-                key={event.id}
-                id={event.id}
-                title={event.title}
-                imageSrc={event.imageSrc}
-                date={event.date}
-                onClick={() => handleEventClick(event.id)}
-              />
-            ))}
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+            <h2 className="text-lg font-medium">
+              All active events
+            </h2>
             
-            {filteredEvents.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No events found for "{searchTerm}"
-              </div>
+            {isInformationOfficer && (
+              <Button 
+                onClick={handleCreateEvent}
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                <PlusCircle size={16} />
+                <span>Create Event</span>
+              </Button>
             )}
           </div>
+          
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
+            </div>
+          ) : (
+            <div className="events-grid">
+              {filteredEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  id={event.id}
+                  title={event.title}
+                  imageSrc={event.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"}
+                  date={new Date(event.event_date)}
+                  isActive={event.is_active}
+                  onClick={() => handleEventClick(event.id)}
+                  createdBy={event.created_by}
+                />
+              ))}
+              
+              {filteredEvents.length === 0 && !isLoading && (
+                <div className="text-center py-8 text-gray-500">
+                  {searchTerm ? `No events found for "${searchTerm}"` : "No events available"}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
       

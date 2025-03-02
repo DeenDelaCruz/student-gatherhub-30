@@ -6,16 +6,19 @@ import { CalendarClock, Users, QrCode, Edit, Eye, ToggleLeft, ToggleRight } from
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EventCardProps {
   title: string;
   imageSrc: string;
-  id: number;
+  id: number | string;
   attendees?: number;
   isActive?: boolean;
   date?: Date;
   onClick?: () => void;
   className?: string;
+  createdBy?: string;
 }
 
 const EventCard = ({ 
@@ -26,16 +29,22 @@ const EventCard = ({
   isActive = true,
   date,
   onClick, 
-  className 
+  className,
+  createdBy
 }: EventCardProps) => {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
+  const navigate = useNavigate();
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   const [active, setActive] = useState(isActive);
+  const canEdit = isInformationOfficer && createdBy === user?.id;
 
   const handleEditEvent = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toast.info(`Editing event: ${title}`);
-    // In a real app, navigate to edit page or open modal
+    if (canEdit) {
+      navigate(`/edit-event/${id}`);
+    } else {
+      toast.info(`Viewing event: ${title}`);
+    }
   };
 
   const handleViewAttendees = (e: React.MouseEvent) => {
@@ -50,12 +59,28 @@ const EventCard = ({
     // In a real app, generate and display QR code
   };
 
-  const toggleEventStatus = (e: React.MouseEvent) => {
+  const toggleEventStatus = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!canEdit) {
+      toast.error("You can only change status of events you created");
+      return;
+    }
+    
     const newStatus = !active;
-    setActive(newStatus);
-    toast.success(`Event ${newStatus ? 'activated' : 'deactivated'}: ${title}`);
-    // In a real app, update the event status in the database
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ is_active: newStatus })
+        .eq("id", id);
+        
+      if (error) throw error;
+      
+      setActive(newStatus);
+      toast.success(`Event ${newStatus ? 'activated' : 'deactivated'}: ${title}`);
+    } catch (error: any) {
+      console.error("Error updating event status:", error);
+      toast.error(error.message || "Failed to update event status");
+    }
   };
 
   return (
@@ -95,10 +120,11 @@ const EventCard = ({
             <Button 
               variant="outline" 
               size="sm" 
-              className="text-xs h-7 px-2"
+              className={cn("text-xs h-7 px-2", canEdit ? "text-blue-500" : "")}
               onClick={handleEditEvent}
             >
-              <Edit className="h-3 w-3 mr-1" /> Edit
+              {canEdit ? <Edit className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+              {canEdit ? "Edit" : "View"}
             </Button>
             
             <Button 
@@ -119,18 +145,20 @@ const EventCard = ({
               <QrCode className="h-3 w-3 mr-1" /> QR
             </Button>
             
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs h-7 px-2"
-              onClick={toggleEventStatus}
-            >
-              {active ? (
-                <><ToggleRight className="h-3 w-3 mr-1" /> Active</>
-              ) : (
-                <><ToggleLeft className="h-3 w-3 mr-1" /> Inactive</>
-              )}
-            </Button>
+            {canEdit && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-xs h-7 px-2"
+                onClick={toggleEventStatus}
+              >
+                {active ? (
+                  <><ToggleRight className="h-3 w-3 mr-1" /> Active</>
+                ) : (
+                  <><ToggleLeft className="h-3 w-3 mr-1" /> Inactive</>
+                )}
+              </Button>
+            )}
           </div>
         )}
       </div>
