@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  const { user, loading, roles, hasRole } = useAuth();
+  const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
