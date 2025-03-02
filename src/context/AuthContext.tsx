@@ -4,20 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
 
+type UserRole = 'admin' | 'information_officer' | 'student';
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: any | null;
+  roles: UserRole[];
   loading: boolean;
   signOut: () => Promise<void>;
+  hasRole: (role: UserRole) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   profile: null,
+  roles: [],
   loading: true,
   signOut: async () => {},
+  hasRole: () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -26,8 +32,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  const fetchUserRoles = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+      
+    if (error) {
+      console.error("Error fetching user roles:", error);
+      return [];
+    }
+    
+    return data.map(item => item.role) as UserRole[];
+  };
 
   useEffect(() => {
     const getSession = async () => {
@@ -41,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        // Fetch profile data
         const { data, error: profileError } = await supabase
           .from("profiles")
           .select("*")
@@ -52,6 +74,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setProfile(data);
         }
+        
+        // Fetch user roles
+        const userRoles = await fetchUserRoles(session.user.id);
+        setRoles(userRoles);
       }
       
       setLoading(false);
@@ -65,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(newSession?.user ?? null);
         
         if (event === "SIGNED_IN" && newSession?.user) {
+          // Fetch profile data
           const { data, error } = await supabase
             .from("profiles")
             .select("*")
@@ -76,10 +103,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } else {
             setProfile(data);
           }
+          
+          // Fetch user roles
+          const userRoles = await fetchUserRoles(newSession.user.id);
+          setRoles(userRoles);
         }
         
         if (event === "SIGNED_OUT") {
           setProfile(null);
+          setRoles([]);
           navigate("/auth");
         }
         
@@ -103,8 +135,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const hasRole = (role: UserRole): boolean => {
+    return roles.includes(role);
+  };
+
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, roles, loading, signOut, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 const Profile = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, roles, hasRole } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -23,7 +23,10 @@ const Profile = () => {
   const menuItems = [
     { icon: Calendar, label: "My Events", count: profile?.events_attended || 0 },
     { icon: Bell, label: "Notifications", toggle: profile?.notifications },
-    { icon: Settings, label: "Account Settings" }
+    // Only show settings to users who have permission to edit their profile
+    ...(hasRole('student') || hasRole('information_officer') || hasRole('admin') 
+      ? [{ icon: Settings, label: "Account Settings" }] 
+      : [])
   ];
 
   return (
@@ -44,9 +47,25 @@ const Profile = () => {
             <div>
               <h2 className="text-xl font-medium">{profile?.name || "Loading..."}</h2>
               <p className="text-gray-500 text-sm">{profile?.email || "Loading..."}</p>
-              <span className="inline-block bg-gray-100 text-xs px-2 py-1 rounded-full mt-1">
-                {profile?.year || "Student"}
-              </span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                <span className="inline-block bg-gray-100 text-xs px-2 py-1 rounded-full">
+                  {profile?.year || "Student"}
+                </span>
+                {roles.map((role, index) => (
+                  <span 
+                    key={index} 
+                    className={`inline-block text-xs px-2 py-1 rounded-full ${
+                      role === 'admin' 
+                        ? 'bg-red-100 text-red-800' 
+                        : role === 'information_officer' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-green-100 text-green-800'
+                    }`}
+                  >
+                    {role.replace('_', ' ')}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -109,6 +128,21 @@ const Profile = () => {
               </div>
             </div>
           ))}
+          
+          {/* Display admin panel link for admins and information officers */}
+          {(hasRole('admin') || hasRole('information_officer')) && (
+            <div 
+              className="bg-white rounded-xl shadow-sm mb-3 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center">
+                <div className="bg-blue-100 rounded-full p-2 mr-3">
+                  <Settings size={18} className="text-blue-600" />
+                </div>
+                <span>Admin Panel</span>
+              </div>
+              <ArrowRight size={16} className="text-gray-400" />
+            </div>
+          )}
           
           {/* Logout Button */}
           <motion.div
