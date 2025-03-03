@@ -6,7 +6,7 @@ import Calendar from "@/components/Calendar";
 import EventCard from "@/components/EventCard";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Event, convertSupabaseEventsToEvents } from "@/types/event";
 import { Button } from "@/components/ui/button";

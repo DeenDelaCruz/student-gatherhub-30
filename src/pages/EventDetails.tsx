@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, getEventInterestCount, isUserInterestedInEvent } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 import { Event, convertSupabaseEventToEvent } from "@/types/event";
 import { CalendarClock, MapPin, Users, Heart } from "lucide-react";
 import { toast } from "sonner";

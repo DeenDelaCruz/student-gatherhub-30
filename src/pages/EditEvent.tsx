@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import EventForm from "@/components/EventForm";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Event, convertSupabaseEventToEvent } from "@/types/event";
 import { toast } from "sonner";
