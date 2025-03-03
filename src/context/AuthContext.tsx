@@ -37,30 +37,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Configure Supabase to not persist sessions across browser sessions
-  useEffect(() => {
-    // Set session storage to 'local' which only persists while browser is open
-    const updateSessionConfig = async () => {
-      await supabase.auth.setSession({
-        access_token: '',
-        refresh_token: '',
-      });
-
-      // Add a listener to handle browser close events
-      const handleBeforeUnload = () => {
-        // Clear the session when browser is closed
-        localStorage.removeItem('supabase.auth.token');
-      };
-
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      
-      return () => {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-      };
-    };
-    
-    updateSessionConfig();
-  }, []);
+  // Remove the problematic session clearing code
+  // This was causing the infinite loading issue
 
   const fetchUserRoles = async (userId: string) => {
     try {
