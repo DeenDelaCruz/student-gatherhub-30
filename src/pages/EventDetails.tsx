@@ -20,6 +20,44 @@ const EventDetails = () => {
   const [isInterested, setIsInterested] = useState(false);
   const [interestedCount, setInterestedCount] = useState(0);
 
+  // Function to fetch interest state and count
+  const fetchInterestData = async () => {
+    if (!eventId) return;
+    
+    try {
+      // Check if user is interested
+      if (user) {
+        const { data: interestData, error: interestError } = await supabase
+          .from("event_attendees")
+          .select("*")
+          .eq("event_id", eventId)
+          .eq("user_id", user.id)
+          .is("check_in_time", null);
+          
+        if (interestError) {
+          console.error("Error checking interest:", interestError);
+        } else {
+          setIsInterested(interestData && interestData.length > 0);
+        }
+      }
+      
+      // Get interested count
+      const { count, error: countError } = await supabase
+        .from("event_attendees")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .is("check_in_time", null);
+        
+      if (countError) {
+        console.error("Error fetching interest count:", countError);
+      } else if (count !== null) {
+        setInterestedCount(count);
+      }
+    } catch (error: any) {
+      console.error("Error fetching interest data:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchEventDetails = async () => {
       try {
@@ -35,32 +73,8 @@ const EventDetails = () => {
         if (eventError) throw eventError;
         setEvent(eventData as Event);
         
-        // Check if user is interested
-        if (user) {
-          const { data: interestData, error: interestError } = await supabase
-            .from("event_attendees")
-            .select("*")
-            .eq("event_id", eventId)
-            .eq("user_id", user.id)
-            .is("check_in_time", null);
-            
-          if (!interestError && interestData && interestData.length > 0) {
-            setIsInterested(true);
-          } else {
-            setIsInterested(false);
-          }
-        }
-        
-        // Get interested count
-        const { count, error: countError } = await supabase
-          .from("event_attendees")
-          .select("*", { count: "exact", head: true })
-          .eq("event_id", eventId)
-          .is("check_in_time", null);
-          
-        if (!countError && count !== null) {
-          setInterestedCount(count);
-        }
+        // Fetch interest data separately
+        await fetchInterestData();
         
       } catch (error: any) {
         console.error("Error fetching event details:", error);
@@ -71,6 +85,27 @@ const EventDetails = () => {
     };
 
     fetchEventDetails();
+
+    // Set up real-time subscription for interest updates
+    const interestChannel = supabase
+      .channel('public:event_attendees')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'event_attendees',
+          filter: `event_id=eq.${eventId}` 
+        }, 
+        () => {
+          // Refresh interest data when changes occur
+          fetchInterestData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(interestChannel);
+    };
   }, [eventId, user]);
 
   const handleToggleInterest = async () => {
@@ -111,6 +146,10 @@ const EventDetails = () => {
         setInterestedCount(prev => prev + 1);
         toast.success("You are now interested in this event");
       }
+      
+      // Refresh interest data after update to ensure UI is in sync with server
+      await fetchInterestData();
+      
     } catch (error: any) {
       console.error("Error updating interest:", error);
       toast.error(error.message || "Failed to update interest");
