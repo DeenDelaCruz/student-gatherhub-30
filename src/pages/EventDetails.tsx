@@ -20,37 +20,36 @@ const EventDetails = () => {
   const [isInterested, setIsInterested] = useState(false);
   const [interestedCount, setInterestedCount] = useState(0);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [subscription, setSubscription] = useState<any>(null);
 
-  // Function to fetch interest state and count
-  const fetchInterestData = async () => {
-    if (!eventId || !user) return;
+  // Function to fetch interest state for the current user
+  const fetchUserInterest = async () => {
+    if (!eventId || !user) return false;
     
     try {
-      // Check if user is interested - only check when we have a user
       const { data: interestData, error: interestError } = await supabase
         .from("event_attendees")
         .select("*")
         .eq("event_id", eventId)
         .eq("user_id", user.id)
-        .is("check_in_time", null);
+        .is("check_in_time", null)
+        .maybeSingle();
         
       if (interestError) {
         console.error("Error checking interest:", interestError);
-      } else {
-        setIsInterested(interestData && interestData.length > 0);
+        return false;
       }
       
-      // Get interested count regardless of user state
-      await fetchInterestCount();
-      
+      return interestData !== null;
     } catch (error: any) {
-      console.error("Error fetching interest data:", error);
+      console.error("Error fetching user interest:", error);
+      return false;
     }
   };
 
-  // Separate function to fetch just the count
+  // Function to fetch just the count
   const fetchInterestCount = async () => {
-    if (!eventId) return;
+    if (!eventId) return 0;
     
     try {
       const { count, error: countError } = await supabase
@@ -61,11 +60,13 @@ const EventDetails = () => {
         
       if (countError) {
         console.error("Error fetching interest count:", countError);
-      } else if (count !== null) {
-        setInterestedCount(count);
+        return 0;
       }
+      
+      return count || 0;
     } catch (error: any) {
       console.error("Error fetching interest count:", error);
+      return 0;
     }
   };
 
@@ -84,12 +85,14 @@ const EventDetails = () => {
         if (eventError) throw eventError;
         setEvent(eventData as Event);
         
-        // Fetch interest count for all users
-        await fetchInterestCount();
+        // Get interest count
+        const count = await fetchInterestCount();
+        setInterestedCount(count);
         
-        // Fetch personal interest state if logged in
+        // Check if user is interested
         if (user) {
-          await fetchInterestData();
+          const userIsInterested = await fetchUserInterest();
+          setIsInterested(userIsInterested);
         }
         
       } catch (error: any) {
@@ -102,9 +105,21 @@ const EventDetails = () => {
 
     fetchEventDetails();
 
+    // Clean up previous subscription if it exists
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
+  }, [eventId, user]);
+
+  // Setup real-time subscription in a separate effect
+  useEffect(() => {
+    if (!eventId || isUpdating) return;
+
     // Set up real-time subscription for interest updates
-    const interestChannel = supabase
-      .channel('public:event_attendees')
+    const channel = supabase
+      .channel(`event-attendees-${eventId}`)
       .on('postgres_changes', 
         { 
           event: '*', 
@@ -112,24 +127,29 @@ const EventDetails = () => {
           table: 'event_attendees',
           filter: `event_id=eq.${eventId}` 
         }, 
-        () => {
-          // When a change occurs, just update the count
-          // but don't change the user's own interest state during an update
+        async () => {
+          // Only update if we're not in the middle of toggling
           if (!isUpdating) {
-            fetchInterestCount();
-            // Only update user interest state if they're not currently toggling
+            // Just update the count, don't change the user's own interest state
+            const count = await fetchInterestCount();
+            setInterestedCount(count);
+            
+            // Only update the user's interest state if they're logged in and not toggling
             if (user) {
-              fetchInterestData();
+              const userIsInterested = await fetchUserInterest();
+              setIsInterested(userIsInterested);
             }
           }
         }
       )
       .subscribe();
 
+    setSubscription(channel);
+
     return () => {
-      supabase.removeChannel(interestChannel);
+      supabase.removeChannel(channel);
     };
-  }, [eventId, user]);
+  }, [eventId, isUpdating, user]);
 
   const handleToggleInterest = async () => {
     if (!user) {
@@ -138,15 +158,15 @@ const EventDetails = () => {
       return;
     }
 
-    if (isUpdating) return; // Prevent multiple simultaneous updates
+    if (isUpdating || !eventId) return; // Prevent multiple simultaneous updates
 
     try {
-      setIsUpdating(true); // Set updating flag to prevent realtime updates from interfering
+      setIsUpdating(true); // Prevent realtime updates while we're toggling
       
       // Update local state immediately for better UX
       const newInterestedState = !isInterested;
       setIsInterested(newInterestedState);
-      setInterestedCount(prev => newInterestedState ? prev + 1 : Math.max(0, prev - 1));
+      setInterestedCount(prevCount => newInterestedState ? prevCount + 1 : Math.max(0, prevCount - 1));
 
       if (newInterestedState === false) {
         // Remove interest
@@ -178,14 +198,12 @@ const EventDetails = () => {
       
       // Revert local state on error
       setIsInterested(!isInterested);
-      setInterestedCount(prev => !isInterested ? prev - 1 : prev + 1);
+      setInterestedCount(prevCount => isInterested ? prevCount - 1 : prevCount + 1);
     } finally {
-      // After a brief delay to allow the database to update, enable realtime updates again
+      // Briefly delay turning off isUpdating to allow database to sync
       setTimeout(() => {
         setIsUpdating(false);
-        // Refresh to ensure we're in sync with the database
-        fetchInterestData();
-      }, 500);
+      }, 1000);
     }
   };
 
