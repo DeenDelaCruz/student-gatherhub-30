@@ -68,10 +68,9 @@ const People = () => {
       }
     };
     
-    if (user) {
-      fetchOfficers();
-    }
-  }, [user]);
+    // Removed the user dependency - fetch officers regardless of auth state
+    fetchOfficers();
+  }, []); // Removed user from dependency array
   
   const filteredOfficers = officers.filter(officer => 
     (officer.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
