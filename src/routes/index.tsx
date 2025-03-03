@@ -2,6 +2,10 @@
 import { lazy, Suspense } from "react";
 import { RouteObject } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { Database } from "@/integrations/supabase/types";
+
+// Type definition for user roles
+type UserRole = Database["public"]["Enums"]["app_role"];
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("@/pages/Index"));
@@ -26,7 +30,7 @@ type RouteConfig = {
   path: string;
   element: React.ReactNode;
   requiresAuth?: boolean;
-  allowedRoles?: string[];
+  allowedRoles?: UserRole[];
 };
 
 // Routes configuration
