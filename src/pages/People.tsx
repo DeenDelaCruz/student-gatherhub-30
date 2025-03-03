@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -24,43 +25,42 @@ const People = () => {
     const fetchOfficers = async () => {
       try {
         setLoading(true);
+        console.log("Fetching information officers...");
         
-        // Query to get all users with the information_officer role
-        const { data: roleData, error: roleError } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "information_officer");
-          
-        if (roleError) {
-          console.error("Error fetching officers:", roleError);
+        // Using a more efficient approach with a single join query
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select(`
+            user_id,
+            profiles!inner(id, name, email, year)
+          `)
+          .eq('role', 'information_officer');
+        
+        if (error) {
+          console.error("Error fetching officers with join:", error);
           toast.error("Failed to load information officers");
           return;
         }
         
-        if (!roleData || roleData.length === 0) {
+        console.log("Raw data from join query:", data);
+        
+        if (!data || data.length === 0) {
+          console.log("No information officers found");
           setOfficers([]);
           setLoading(false);
           return;
         }
         
-        // Get all officer IDs
-        const officerIds = roleData.map(row => row.user_id);
-        console.log("Found officer IDs:", officerIds);
+        // Transform the nested join data into our InformationOfficer format
+        const formattedOfficers: InformationOfficer[] = data.map(item => ({
+          id: item.profiles.id,
+          name: item.profiles.name,
+          email: item.profiles.email,
+          year: item.profiles.year
+        }));
         
-        // Fetch profile information for all officers
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, name, email, year")
-          .in("id", officerIds);
-          
-        if (profileError) {
-          console.error("Error fetching officer profiles:", profileError);
-          toast.error("Failed to load officer profiles");
-          return;
-        }
-        
-        console.log("Retrieved profiles:", profileData);
-        setOfficers(profileData || []);
+        console.log("Formatted officers:", formattedOfficers);
+        setOfficers(formattedOfficers);
       } catch (error) {
         console.error("Unexpected error:", error);
         toast.error("An unexpected error occurred");
