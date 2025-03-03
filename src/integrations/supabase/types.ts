@@ -146,6 +146,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_information_officer: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "information_officer" | "student"

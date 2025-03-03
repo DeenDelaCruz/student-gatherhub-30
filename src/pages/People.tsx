@@ -55,7 +55,7 @@ const People = () => {
         
         // Extract user_ids from the role data
         const officerIds = roleData.map(item => item.user_id);
-        console.log("Officer IDs:", officerIds);
+        console.log("Found officer IDs:", officerIds);
         
         // Then, fetch the profile data for those user_ids
         const { data: profileData, error: profileError } = await supabase
@@ -69,7 +69,7 @@ const People = () => {
           return;
         }
         
-        console.log("Profile data:", profileData);
+        console.log("Retrieved profiles:", profileData);
         
         // Set the officers state with the fetched profiles
         setOfficers(profileData || []);
