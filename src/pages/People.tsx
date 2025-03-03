@@ -6,7 +6,7 @@ import { User, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 
 interface InformationOfficer {
   id: string;
@@ -18,10 +18,15 @@ interface InformationOfficer {
 const People = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [officers, setOfficers] = useState<InformationOfficer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   
   useEffect(() => {
+    // Only fetch data after authentication status is resolved
+    if (authLoading) {
+      return; // Don't fetch while auth is still loading
+    }
+    
     const fetchOfficers = async () => {
       try {
         setLoading(true);
@@ -76,9 +81,14 @@ const People = () => {
       }
     };
     
-    // Fetch officers regardless of auth state
-    fetchOfficers();
-  }, []); // No dependencies - run once on component mount
+    // Only attempt to fetch if the user is authenticated
+    if (user) {
+      fetchOfficers();
+    } else {
+      // Clear officers if not authenticated
+      setOfficers([]);
+    }
+  }, [user, authLoading]); // Depend on both user and authLoading
   
   const filteredOfficers = officers.filter(officer => 
     (officer.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -92,6 +102,16 @@ const People = () => {
       position: "top-center",
     });
   };
+  
+  // Show loading spinner if auth is still loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-campus-bg flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
+        <p className="mt-4 text-gray-600">Verifying authentication...</p>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
