@@ -19,29 +19,40 @@ const EventDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isInterested, setIsInterested] = useState(false);
   const [interestedCount, setInterestedCount] = useState(0);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Function to fetch interest state and count
   const fetchInterestData = async () => {
+    if (!eventId || !user) return;
+    
+    try {
+      // Check if user is interested - only check when we have a user
+      const { data: interestData, error: interestError } = await supabase
+        .from("event_attendees")
+        .select("*")
+        .eq("event_id", eventId)
+        .eq("user_id", user.id)
+        .is("check_in_time", null);
+        
+      if (interestError) {
+        console.error("Error checking interest:", interestError);
+      } else {
+        setIsInterested(interestData && interestData.length > 0);
+      }
+      
+      // Get interested count regardless of user state
+      await fetchInterestCount();
+      
+    } catch (error: any) {
+      console.error("Error fetching interest data:", error);
+    }
+  };
+
+  // Separate function to fetch just the count
+  const fetchInterestCount = async () => {
     if (!eventId) return;
     
     try {
-      // Check if user is interested
-      if (user) {
-        const { data: interestData, error: interestError } = await supabase
-          .from("event_attendees")
-          .select("*")
-          .eq("event_id", eventId)
-          .eq("user_id", user.id)
-          .is("check_in_time", null);
-          
-        if (interestError) {
-          console.error("Error checking interest:", interestError);
-        } else {
-          setIsInterested(interestData && interestData.length > 0);
-        }
-      }
-      
-      // Get interested count
       const { count, error: countError } = await supabase
         .from("event_attendees")
         .select("*", { count: "exact", head: true })
@@ -54,7 +65,7 @@ const EventDetails = () => {
         setInterestedCount(count);
       }
     } catch (error: any) {
-      console.error("Error fetching interest data:", error);
+      console.error("Error fetching interest count:", error);
     }
   };
 
@@ -73,8 +84,13 @@ const EventDetails = () => {
         if (eventError) throw eventError;
         setEvent(eventData as Event);
         
-        // Fetch interest data separately
-        await fetchInterestData();
+        // Fetch interest count for all users
+        await fetchInterestCount();
+        
+        // Fetch personal interest state if logged in
+        if (user) {
+          await fetchInterestData();
+        }
         
       } catch (error: any) {
         console.error("Error fetching event details:", error);
@@ -97,8 +113,15 @@ const EventDetails = () => {
           filter: `event_id=eq.${eventId}` 
         }, 
         () => {
-          // Refresh interest data when changes occur
-          fetchInterestData();
+          // When a change occurs, just update the count
+          // but don't change the user's own interest state during an update
+          if (!isUpdating) {
+            fetchInterestCount();
+            // Only update user interest state if they're not currently toggling
+            if (user) {
+              fetchInterestData();
+            }
+          }
         }
       )
       .subscribe();
@@ -115,8 +138,17 @@ const EventDetails = () => {
       return;
     }
 
+    if (isUpdating) return; // Prevent multiple simultaneous updates
+
     try {
-      if (isInterested) {
+      setIsUpdating(true); // Set updating flag to prevent realtime updates from interfering
+      
+      // Update local state immediately for better UX
+      const newInterestedState = !isInterested;
+      setIsInterested(newInterestedState);
+      setInterestedCount(prev => newInterestedState ? prev + 1 : Math.max(0, prev - 1));
+
+      if (newInterestedState === false) {
         // Remove interest
         const { error } = await supabase
           .from("event_attendees")
@@ -126,9 +158,6 @@ const EventDetails = () => {
           .is("check_in_time", null);
           
         if (error) throw error;
-        
-        setIsInterested(false);
-        setInterestedCount(prev => Math.max(0, prev - 1));
         toast.success("You are no longer interested in this event");
       } else {
         // Add interest
@@ -141,18 +170,22 @@ const EventDetails = () => {
           });
           
         if (error) throw error;
-        
-        setIsInterested(true);
-        setInterestedCount(prev => prev + 1);
         toast.success("You are now interested in this event");
       }
-      
-      // Refresh interest data after update to ensure UI is in sync with server
-      await fetchInterestData();
-      
     } catch (error: any) {
       console.error("Error updating interest:", error);
       toast.error(error.message || "Failed to update interest");
+      
+      // Revert local state on error
+      setIsInterested(!isInterested);
+      setInterestedCount(prev => !isInterested ? prev - 1 : prev + 1);
+    } finally {
+      // After a brief delay to allow the database to update, enable realtime updates again
+      setTimeout(() => {
+        setIsUpdating(false);
+        // Refresh to ensure we're in sync with the database
+        fetchInterestData();
+      }, 500);
     }
   };
 
@@ -242,9 +275,11 @@ const EventDetails = () => {
             <Button 
               onClick={handleToggleInterest}
               className={isInterested ? "bg-red-500 hover:bg-red-600" : ""}
+              disabled={isUpdating}
             >
               <Heart className={`h-4 w-4 mr-2 ${isInterested ? "fill-white" : ""}`} />
               {isInterested ? "Interested" : "Mark Interested"}
+              {isUpdating && <span className="ml-2 animate-spin">•</span>}
             </Button>
           </div>
         </div>
