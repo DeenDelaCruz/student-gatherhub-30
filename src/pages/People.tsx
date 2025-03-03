@@ -27,40 +27,47 @@ const People = () => {
         setLoading(true);
         console.log("Fetching information officers...");
         
-        // Using a more efficient approach with a single join query
-        const { data, error } = await supabase
+        // First, fetch all user_ids with the information_officer role
+        const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
-          .select(`
-            user_id,
-            profiles!inner(id, name, email, year)
-          `)
+          .select('user_id')
           .eq('role', 'information_officer');
         
-        if (error) {
-          console.error("Error fetching officers with join:", error);
+        if (roleError) {
+          console.error("Error fetching officer roles:", roleError);
           toast.error("Failed to load information officers");
           return;
         }
         
-        console.log("Raw data from join query:", data);
+        console.log("Role data:", roleData);
         
-        if (!data || data.length === 0) {
+        if (!roleData || roleData.length === 0) {
           console.log("No information officers found");
           setOfficers([]);
           setLoading(false);
           return;
         }
         
-        // Transform the nested join data into our InformationOfficer format
-        const formattedOfficers: InformationOfficer[] = data.map(item => ({
-          id: item.profiles.id,
-          name: item.profiles.name,
-          email: item.profiles.email,
-          year: item.profiles.year
-        }));
+        // Extract user_ids from the role data
+        const officerIds = roleData.map(item => item.user_id);
+        console.log("Officer IDs:", officerIds);
         
-        console.log("Formatted officers:", formattedOfficers);
-        setOfficers(formattedOfficers);
+        // Then, fetch the profile data for those user_ids
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, name, email, year')
+          .in('id', officerIds);
+        
+        if (profileError) {
+          console.error("Error fetching profiles:", profileError);
+          toast.error("Failed to load officer profiles");
+          return;
+        }
+        
+        console.log("Profile data:", profileData);
+        
+        // Set the officers state with the fetched profiles
+        setOfficers(profileData || []);
       } catch (error) {
         console.error("Unexpected error:", error);
         toast.error("An unexpected error occurred");
