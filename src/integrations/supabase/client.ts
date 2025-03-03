@@ -18,6 +18,16 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storageKey: 'supabase.auth.token',
+    },
+    global: {
+      headers: {
+        'x-application-name': 'campus-connect',
+      },
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
     }
   }
 );

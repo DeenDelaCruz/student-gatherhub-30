@@ -46,6 +46,8 @@ const EventDetails = () => {
             
           if (!interestError && interestData && interestData.length > 0) {
             setIsInterested(true);
+          } else {
+            setIsInterested(false);
           }
         }
         
@@ -91,7 +93,7 @@ const EventDetails = () => {
         if (error) throw error;
         
         setIsInterested(false);
-        setInterestedCount(prev => prev - 1);
+        setInterestedCount(prev => Math.max(0, prev - 1));
         toast.success("You are no longer interested in this event");
       } else {
         // Add interest
@@ -162,11 +164,11 @@ const EventDetails = () => {
         <div className="bg-white rounded-xl overflow-hidden shadow-sm">
           <div className="relative h-48 w-full overflow-hidden">
             <img 
-              src={event.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"} 
-              alt={event.title} 
+              src={event?.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"} 
+              alt={event?.title} 
               className="w-full h-full object-cover"
             />
-            {!event.is_active && (
+            {event && !event.is_active && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-medium">
                 INACTIVE
               </div>
@@ -174,14 +176,14 @@ const EventDetails = () => {
           </div>
           
           <div className="p-4">
-            <h1 className="text-2xl font-bold mb-2">{event.title}</h1>
+            <h1 className="text-2xl font-bold mb-2">{event?.title}</h1>
             
             <div className="flex items-center mb-2 text-gray-600">
               <CalendarClock className="h-4 w-4 mr-2" />
-              <span>{format(new Date(event.event_date), 'MMMM d, yyyy - h:mm a')}</span>
+              <span>{event?.event_date ? format(new Date(event.event_date), 'MMMM d, yyyy - h:mm a') : ''}</span>
             </div>
             
-            {event.location && (
+            {event?.location && (
               <div className="flex items-center mb-2 text-gray-600">
                 <MapPin className="h-4 w-4 mr-2" />
                 <span>{event.location}</span>
@@ -195,7 +197,7 @@ const EventDetails = () => {
             
             <div className="mb-6 mt-4">
               <h2 className="font-medium mb-2">Description</h2>
-              <p className="text-gray-700 whitespace-pre-line">{event.description || "No description available."}</p>
+              <p className="text-gray-700 whitespace-pre-line">{event?.description || "No description available."}</p>
             </div>
             
             <Button 
