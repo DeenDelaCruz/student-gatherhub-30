@@ -2,6 +2,7 @@
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { User, Calendar, Bell, Settings, ArrowRight, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -9,11 +10,13 @@ import { Button } from "@/components/ui/button";
 
 const Profile = () => {
   const { profile, signOut, roles, hasRole } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
       await signOut();
       toast.success("Logged out successfully");
+      navigate("/auth"); // Redirect to login page after logout
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Failed to log out. Please try again.");
