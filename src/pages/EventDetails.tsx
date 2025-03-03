@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, getEventInterestCount, isUserInterestedInEvent } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth";
 import { Event, convertSupabaseEventToEvent } from "@/types/event";
-import { CalendarClock, MapPin, Users, Heart } from "lucide-react";
+import { CalendarClock, MapPin, Users, Heart, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import Header from "@/components/Header";
@@ -23,14 +22,12 @@ const EventDetails = () => {
   const [subscription, setSubscription] = useState<any>(null);
   const [lastToggleTime, setLastToggleTime] = useState<number | null>(null);
 
-  // Function to fetch interest count
   const fetchInterestCount = async () => {
     if (!eventId) return;
     const count = await getEventInterestCount(eventId);
     setInterestedCount(count);
   };
 
-  // Function to fetch user interest state
   const fetchUserInterest = async () => {
     if (!eventId || !user) return;
     const interested = await isUserInterestedInEvent(eventId, user.id);
@@ -44,7 +41,6 @@ const EventDetails = () => {
       try {
         setIsLoading(true);
         
-        // Fetch event details
         const { data: eventData, error: eventError } = await supabase
           .from("events")
           .select("*")
@@ -57,7 +53,6 @@ const EventDetails = () => {
           setEvent(convertSupabaseEventToEvent(eventData));
         }
         
-        // Get interest count and user interest status
         await fetchInterestCount();
         if (user) {
           await fetchUserInterest();
@@ -71,12 +66,10 @@ const EventDetails = () => {
       }
     };
 
-    // Only fetch if not currently updating
     if (!isUpdating) {
       fetchEventDetails();
     }
 
-    // Clean up previous subscription if it exists
     return () => {
       if (subscription) {
         supabase.removeChannel(subscription);
@@ -84,12 +77,9 @@ const EventDetails = () => {
     };
   }, [eventId, user, isUpdating]);
 
-  // Setup real-time subscription in a separate effect
   useEffect(() => {
-    // Don't setup subscription if loading or updating
     if (!eventId || isLoading || isUpdating) return;
 
-    // Set up real-time subscription for interest updates with a more specific channel name
     const channelName = `event-interest-${eventId}-${Date.now()}`;
     const channel = supabase
       .channel(channelName)
@@ -103,18 +93,13 @@ const EventDetails = () => {
         async (payload) => {
           console.log("Realtime update received:", payload);
           
-          // Skip real-time updates during manual toggle operation
-          // or if the toggle was very recent (less than 2 seconds ago)
-          const now = Date.now();
-          if (isUpdating || (lastToggleTime && now - lastToggleTime < 2000)) {
+          if (isUpdating || (lastToggleTime && Date.now() - lastToggleTime < 2000)) {
             console.log("Skipping real-time update due to recent toggle");
             return;
           }
           
-          // Update count and interest state from the database
           await fetchInterestCount();
           
-          // Only update user's own interest state if they're logged in
           if (user) {
             await fetchUserInterest();
           }
@@ -126,14 +111,12 @@ const EventDetails = () => {
     setSubscription(channel);
 
     return () => {
-      // Clean up subscription
       console.log(`Unsubscribing from channel: ${channelName}`);
       supabase.removeChannel(channel);
       setSubscription(null);
     };
   }, [eventId, isLoading, isUpdating, user, lastToggleTime]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (subscription) {
@@ -149,21 +132,23 @@ const EventDetails = () => {
       return;
     }
 
-    if (isUpdating || !eventId) return; // Prevent multiple simultaneous updates
+    if (isUpdating || !eventId) return;
+
+    if (event && !event.is_active) {
+      toast.error("This event is no longer active");
+      return;
+    }
 
     try {
-      setIsUpdating(true); // Prevent realtime updates while we're toggling
-      
-      // Update local state immediately for better UX
+      setIsUpdating(true);
+
       const newInterestedState = !isInterested;
       setIsInterested(newInterestedState);
       setInterestedCount(prevCount => newInterestedState ? prevCount + 1 : Math.max(0, prevCount - 1));
       
-      // Record the time of this toggle
       setLastToggleTime(Date.now());
 
       if (newInterestedState === false) {
-        // Remove interest
         const { error } = await supabase
           .from("event_attendees")
           .delete()
@@ -174,7 +159,6 @@ const EventDetails = () => {
         if (error) throw error;
         toast.success("You are no longer interested in this event");
       } else {
-        // Add interest
         const { error } = await supabase
           .from("event_attendees")
           .insert({
@@ -187,10 +171,8 @@ const EventDetails = () => {
         toast.success("You are now interested in this event");
       }
       
-      // Ensure the database has time to update before we allow realtime updates again
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Fetch the accurate state from the database after updates
       await fetchUserInterest();
       await fetchInterestCount();
       
@@ -198,11 +180,9 @@ const EventDetails = () => {
       console.error("Error updating interest:", error);
       toast.error(error.message || "Failed to update interest");
       
-      // Revert local state on error
       setIsInterested(!isInterested);
       setInterestedCount(prevCount => isInterested ? prevCount - 1 : prevCount + 1);
     } finally {
-      // Turn off isUpdating
       setIsUpdating(false);
     }
   };
@@ -268,6 +248,13 @@ const EventDetails = () => {
           <div className="p-4">
             <h1 className="text-2xl font-bold mb-2">{event?.title}</h1>
             
+            {event && !event.is_active && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center text-amber-800">
+                <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
+                <p>This event is no longer active and registration is closed.</p>
+              </div>
+            )}
+            
             <div className="flex items-center mb-2 text-gray-600">
               <CalendarClock className="h-4 w-4 mr-2" />
               <span>{event?.event_date ? format(new Date(event.event_date), 'MMMM d, yyyy - h:mm a') : ''}</span>
@@ -293,7 +280,7 @@ const EventDetails = () => {
             <Button 
               onClick={handleToggleInterest}
               className={isInterested ? "bg-red-500 hover:bg-red-600" : ""}
-              disabled={isUpdating}
+              disabled={isUpdating || (event && !event.is_active)}
             >
               <Heart className={`h-4 w-4 mr-2 ${isInterested ? "fill-white" : ""}`} />
               {isInterested ? "Interested" : "Mark Interested"}

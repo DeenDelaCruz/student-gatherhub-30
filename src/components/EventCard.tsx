@@ -84,6 +84,11 @@ const EventCard = ({
   };
 
   const handleCardClick = () => {
+    // Allow viewing inactive events for information officers
+    if (!active && !isInformationOfficer) {
+      toast.info("This event is no longer active");
+      return;
+    }
     navigate(`/event/${id.toString()}`);
   };
 
@@ -93,8 +98,8 @@ const EventCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "bg-white rounded-xl overflow-hidden mb-4 shadow-sm hover:shadow-md transition-all cursor-pointer",
-        !active && "opacity-60",
+        "bg-white rounded-xl overflow-hidden mb-4 shadow-sm hover:shadow-md transition-all",
+        !active && !isInformationOfficer ? "opacity-60 cursor-default" : "cursor-pointer",
         className
       )}
       onClick={handleCardClick}
