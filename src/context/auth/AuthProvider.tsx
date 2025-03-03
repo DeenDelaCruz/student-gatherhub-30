@@ -16,8 +16,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Remove the problematic session clearing code
-  // This was causing the infinite loading issue
+  // No problematic session clearing code that was causing infinite loading
 
   const fetchUserData = async (userId: string) => {
     try {
@@ -130,11 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ session, user, profile, roles, loading, signOut, hasRole }}>
-      {!loading ? children : (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
-        </div>
-      )}
+      {children}
     </AuthContext.Provider>
   );
 };
