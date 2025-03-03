@@ -21,6 +21,7 @@ const EventDetails = () => {
   const [interestedCount, setInterestedCount] = useState(0);
   const [isUpdating, setIsUpdating] = useState(false);
   const [subscription, setSubscription] = useState<any>(null);
+  const [lastToggleTime, setLastToggleTime] = useState<number | null>(null);
 
   // Function to fetch interest state for the current user
   const fetchUserInterest = async () => {
@@ -89,7 +90,7 @@ const EventDetails = () => {
         const count = await fetchInterestCount();
         setInterestedCount(count);
         
-        // Check if user is interested
+        // Check if user is interested - this should be accurate from the database
         if (user) {
           const userIsInterested = await fetchUserInterest();
           setIsInterested(userIsInterested);
@@ -103,7 +104,10 @@ const EventDetails = () => {
       }
     };
 
-    fetchEventDetails();
+    // Only fetch if not currently updating
+    if (!isUpdating) {
+      fetchEventDetails();
+    }
 
     // Clean up previous subscription if it exists
     return () => {
@@ -111,15 +115,17 @@ const EventDetails = () => {
         supabase.removeChannel(subscription);
       }
     };
-  }, [eventId, user]);
+  }, [eventId, user, isUpdating]);
 
   // Setup real-time subscription in a separate effect
   useEffect(() => {
-    if (!eventId || isUpdating) return;
+    // Don't setup subscription if loading or updating
+    if (!eventId || isLoading || isUpdating) return;
 
     // Set up real-time subscription for interest updates
+    const channelName = `event-interest-${eventId}`;
     const channel = supabase
-      .channel(`event-attendees-${eventId}`)
+      .channel(channelName)
       .on('postgres_changes', 
         { 
           event: '*', 
@@ -128,17 +134,21 @@ const EventDetails = () => {
           filter: `event_id=eq.${eventId}` 
         }, 
         async () => {
-          // Only update if we're not in the middle of toggling
-          if (!isUpdating) {
-            // Just update the count, don't change the user's own interest state
-            const count = await fetchInterestCount();
-            setInterestedCount(count);
-            
-            // Only update the user's interest state if they're logged in and not toggling
-            if (user) {
-              const userIsInterested = await fetchUserInterest();
-              setIsInterested(userIsInterested);
-            }
+          // Skip real-time updates during manual toggle operation
+          // or if the toggle was very recent (less than 2 seconds ago)
+          const now = Date.now();
+          if (isUpdating || (lastToggleTime && now - lastToggleTime < 2000)) {
+            return;
+          }
+          
+          // Update count and interest state from the database
+          const count = await fetchInterestCount();
+          setInterestedCount(count);
+          
+          // Only update user's own interest state if they're logged in
+          if (user) {
+            const userIsInterested = await fetchUserInterest();
+            setIsInterested(userIsInterested);
           }
         }
       )
@@ -147,9 +157,20 @@ const EventDetails = () => {
     setSubscription(channel);
 
     return () => {
+      // Clean up subscription
       supabase.removeChannel(channel);
+      setSubscription(null);
     };
-  }, [eventId, isUpdating, user]);
+  }, [eventId, isLoading, isUpdating, user, lastToggleTime]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
+  }, [subscription]);
 
   const handleToggleInterest = async () => {
     if (!user) {
@@ -167,6 +188,9 @@ const EventDetails = () => {
       const newInterestedState = !isInterested;
       setIsInterested(newInterestedState);
       setInterestedCount(prevCount => newInterestedState ? prevCount + 1 : Math.max(0, prevCount - 1));
+      
+      // Record the time of this toggle
+      setLastToggleTime(Date.now());
 
       if (newInterestedState === false) {
         // Remove interest
@@ -192,6 +216,18 @@ const EventDetails = () => {
         if (error) throw error;
         toast.success("You are now interested in this event");
       }
+      
+      // Ensure the database has time to update before we allow realtime updates again
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Fetch the accurate state from the database after updates
+      const userIsInterested = await fetchUserInterest();
+      const count = await fetchInterestCount();
+      
+      // Update state with accurate data
+      setIsInterested(userIsInterested);
+      setInterestedCount(count);
+      
     } catch (error: any) {
       console.error("Error updating interest:", error);
       toast.error(error.message || "Failed to update interest");
@@ -200,10 +236,8 @@ const EventDetails = () => {
       setIsInterested(!isInterested);
       setInterestedCount(prevCount => isInterested ? prevCount - 1 : prevCount + 1);
     } finally {
-      // Briefly delay turning off isUpdating to allow database to sync
-      setTimeout(() => {
-        setIsUpdating(false);
-      }, 1000);
+      // Turn off isUpdating
+      setIsUpdating(false);
     }
   };
 
