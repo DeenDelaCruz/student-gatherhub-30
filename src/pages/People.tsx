@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -46,6 +45,7 @@ const People = () => {
         
         // Get all officer IDs
         const officerIds = roleData.map(row => row.user_id);
+        console.log("Found officer IDs:", officerIds);
         
         // Fetch profile information for all officers
         const { data: profileData, error: profileError } = await supabase
@@ -59,6 +59,7 @@ const People = () => {
           return;
         }
         
+        console.log("Retrieved profiles:", profileData);
         setOfficers(profileData || []);
       } catch (error) {
         console.error("Unexpected error:", error);
@@ -68,9 +69,9 @@ const People = () => {
       }
     };
     
-    // Removed the user dependency - fetch officers regardless of auth state
+    // Fetch officers regardless of auth state
     fetchOfficers();
-  }, []); // Removed user from dependency array
+  }, []); // No dependencies - run once on component mount
   
   const filteredOfficers = officers.filter(officer => 
     (officer.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
