@@ -1,15 +1,15 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
-import { QrCode, Loader2, Users, Download } from "lucide-react";
+import { QrCode, Loader2, Users, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-// Mock data for attendees
 const MOCK_ATTENDEES = [
   { id: 1, name: "John Doe", email: "john@example.com", timestamp: "2025-01-15T10:30:00Z" },
   { id: 2, name: "Jane Smith", email: "jane@example.com", timestamp: "2025-01-15T10:35:00Z" },
@@ -18,37 +18,39 @@ const MOCK_ATTENDEES = [
 ];
 
 const Scanner = () => {
-  const [isScanning, setIsScanning] = useState(false);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [qrValue, setQrValue] = useState("");
+  const [qrImageUrl, setQrImageUrl] = useState("");
+  const [eventName, setEventName] = useState("");
   const [attendees, setAttendees] = useState(MOCK_ATTENDEES);
-  const [activeTab, setActiveTab] = useState("scanner");
-  const { hasRole } = useAuth();
+  const [activeTab, setActiveTab] = useState("qrcode");
+  const { hasRole, user } = useAuth();
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   
-  const startScanner = () => {
-    setIsScanning(true);
+  const generateQRCode = () => {
+    if (!eventName.trim()) {
+      toast.error("Please enter an event name");
+      return;
+    }
     
-    // Simulate scanning process
+    setIsGenerating(true);
+    
+    // Simulate QR code generation
     setTimeout(() => {
-      setIsScanning(false);
+      setIsGenerating(false);
       
-      // Simulate successful scan
-      toast.success("Attendance recorded", {
-        description: "You've been checked in to Comp Sci General Assembly 2025",
+      // Generate a mock QR code URL with the event name encoded
+      // In a real app, you would use a proper QR code generation API
+      const mockQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(eventName)}`;
+      setQrImageUrl(mockQrImageUrl);
+      setQrValue(eventName);
+      
+      toast.success("QR Code generated", {
+        description: `QR Code for "${eventName}" event is ready`,
         position: "top-center",
         duration: 5000,
       });
-      
-      // Add the new attendee to the list
-      const newAttendee = {
-        id: attendees.length + 1,
-        name: "New Attendee",
-        email: "new@example.com",
-        timestamp: new Date().toISOString()
-      };
-      
-      setAttendees([newAttendee, ...attendees]);
-    }, 3000);
+    }, 1500);
   };
   
   const exportAttendees = () => {
@@ -58,12 +60,10 @@ const Scanner = () => {
     });
   };
   
-  useEffect(() => {
-    // Simulate asking for camera permission
-    setTimeout(() => {
-      setHasPermission(true);
-    }, 1000);
-  }, []);
+  const regenerateQRCode = () => {
+    setQrImageUrl("");
+    setQrValue("");
+  };
   
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
@@ -71,20 +71,20 @@ const Scanner = () => {
       
       <main className="flex-1 p-4 flex flex-col items-center">
         <Tabs 
-          defaultValue="scanner" 
+          defaultValue="qrcode" 
           className="w-full max-w-md"
           onValueChange={setActiveTab}
         >
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="scanner">Scanner</TabsTrigger>
+            <TabsTrigger value="qrcode">QR Code</TabsTrigger>
             {isInformationOfficer && (
               <TabsTrigger value="attendees">Attendees</TabsTrigger>
             )}
           </TabsList>
           
-          <TabsContent value="scanner">
+          <TabsContent value="qrcode">
             <motion.div 
-              className="scanner-card bg-white rounded-3xl p-6 shadow-sm w-full text-center"
+              className="qrcode-card bg-white rounded-3xl p-6 shadow-sm w-full text-center"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
@@ -93,46 +93,103 @@ const Scanner = () => {
                 <div className="bg-campus-accent/10 rounded-full p-4 inline-flex">
                   <QrCode size={32} className="text-campus-accent" />
                 </div>
-                <h2 className="text-xl font-medium mt-4">Scan QR Code</h2>
+                <h2 className="text-xl font-medium mt-4">
+                  {isInformationOfficer ? "Generate QR Code" : "Scan QR Code"}
+                </h2>
                 <p className="text-gray-500 text-sm mt-2">
-                  Scan the event QR code to mark your attendance
+                  {isInformationOfficer 
+                    ? "Create a QR code for event attendance tracking" 
+                    : "Scan the event QR code to mark your attendance"}
                 </p>
               </div>
               
-              {hasPermission === null ? (
-                <div className="flex justify-center">
-                  <Loader2 size={24} className="animate-spin text-campus-accent" />
-                </div>
-              ) : hasPermission === false ? (
-                <div className="text-red-500 text-sm">
-                  Camera access denied. Please enable camera permissions in your browser settings.
-                </div>
+              {isInformationOfficer ? (
+                // QR code generation for information officers
+                <>
+                  {!qrImageUrl ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2 text-left">
+                        <Label htmlFor="eventName">Event Name</Label>
+                        <Input
+                          id="eventName"
+                          placeholder="Enter event name"
+                          value={eventName}
+                          onChange={(e) => setEventName(e.target.value)}
+                        />
+                      </div>
+                      
+                      <Button
+                        onClick={generateQRCode}
+                        disabled={isGenerating || !eventName.trim()}
+                        className="w-full bg-campus-accent text-white rounded-full py-3 px-4 font-medium hover:bg-campus-accent/90 transition-colors disabled:opacity-70 flex items-center justify-center"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin mr-2" />
+                            Generating...
+                          </>
+                        ) : (
+                          "Generate QR Code"
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="qr-display bg-white p-4 rounded-xl border flex justify-center">
+                        <img src={qrImageUrl} alt="QR Code" className="w-48 h-48" />
+                      </div>
+                      
+                      <div className="text-sm font-medium text-gray-700 bg-gray-50 p-2 rounded-lg break-all">
+                        {qrValue}
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 flex items-center justify-center gap-1"
+                          onClick={regenerateQRCode}
+                        >
+                          <RefreshCw size={16} />
+                          New QR
+                        </Button>
+                        
+                        <Button
+                          variant="outline" 
+                          size="sm"
+                          className="flex-1 flex items-center justify-center gap-1"
+                          onClick={() => {
+                            // In a real app, download the QR code
+                            toast.success("QR Code downloaded", {
+                              description: "QR Code image saved to your device"
+                            });
+                          }}
+                        >
+                          <Download size={16} />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
+                // Regular QR scanner for students - keeping the existing code
                 <>
                   <div className="scanner-viewport relative mb-6 rounded-xl overflow-hidden bg-black/5 aspect-square flex items-center justify-center">
-                    {isScanning ? (
-                      <>
-                        <div className="absolute inset-0 opacity-10 bg-gradient-to-tr from-campus-purple to-campus-accent"></div>
-                        <div className="scanner-line absolute top-0 left-0 right-0 h-0.5 bg-campus-accent animate-pulse-light"></div>
-                      </>
-                    ) : (
-                      <div className="text-gray-400">Camera viewfinder</div>
-                    )}
+                    <div className="text-gray-400">Camera viewfinder</div>
                   </div>
                   
                   <button
-                    onClick={startScanner}
-                    disabled={isScanning}
+                    onClick={() => {
+                      toast.success("Attendance recorded", {
+                        description: "You've been checked in to Comp Sci General Assembly 2025",
+                        position: "top-center",
+                        duration: 5000,
+                      });
+                    }}
                     className="w-full bg-campus-accent text-white rounded-full py-3 px-4 font-medium hover:bg-campus-accent/90 transition-colors disabled:opacity-70 flex items-center justify-center"
                   >
-                    {isScanning ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin mr-2" />
-                        Scanning...
-                      </>
-                    ) : (
-                      "Start Scanning"
-                    )}
+                    Start Scanning
                   </button>
                 </>
               )}
