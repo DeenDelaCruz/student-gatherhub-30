@@ -38,17 +38,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
   const fetchUserRoles = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+        
+      if (error) {
+        console.error("Error fetching user roles:", error);
+        return [];
+      }
       
-    if (error) {
-      console.error("Error fetching user roles:", error);
+      return data.map(item => item.role) as UserRole[];
+    } catch (error) {
+      console.error("Error in fetchUserRoles:", error);
       return [];
     }
-    
-    return data.map(item => item.role) as UserRole[];
   };
 
   const fetchUserData = async (userId: string) => {
@@ -58,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
         
       if (error) {
         console.error("Error fetching profile:", error);
@@ -78,17 +83,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const getSession = async () => {
       try {
+        console.log("Getting session...");
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error("Error getting session:", error);
           toast.error("Session error. Please try logging in again.");
+          setLoading(false);
+          return;
         }
         
+        console.log("Session:", session ? "Found" : "Not found");
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log("Fetching user data for:", session.user.id);
           await fetchUserData(session.user.id);
         }
       } catch (error) {
@@ -107,11 +117,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(newSession?.user ?? null);
         
         if (event === "SIGNED_IN" && newSession?.user) {
+          console.log("User signed in:", newSession.user.id);
           await fetchUserData(newSession.user.id);
           navigate("/");
         }
         
         if (event === "SIGNED_OUT") {
+          console.log("User signed out");
           setProfile(null);
           setRoles([]);
           navigate("/auth");
@@ -119,6 +131,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (event === "TOKEN_REFRESHED") {
           console.log("Token refreshed successfully");
+          if (newSession?.user) {
+            await fetchUserData(newSession.user.id);
+          }
         }
         
         if (event === "USER_UPDATED") {
@@ -161,7 +176,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ session, user, profile, roles, loading, signOut, hasRole }}>
-      {children}
+      {!loading ? children : (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 };

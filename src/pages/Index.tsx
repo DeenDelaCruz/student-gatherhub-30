@@ -30,13 +30,21 @@ const Index = () => {
           .select("*")
           .order('event_date', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching events:", error);
+          toast.error(error.message || "Failed to fetch events");
+          setEvents([]);
+          setFilteredEvents([]);
+          return;
+        }
         
-        setEvents(data as Event[]);
-        setFilteredEvents(data as Event[]);
+        setEvents(data || []);
+        setFilteredEvents(data || []);
       } catch (error: any) {
         console.error("Error fetching events:", error);
         toast.error(error.message || "Failed to fetch events");
+        setEvents([]);
+        setFilteredEvents([]);
       } finally {
         setIsLoading(false);
       }
@@ -55,7 +63,9 @@ const Index = () => {
           fetchEvents(); // Refetch events when changes occur
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -113,8 +123,7 @@ const Index = () => {
   };
 
   const handleEventClick = (eventId: string | number) => {
-    // In a real app, this would navigate to event details
-    toast(`Opening details for event #${eventId}`);
+    navigate(`/event/${eventId}`);
   };
 
   const handleCreateEvent = () => {
@@ -156,20 +165,20 @@ const Index = () => {
             </div>
           ) : (
             <div className="events-grid">
-              {filteredEvents.map((event) => (
-                <EventCard
-                  key={event.id}
-                  id={event.id}
-                  title={event.title}
-                  imageSrc={event.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"}
-                  date={new Date(event.event_date)}
-                  isActive={event.is_active}
-                  onClick={() => handleEventClick(event.id)}
-                  createdBy={event.created_by}
-                />
-              ))}
-              
-              {filteredEvents.length === 0 && !isLoading && (
+              {filteredEvents.length > 0 ? (
+                filteredEvents.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    id={event.id}
+                    title={event.title}
+                    imageSrc={event.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"}
+                    date={new Date(event.event_date)}
+                    isActive={event.is_active}
+                    onClick={() => handleEventClick(event.id)}
+                    createdBy={event.created_by}
+                  />
+                ))
+              ) : (
                 <div className="text-center py-8 text-gray-500">
                   {searchTerm ? `No events found for "${searchTerm}"` : "No events available"}
                 </div>
