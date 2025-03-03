@@ -75,21 +75,6 @@ const Index = () => {
     };
   }, []);
 
-  useEffect(() => {
-    // Simulate receiving a notification for the first event
-    if (events.length > 0 && !isLoading) {
-      const timer = setTimeout(() => {
-        toast("New Event", {
-          description: `${events[0].title} registration is now open!`,
-          position: "top-center",
-          duration: 5000,
-        });
-      }, 3000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [events, isLoading]);
-
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     if (!term.trim()) {

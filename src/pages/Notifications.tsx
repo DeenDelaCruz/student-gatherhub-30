@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -7,88 +8,105 @@ import Navigation from "@/components/Navigation";
 import { Bell, CalendarCheck, InfoIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  created_at: string;
-  type: 'event' | 'info' | 'reminder';
-  read: boolean;
-}
-
-// Mock notifications for demo purposes
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    title: "New Campus Event",
-    message: "There's a new AI Workshop happening next week!",
-    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    type: 'event',
-    read: false
-  },
-  {
-    id: "2",
-    title: "Event Update",
-    message: "The Programming Contest has been rescheduled to Friday",
-    created_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    type: 'event',
-    read: false
-  },
-  {
-    id: "3",
-    title: "Campus Announcement",
-    message: "Library will be closed for renovations this weekend",
-    created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    type: 'info',
-    read: true
-  },
-  {
-    id: "4",
-    title: "Event Reminder",
-    message: "Don't forget the Career Fair tomorrow at 10 AM",
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    type: 'reminder',
-    read: true
-  }
-];
+import { Notification } from "@/types/notification";
 
 const Notifications = () => {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, this would fetch notifications from Supabase
-    // This is where you would implement the actual data fetching
+    // Fetch notifications from Supabase
     const fetchNotifications = async () => {
+      if (!user) return;
+      
       try {
         setLoading(true);
-        // Simulate API call
-        setTimeout(() => {
-          setNotifications(MOCK_NOTIFICATIONS);
-          setLoading(false);
-        }, 800);
-      } catch (error) {
+        
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        setNotifications(data || []);
+      } catch (error: any) {
         console.error("Error fetching notifications:", error);
         toast.error("Failed to load notifications");
+      } finally {
         setLoading(false);
       }
     };
 
     fetchNotifications();
-  }, [user?.id]);
 
-  const markAsRead = (id: string) => {
-    // In a real app, this would update the notification in Supabase
-    setNotifications(prevNotifications => 
-      prevNotifications.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
+    // Subscribe to realtime notifications
+    const channel = supabase
+      .channel('notifications-changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'notifications',
+          filter: `user_id=eq.${user?.id}` 
+        },
+        (payload) => {
+          console.log('Notification change received:', payload);
+          fetchNotifications();
+        }
       )
-    );
-    toast.success("Marked as read");
+      .subscribe((status) => {
+        console.log('Realtime notification subscription status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const markAsRead = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setNotifications(prevNotifications => 
+        prevNotifications.map(notification => 
+          notification.id === id 
+            ? { ...notification, read: true } 
+            : notification
+        )
+      );
+      toast.success("Marked as read");
+    } catch (error: any) {
+      console.error("Error marking notification as read:", error);
+      toast.error("Failed to update notification");
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    // If the notification is related to an event, navigate to the event details page
+    if (notification.type === 'event' || notification.type === 'reminder') {
+      if (notification.related_id) {
+        navigate(`/event/${notification.related_id}`);
+      }
+    }
+    
+    // Mark as read when clicked
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -125,12 +143,52 @@ const Notifications = () => {
     }
   };
 
+  const markAllAsRead = async () => {
+    if (!user || notifications.length === 0) return;
+    
+    const unreadNotifications = notifications.filter(n => !n.read);
+    if (unreadNotifications.length === 0) {
+      toast.info("No unread notifications");
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+      
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, read: true }))
+      );
+      
+      toast.success(`Marked ${unreadNotifications.length} notifications as read`);
+    } catch (error: any) {
+      console.error("Error marking all notifications as read:", error);
+      toast.error("Failed to update notifications");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
       <Header />
       
       <main className="flex-1 p-4">
-        <h2 className="text-xl font-medium mb-4">Notifications</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-medium">Notifications</h2>
+          
+          {notifications.filter(n => !n.read).length > 0 && (
+            <button 
+              onClick={markAllAsRead}
+              className="text-sm text-campus-accent hover:underline"
+            >
+              Mark all as read
+            </button>
+          )}
+        </div>
         
         {loading ? (
           <div className="flex justify-center items-center h-40">
@@ -145,6 +203,7 @@ const Notifications = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start">
                   <div className={`bg-gray-100 rounded-full p-2 mr-3 ${!notification.read ? 'bg-campus-accent/10' : ''}`}>
@@ -162,7 +221,10 @@ const Notifications = () => {
                     <p className="text-gray-600 text-sm mt-1">{notification.message}</p>
                     {!notification.read && (
                       <button
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAsRead(notification.id);
+                        }}
                         className="text-xs text-campus-accent hover:underline mt-2"
                       >
                         Mark as read

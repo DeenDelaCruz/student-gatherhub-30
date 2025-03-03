@@ -168,6 +168,31 @@ const EventDetails = () => {
           });
           
         if (error) throw error;
+        
+        if (event) {
+          const eventDate = new Date(event.event_date);
+          const now = new Date();
+          const oneDayBefore = new Date(eventDate);
+          oneDayBefore.setDate(oneDayBefore.getDate() - 1);
+          
+          if (eventDate > now && oneDayBefore > now) {
+            const { error: notifError } = await supabase
+              .from("notifications")
+              .insert({
+                user_id: user.id,
+                title: "Event Reminder",
+                message: `You've marked interest in ${event.title}. We'll remind you before the event!`,
+                type: "info",
+                related_id: eventId.toString(),
+                read: false
+              });
+            
+            if (notifError) {
+              console.error("Error creating notification:", notifError);
+            }
+          }
+        }
+        
         toast.success("You are now interested in this event");
       }
       
