@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { Calendar, PlusSquare, Users, User } from "lucide-react";
+import { Calendar, QrCode, Users, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Navigation = () => {
@@ -8,7 +8,7 @@ const Navigation = () => {
   
   const navItems = [
     { icon: Calendar, label: "Events", path: "/" },
-    { icon: PlusSquare, label: "Scan", path: "/scanner" },
+    { icon: QrCode, label: "QR", path: "/scanner" },
     { icon: Users, label: "People", path: "/people" },
     { icon: User, label: "Profile", path: "/profile" },
   ];
