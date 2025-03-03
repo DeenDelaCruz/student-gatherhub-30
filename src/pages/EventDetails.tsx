@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getEventInterestCount, isUserInterestedInEvent } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { Event } from "@/types/event";
@@ -23,52 +22,18 @@ const EventDetails = () => {
   const [subscription, setSubscription] = useState<any>(null);
   const [lastToggleTime, setLastToggleTime] = useState<number | null>(null);
 
-  // Function to fetch interest state for the current user
-  const fetchUserInterest = async () => {
-    if (!eventId || !user) return false;
-    
-    try {
-      const { data: interestData, error: interestError } = await supabase
-        .from("event_attendees")
-        .select("*")
-        .eq("event_id", eventId)
-        .eq("user_id", user.id)
-        .is("check_in_time", null)
-        .maybeSingle();
-        
-      if (interestError) {
-        console.error("Error checking interest:", interestError);
-        return false;
-      }
-      
-      return interestData !== null;
-    } catch (error: any) {
-      console.error("Error fetching user interest:", error);
-      return false;
-    }
+  // Function to fetch interest count
+  const fetchInterestCount = async () => {
+    if (!eventId) return;
+    const count = await getEventInterestCount(eventId);
+    setInterestedCount(count);
   };
 
-  // Function to fetch just the count
-  const fetchInterestCount = async () => {
-    if (!eventId) return 0;
-    
-    try {
-      const { count, error: countError } = await supabase
-        .from("event_attendees")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", eventId)
-        .is("check_in_time", null);
-        
-      if (countError) {
-        console.error("Error fetching interest count:", countError);
-        return 0;
-      }
-      
-      return count || 0;
-    } catch (error: any) {
-      console.error("Error fetching interest count:", error);
-      return 0;
-    }
+  // Function to fetch user interest state
+  const fetchUserInterest = async () => {
+    if (!eventId || !user) return;
+    const interested = await isUserInterestedInEvent(eventId, user.id);
+    setIsInterested(interested);
   };
 
   useEffect(() => {
@@ -86,14 +51,10 @@ const EventDetails = () => {
         if (eventError) throw eventError;
         setEvent(eventData as Event);
         
-        // Get interest count
-        const count = await fetchInterestCount();
-        setInterestedCount(count);
-        
-        // Check if user is interested - this should be accurate from the database
+        // Get interest count and user interest status
+        await fetchInterestCount();
         if (user) {
-          const userIsInterested = await fetchUserInterest();
-          setIsInterested(userIsInterested);
+          await fetchUserInterest();
         }
         
       } catch (error: any) {
@@ -122,8 +83,8 @@ const EventDetails = () => {
     // Don't setup subscription if loading or updating
     if (!eventId || isLoading || isUpdating) return;
 
-    // Set up real-time subscription for interest updates
-    const channelName = `event-interest-${eventId}`;
+    // Set up real-time subscription for interest updates with a more specific channel name
+    const channelName = `event-interest-${eventId}-${Date.now()}`;
     const channel = supabase
       .channel(channelName)
       .on('postgres_changes', 
@@ -133,31 +94,34 @@ const EventDetails = () => {
           table: 'event_attendees',
           filter: `event_id=eq.${eventId}` 
         }, 
-        async () => {
+        async (payload) => {
+          console.log("Realtime update received:", payload);
+          
           // Skip real-time updates during manual toggle operation
           // or if the toggle was very recent (less than 2 seconds ago)
           const now = Date.now();
           if (isUpdating || (lastToggleTime && now - lastToggleTime < 2000)) {
+            console.log("Skipping real-time update due to recent toggle");
             return;
           }
           
           // Update count and interest state from the database
-          const count = await fetchInterestCount();
-          setInterestedCount(count);
+          await fetchInterestCount();
           
           // Only update user's own interest state if they're logged in
           if (user) {
-            const userIsInterested = await fetchUserInterest();
-            setIsInterested(userIsInterested);
+            await fetchUserInterest();
           }
         }
       )
       .subscribe();
 
+    console.log(`Subscribed to channel: ${channelName}`);
     setSubscription(channel);
 
     return () => {
       // Clean up subscription
+      console.log(`Unsubscribing from channel: ${channelName}`);
       supabase.removeChannel(channel);
       setSubscription(null);
     };
@@ -221,12 +185,8 @@ const EventDetails = () => {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Fetch the accurate state from the database after updates
-      const userIsInterested = await fetchUserInterest();
-      const count = await fetchInterestCount();
-      
-      // Update state with accurate data
-      setIsInterested(userIsInterested);
-      setInterestedCount(count);
+      await fetchUserInterest();
+      await fetchInterestCount();
       
     } catch (error: any) {
       console.error("Error updating interest:", error);
