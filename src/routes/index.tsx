@@ -12,6 +12,7 @@ const Index = lazy(() => import("@/pages/Index"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const Scanner = lazy(() => import("@/pages/Scanner"));
 const People = lazy(() => import("@/pages/People"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const CreateEvent = lazy(() => import("@/pages/CreateEvent"));
@@ -58,6 +59,12 @@ const routesConfig: RouteConfig[] = [
   {
     path: "/people",
     element: <People />,
+    requiresAuth: true,
+    allowedRoles: ["information_officer", "admin"],
+  },
+  {
+    path: "/notifications",
+    element: <Notifications />,
     requiresAuth: true,
   },
   {
