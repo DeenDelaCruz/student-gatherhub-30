@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
+import { toast } from "sonner";
 
 type UserRole = 'admin' | 'information_officer' | 'student';
 
@@ -50,69 +51,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return data.map(item => item.role) as UserRole[];
   };
 
+  const fetchUserData = async (userId: string) => {
+    try {
+      // Fetch profile data
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching profile:", error);
+      } else {
+        setProfile(data);
+      }
+      
+      // Fetch user roles
+      const userRoles = await fetchUserRoles(userId);
+      setRoles(userRoles);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      toast.error("Failed to load user data");
+    }
+  };
+
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error("Error getting session:", error);
-      }
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        // Fetch profile data
-        const { data, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-          
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-        } else {
-          setProfile(data);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error getting session:", error);
+          toast.error("Session error. Please try logging in again.");
         }
         
-        // Fetch user roles
-        const userRoles = await fetchUserRoles(session.user.id);
-        setRoles(userRoles);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchUserData(session.user.id);
+        }
+      } catch (error) {
+        console.error("Session retrieval error:", error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
+        console.log("Auth state changed:", event);
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
         if (event === "SIGNED_IN" && newSession?.user) {
-          // Fetch profile data
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", newSession.user.id)
-            .single();
-            
-          if (error) {
-            console.error("Error fetching profile:", error);
-          } else {
-            setProfile(data);
-          }
-          
-          // Fetch user roles
-          const userRoles = await fetchUserRoles(newSession.user.id);
-          setRoles(userRoles);
+          await fetchUserData(newSession.user.id);
+          navigate("/");
         }
         
         if (event === "SIGNED_OUT") {
           setProfile(null);
           setRoles([]);
           navigate("/auth");
+        }
+        
+        if (event === "TOKEN_REFRESHED") {
+          console.log("Token refreshed successfully");
+        }
+        
+        if (event === "USER_UPDATED") {
+          console.log("User updated");
+          if (newSession?.user) {
+            await fetchUserData(newSession.user.id);
+          }
         }
         
         setLoading(false);
@@ -126,12 +139,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("Error signing out:", error);
+        toast.error("Error signing out. Please try again.");
+      } else {
+        toast.success("Successfully signed out");
       }
     } catch (error) {
       console.error("Sign out error:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
     }
   };
 
