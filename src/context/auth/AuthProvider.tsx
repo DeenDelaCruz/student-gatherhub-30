@@ -14,12 +14,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<any | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
-
-  // No problematic session clearing code that was causing infinite loading
 
   const fetchUserData = async (userId: string) => {
     try {
+      console.log("Fetching user data for:", userId);
+      
       // Fetch profile data
       const profileData = await fetchProfileData(userId);
       setProfile(profileData);
@@ -37,12 +38,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const getSession = async () => {
       try {
         console.log("Getting session...");
+        setLoading(true);
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error("Error getting session:", error);
           toast.error("Session error. Please try logging in again.");
           setLoading(false);
+          setInitialized(true);
           return;
         }
         
@@ -58,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Session retrieval error:", error);
       } finally {
         setLoading(false);
+        setInitialized(true);
       }
     };
 
@@ -66,37 +71,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Auth state changed:", event);
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
         
-        if (event === "SIGNED_IN" && newSession?.user) {
-          console.log("User signed in:", newSession.user.id);
-          await fetchUserData(newSession.user.id);
-          navigate("/");
+        // Only update session if it's different or we don't have one
+        if (
+          (event === "SIGNED_IN" && !session) || 
+          (newSession?.user?.id !== session?.user?.id)
+        ) {
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          
+          if (newSession?.user) {
+            console.log("User signed in:", newSession.user.id);
+            await fetchUserData(newSession.user.id);
+            navigate("/");
+          }
         }
         
         if (event === "SIGNED_OUT") {
           console.log("User signed out");
+          setSession(null);
+          setUser(null);
           setProfile(null);
           setRoles([]);
           navigate("/auth");
         }
         
-        if (event === "TOKEN_REFRESHED") {
+        if (event === "TOKEN_REFRESHED" && newSession?.user) {
           console.log("Token refreshed successfully");
-          if (newSession?.user) {
-            await fetchUserData(newSession.user.id);
-          }
+          await fetchUserData(newSession.user.id);
         }
         
-        if (event === "USER_UPDATED") {
+        if (event === "USER_UPDATED" && newSession?.user) {
           console.log("User updated");
-          if (newSession?.user) {
-            await fetchUserData(newSession.user.id);
-          }
+          await fetchUserData(newSession.user.id);
         }
         
+        // Always set loading to false after an auth state change
         setLoading(false);
+        setInitialized(true);
       }
     );
 
@@ -128,7 +140,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, roles, loading, signOut, hasRole }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      profile, 
+      roles, 
+      loading: loading || !initialized, 
+      signOut, 
+      hasRole 
+    }}>
       {children}
     </AuthContext.Provider>
   );

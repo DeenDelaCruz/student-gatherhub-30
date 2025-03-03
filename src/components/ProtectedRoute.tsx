@@ -23,13 +23,17 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     }
   }, [loading, user, allowedRoles, hasRole]);
 
-  // If still loading, show nothing or a minimal loading indicator
+  // If still loading, show a loading indicator
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-campus-bg">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
           <p className="mt-4 text-gray-600">Verifying access...</p>
+          {/* Add a timeout message if loading takes too long */}
+          <p className="mt-2 text-sm text-gray-500">
+            If this takes too long, try <a href="/auth" className="text-blue-500 hover:underline">logging in again</a>
+          </p>
         </div>
       </div>
     );
