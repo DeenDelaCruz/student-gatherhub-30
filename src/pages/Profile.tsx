@@ -1,4 +1,3 @@
-
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -16,7 +15,10 @@ const Profile = () => {
     try {
       await signOut();
       toast.success("Logged out successfully");
-      navigate("/auth"); // Redirect to login page after logout
+      // Ensure immediate navigation to auth page
+      setTimeout(() => {
+        navigate("/auth", { replace: true });
+      }, 100);
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Failed to log out. Please try again.");
