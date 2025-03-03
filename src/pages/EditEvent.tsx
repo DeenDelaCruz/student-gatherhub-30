@@ -6,7 +6,7 @@ import Navigation from "@/components/Navigation";
 import EventForm from "@/components/EventForm";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Event } from "@/types/event";
+import { Event, convertSupabaseEventToEvent } from "@/types/event";
 import { toast } from "sonner";
 
 const EditEvent = () => {
@@ -47,14 +47,17 @@ const EditEvent = () => {
           return;
         }
 
+        // Convert Supabase data to our Event type
+        const eventData = convertSupabaseEventToEvent(data);
+
         // Check if user is the creator of the event
-        if (user?.id !== data.created_by) {
+        if (user?.id !== eventData.created_by) {
           toast.error("You can only edit events you created");
           navigate("/");
           return;
         }
 
-        setEvent(data as Event);
+        setEvent(eventData);
       } catch (error: any) {
         console.error("Error fetching event:", error);
         toast.error(error.message || "Failed to fetch event");

@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, getEventInterestCount, isUserInterestedInEvent } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { Event } from "@/types/event";
+import { Event, convertSupabaseEventToEvent } from "@/types/event";
 import { CalendarClock, MapPin, Users, Heart } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
@@ -38,6 +39,8 @@ const EventDetails = () => {
 
   useEffect(() => {
     const fetchEventDetails = async () => {
+      if (!eventId) return;
+      
       try {
         setIsLoading(true);
         
@@ -49,7 +52,10 @@ const EventDetails = () => {
           .single();
 
         if (eventError) throw eventError;
-        setEvent(eventData as Event);
+        
+        if (eventData) {
+          setEvent(convertSupabaseEventToEvent(eventData));
+        }
         
         // Get interest count and user interest status
         await fetchInterestCount();
@@ -161,7 +167,7 @@ const EventDetails = () => {
         const { error } = await supabase
           .from("event_attendees")
           .delete()
-          .eq("event_id", eventId)
+          .eq("event_id", eventId.toString())
           .eq("user_id", user.id)
           .is("check_in_time", null);
           
@@ -172,7 +178,7 @@ const EventDetails = () => {
         const { error } = await supabase
           .from("event_attendees")
           .insert({
-            event_id: eventId,
+            event_id: eventId.toString(),
             user_id: user.id,
             check_in_time: null
           });

@@ -9,7 +9,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Enable real-time functionality for the client
 const options = {
   db: {
-    schema: 'public',
+    schema: 'public' as const,
   },
   auth: {
     persistSession: true,
@@ -25,12 +25,12 @@ const options = {
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, options);
 
 // Helper function to get interest count for an event
-export const getEventInterestCount = async (eventId: string): Promise<number> => {
+export const getEventInterestCount = async (eventId: string | number): Promise<number> => {
   try {
     const { count, error } = await supabase
       .from("event_attendees")
       .select("*", { count: "exact", head: true })
-      .eq("event_id", eventId)
+      .eq("event_id", eventId.toString())
       .is("check_in_time", null);
       
     if (error) {
@@ -46,14 +46,14 @@ export const getEventInterestCount = async (eventId: string): Promise<number> =>
 };
 
 // Helper function to check if a user is interested in an event
-export const isUserInterestedInEvent = async (eventId: string, userId: string): Promise<boolean> => {
+export const isUserInterestedInEvent = async (eventId: string | number, userId: string): Promise<boolean> => {
   if (!eventId || !userId) return false;
   
   try {
     const { data, error } = await supabase
       .from("event_attendees")
       .select("*")
-      .eq("event_id", eventId)
+      .eq("event_id", eventId.toString())
       .eq("user_id", userId)
       .is("check_in_time", null)
       .maybeSingle();

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarIcon, MapPin, Clock } from "lucide-react";
+import { CalendarIcon, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
             event_date: formData.event_date.toISOString(),
             image_url: formData.image_url,
             is_active: formData.is_active,
-            updated_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           })
           .eq("id", event.id);
           
@@ -87,7 +87,7 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
             event_date: formData.event_date.toISOString(),
             image_url: formData.image_url,
             is_active: formData.is_active,
-            created_by: user.id,
+            created_by: user.id
           });
           
         if (error) throw error;

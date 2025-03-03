@@ -8,7 +8,7 @@ import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Event } from "@/types/event";
+import { Event, convertSupabaseEventsToEvents } from "@/types/event";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 
@@ -38,8 +38,11 @@ const Index = () => {
           return;
         }
         
-        setEvents(data || []);
-        setFilteredEvents(data || []);
+        if (data) {
+          const formattedEvents = convertSupabaseEventsToEvents(data);
+          setEvents(formattedEvents);
+          setFilteredEvents(formattedEvents);
+        }
       } catch (error: any) {
         console.error("Error fetching events:", error);
         toast.error(error.message || "Failed to fetch events");
