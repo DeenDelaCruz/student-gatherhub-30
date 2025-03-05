@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -8,9 +7,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/auth";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 import { 
   Select,
   SelectContent,
@@ -18,6 +14,9 @@ import {
   SelectTrigger,
   SelectValue, 
 } from "@/components/ui/select";
+import { supabase, checkInUserToEvent } from "@/integrations/supabase/client";
+import QrScanner from "@/components/QrScanner";
+import { Capacitor } from "@capacitor/core";
 
 interface Event {
   id: string;
@@ -39,7 +38,6 @@ const Scanner = () => {
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   
   useEffect(() => {
-    // Fetch active events for the information officer
     const fetchEvents = async () => {
       if (!isInformationOfficer) return;
       
@@ -63,7 +61,6 @@ const Scanner = () => {
   }, [isInformationOfficer]);
   
   useEffect(() => {
-    // Fetch attendees for the selected event
     const fetchAttendees = async () => {
       if (!isInformationOfficer || !selectedEvent) return;
       
@@ -104,14 +101,11 @@ const Scanner = () => {
     
     setIsGenerating(true);
     
-    // Create a QR code with the event ID encoded
     const eventInfo = JSON.stringify({ eventId: selectedEvent });
     
-    // Simulate QR code generation
     setTimeout(() => {
       setIsGenerating(false);
       
-      // In a real app, use a proper QR code generation API
       const mockQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(eventInfo)}`;
       setQrImageUrl(mockQrImageUrl);
       setQrValue(eventInfo);
@@ -127,72 +121,31 @@ const Scanner = () => {
   };
   
   const handleScanQR = () => {
-    // In a real app, this would activate the camera and scan a QR code
-    // Here we'll simulate scanning the generated QR code
-    
     if (!user) {
       toast.error("Please log in to scan QR codes");
       return;
     }
     
     setIsProcessing(true);
+  };
+  
+  const handleScanComplete = async (scannedData: string) => {
+    if (!user) {
+      toast.error("Please log in to scan QR codes");
+      return;
+    }
     
-    // Simulate scanning process
-    setTimeout(async () => {
-      try {
-        // Simulate a successful scan with the last generated QR code
-        // In a real app, this would come from the QR scanner
-        const scannedData = qrValue || JSON.stringify({ eventId: events[0]?.id });
-        setScanResult(scannedData);
+    setIsProcessing(true);
+    setScanResult(scannedData);
+    
+    try {
+      const { eventId } = JSON.parse(scannedData);
+      
+      const success = await checkInUserToEvent(eventId, user.id);
+      
+      if (success) {
+        setScanSuccess(true);
         
-        // Parse the scanned data
-        const { eventId } = JSON.parse(scannedData);
-        
-        // Check if user has already checked in for this event
-        const { data: existingCheckIn, error: checkError } = await supabase
-          .from("event_attendees")
-          .select("id, check_in_time")
-          .eq("event_id", eventId)
-          .eq("user_id", user.id)
-          .maybeSingle();
-          
-        if (checkError) throw checkError;
-        
-        if (existingCheckIn && existingCheckIn.check_in_time) {
-          // User already checked in
-          toast.info("You've already checked in to this event");
-        } else if (existingCheckIn) {
-          // User was interested but hadn't checked in yet
-          const { error: updateError } = await supabase
-            .from("event_attendees")
-            .update({ check_in_time: new Date().toISOString() })
-            .eq("id", existingCheckIn.id);
-            
-          if (updateError) throw updateError;
-          
-          setScanSuccess(true);
-          toast.success("Attendance recorded", {
-            description: "You've been successfully checked in to the event",
-          });
-        } else {
-          // User wasn't interested, create new record with check-in
-          const { error: insertError } = await supabase
-            .from("event_attendees")
-            .insert({
-              event_id: eventId,
-              user_id: user.id,
-              check_in_time: new Date().toISOString()
-            });
-            
-          if (insertError) throw insertError;
-          
-          setScanSuccess(true);
-          toast.success("Attendance recorded", {
-            description: "You've been successfully checked in to the event",
-          });
-        }
-        
-        // Get event details to show confirmation
         const { data: eventData, error: eventError } = await supabase
           .from("events")
           .select("title")
@@ -202,17 +155,25 @@ const Scanner = () => {
         if (eventError) throw eventError;
         
         if (eventData) {
-          toast.success(`Checked in to: ${eventData.title}`);
+          toast.success(`Checked in to: ${eventData.title}`, {
+            description: "Your attendance has been recorded",
+          });
+        } else {
+          toast.success("Attendance recorded", {
+            description: "You've been successfully checked in to the event",
+          });
         }
-        
-      } catch (error: any) {
-        console.error("Error processing QR code:", error);
+      } else {
         setScanSuccess(false);
-        toast.error(error.message || "Failed to process QR code");
-      } finally {
-        setIsProcessing(false);
+        toast.error("Failed to check in to the event");
       }
-    }, 2000);
+    } catch (error: any) {
+      console.error("Error processing QR code:", error);
+      setScanSuccess(false);
+      toast.error(error.message || "Failed to process QR code");
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   const resetScanResult = () => {
@@ -226,7 +187,6 @@ const Scanner = () => {
       return;
     }
     
-    // In a real app, generate CSV or Excel file
     const eventTitle = events.find(e => e.id === selectedEvent)?.title || "event";
     toast.success(`Attendance list for "${eventTitle}" exported`, {
       description: "The attendance list has been downloaded",
@@ -277,7 +237,6 @@ const Scanner = () => {
               </div>
               
               {isInformationOfficer ? (
-                // QR code generation for information officers
                 <>
                   {!qrImageUrl ? (
                     <div className="space-y-4">
@@ -347,7 +306,6 @@ const Scanner = () => {
                           size="sm"
                           className="flex-1 flex items-center justify-center gap-1"
                           onClick={() => {
-                            // In a real app, download the QR code
                             toast.success("QR Code downloaded", {
                               description: "QR Code image saved to your device"
                             });
@@ -361,38 +319,14 @@ const Scanner = () => {
                   )}
                 </>
               ) : (
-                // QR scanner for students
                 <>
                   {!scanResult ? (
-                    <>
-                      <div className="scanner-viewport relative mb-6 rounded-xl overflow-hidden bg-black/5 aspect-square flex items-center justify-center">
-                        {isProcessing ? (
-                          <div className="text-gray-500 flex flex-col items-center gap-2">
-                            <Loader2 className="h-8 w-8 animate-spin" />
-                            <p>Processing...</p>
-                          </div>
-                        ) : (
-                          <div className="text-gray-400">Camera viewfinder</div>
-                        )}
-                      </div>
-                      
-                      <Button
-                        onClick={handleScanQR}
-                        disabled={isProcessing}
-                        className="w-full bg-campus-accent text-white rounded-full py-3 px-4 font-medium hover:bg-campus-accent/90 transition-colors disabled:opacity-70 flex items-center justify-center"
-                      >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 size={18} className="animate-spin mr-2" />
-                            Processing...
-                          </>
-                        ) : (
-                          "Start Scanning"
-                        )}
-                      </Button>
-                    </>
+                    <QrScanner 
+                      onScanComplete={handleScanComplete} 
+                      isProcessing={isProcessing}
+                      onCancel={() => {}}
+                    />
                   ) : (
-                    // Show scan result
                     <div className="space-y-4">
                       <div className={`p-6 rounded-xl border-2 flex flex-col items-center gap-2 ${scanSuccess ? 'border-green-400 bg-green-50' : 'border-red-400 bg-red-50'}`}>
                         {scanSuccess ? (
