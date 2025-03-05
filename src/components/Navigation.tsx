@@ -6,6 +6,13 @@ import { useAuth } from "@/context/auth";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface NavItem {
+  icon: React.ElementType;
+  label: string;
+  path: string;
+  badge?: number | null;
+}
+
 const Navigation = () => {
   const location = useLocation();
   const { hasRole, user } = useAuth();
@@ -57,7 +64,7 @@ const Navigation = () => {
   }, [user, isStudent]);
   
   const getNavItems = () => {
-    const baseItems = [
+    const baseItems: NavItem[] = [
       { icon: Calendar, label: "Events", path: "/" },
       { icon: QrCode, label: "QR", path: "/scanner" },
     ];
