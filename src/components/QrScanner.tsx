@@ -1,14 +1,8 @@
 
-import { useState, useEffect } from 'react';
-import { Capacitor } from '@capacitor/core';
-import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
+import { useState, useEffect, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
-import { Loader2, Camera } from 'lucide-react';
-import { 
-  checkAndRequestCameraPermission,
-  prepareScanner,
-  stopScanner
-} from '@/utils/capacitorUtils';
+import { Loader2, Camera, X } from 'lucide-react';
 
 interface QrScannerProps {
   onScanComplete: (data: string) => void;
@@ -17,76 +11,77 @@ interface QrScannerProps {
 }
 
 const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) => {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [hasPermissions, setHasPermissions] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const cameraContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const checkPermissions = async () => {
-      if (Capacitor.isNativePlatform()) {
-        const permissionGranted = await checkAndRequestCameraPermission();
-        setHasPermission(permissionGranted);
-      } else {
-        // Web platform doesn't need the same permissions
-        setHasPermission(true);
-      }
-    };
-
-    checkPermissions();
-
-    // Clean up scanner when component unmounts
+    // Check camera permissions
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(() => {
+        setHasPermissions(true);
+      })
+      .catch((err) => {
+        console.error('Camera permission error:', err);
+        setHasPermissions(false);
+        setError('Camera access was denied or is not available');
+      });
+      
+    // Cleanup on unmount
     return () => {
-      if (isScanning) {
-        stopScanner();
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop();
       }
     };
   }, []);
 
   const startScan = async () => {
-    if (isProcessing) return;
+    if (isProcessing || !cameraContainerRef.current) return;
     
     try {
       setIsScanning(true);
+      setError(null);
       
-      if (Capacitor.isNativePlatform()) {
-        // Prepare UI for scanner
-        prepareScanner();
-        
-        // Start the scanner
-        const result = await BarcodeScanner.startScan();
-        
-        // If user didn't cancel scanning
-        if (result.hasContent) {
-          onScanComplete(result.content);
+      const html5QrCode = new Html5Qrcode("qr-reader");
+      scannerRef.current = html5QrCode;
+      
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+      
+      await html5QrCode.start(
+        { facingMode: "environment" }, 
+        config,
+        (decodedText) => {
+          // Success callback
+          console.log("QR Code detected:", decodedText);
+          html5QrCode.stop();
+          setIsScanning(false);
+          onScanComplete(decodedText);
+        },
+        (errorMessage) => {
+          // Error callback - we'll just log it without showing to user
+          // as this gets called frequently during scanning
+          console.log("QR Code scanning in progress:", errorMessage);
         }
-      } else {
-        // Web fallback - use alternative method or simulate for testing
-        console.log("Using web fallback for QR scanning");
-        
-        // Simulate a scan for testing purposes
-        setTimeout(() => {
-          onScanComplete(JSON.stringify({ eventId: "web-fallback-event-id" }));
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('Scanning failed:', error);
-    } finally {
+      );
+    } catch (err: any) {
+      console.error('Failed to start scanner:', err);
+      setError(err.toString());
       setIsScanning(false);
-      if (Capacitor.isNativePlatform()) {
-        stopScanner();
-      }
     }
   };
 
   const handleCancel = () => {
-    if (Capacitor.isNativePlatform() && isScanning) {
-      BarcodeScanner.stopScan();
-      stopScanner();
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      scannerRef.current.stop()
+        .catch(err => console.error("Error stopping scanner:", err));
     }
     setIsScanning(false);
     onCancel();
   };
 
-  if (hasPermission === null) {
+  if (hasPermissions === null) {
     return (
       <div className="text-center p-4">
         <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
@@ -95,12 +90,12 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     );
   }
 
-  if (hasPermission === false) {
+  if (hasPermissions === false) {
     return (
       <div className="text-center p-4">
         <p className="text-red-500 mb-2">Camera permission denied</p>
         <p className="text-sm text-gray-500 mb-4">
-          Please enable camera access in your device settings to scan QR codes.
+          {error || "Please enable camera access in your browser settings to scan QR codes."}
         </p>
         <Button onClick={onCancel}>Go Back</Button>
       </div>
@@ -115,32 +110,31 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           <p>Processing...</p>
         </div>
       ) : isScanning ? (
-        Capacitor.isNativePlatform() ? (
-          <div className="scanner-layer">
-            <div className="scanner-ui">
-              <p className="scanner-instructions">Position the QR code within the frame</p>
-              <button onClick={handleCancel}>Cancel</button>
-            </div>
+        <div className="relative w-full h-full flex flex-col items-center">
+          <div 
+            id="qr-reader" 
+            ref={cameraContainerRef} 
+            className="w-full h-full"
+          ></div>
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg"></div>
           </div>
-        ) : (
-          <div className="text-gray-500 flex flex-col items-center gap-2">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <p>Scanning...</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleCancel}
-              className="mt-2"
-            >
-              Cancel
-            </Button>
-          </div>
-        )
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleCancel}
+            className="absolute bottom-4 bg-white"
+          >
+            <X className="mr-1" size={16} />
+            Cancel
+          </Button>
+        </div>
       ) : (
         <div className="flex flex-col items-center">
           <Camera className="h-12 w-12 text-gray-400 mb-2" />
           <p className="text-gray-400 mb-4">Tap to activate camera</p>
           <Button onClick={startScan}>Start Scanning</Button>
+          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </div>
       )}
     </div>

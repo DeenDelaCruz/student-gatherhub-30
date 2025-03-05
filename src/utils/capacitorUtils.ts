@@ -1,6 +1,10 @@
 
+/**
+ * This file is being kept for backward compatibility.
+ * We've transitioned away from using Capacitor for QR scanning.
+ */
+
 import { Capacitor } from '@capacitor/core';
-import { Barcode, BarcodeScanner } from '@capacitor-community/barcode-scanner';
 
 /**
  * Checks and requests camera permissions for barcode scanning
@@ -8,20 +12,9 @@ import { Barcode, BarcodeScanner } from '@capacitor-community/barcode-scanner';
  */
 export const checkAndRequestCameraPermission = async (): Promise<boolean> => {
   try {
-    // Check if permission is already granted
-    const status = await BarcodeScanner.checkPermission({ force: false });
-    
-    if (status.granted) {
-      return true;
-    }
-    
-    if (status.denied || status.restricted || status.neverAsked) {
-      // Request permission
-      const requestResult = await BarcodeScanner.checkPermission({ force: true });
-      return requestResult.granted;
-    }
-    
-    return false;
+    // Using navigator.mediaDevices API instead of Capacitor
+    await navigator.mediaDevices.getUserMedia({ video: true });
+    return true;
   } catch (error) {
     console.error('Error checking camera permission:', error);
     return false;
@@ -30,29 +23,18 @@ export const checkAndRequestCameraPermission = async (): Promise<boolean> => {
 
 /**
  * Prepares the app UI for barcode scanning (hides web content)
+ * This is a no-op in the web version
  */
 export const prepareScanner = () => {
-  if (Capacitor.isNativePlatform()) {
-    // Hide the webpage content for native platforms
-    BarcodeScanner.hideBackground();
-    
-    // Add a class to make the body transparent
-    document.body.classList.add('scanner-active');
-  }
+  // No operation needed for web implementation
+  console.log('Scanner preparation not needed for web implementation');
 };
 
 /**
  * Restores the app UI after barcode scanning (shows web content)
+ * This is a no-op in the web version
  */
 export const stopScanner = () => {
-  if (Capacitor.isNativePlatform()) {
-    // Show the webpage content
-    BarcodeScanner.showBackground();
-    
-    // Remove the transparency class
-    document.body.classList.remove('scanner-active');
-    
-    // Make sure scanner is stopped
-    BarcodeScanner.stopScan();
-  }
+  // No operation needed for web implementation
+  console.log('Scanner cleanup not needed for web implementation');
 };

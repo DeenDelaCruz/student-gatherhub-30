@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -18,7 +17,6 @@ import {
 } from "@/components/ui/select";
 import { supabase, checkInUserToEvent } from "@/integrations/supabase/client";
 import QrScanner from "@/components/QrScanner";
-import { Capacitor } from "@capacitor/core";
 
 interface Event {
   id: string;

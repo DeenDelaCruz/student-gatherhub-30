@@ -185,3 +185,47 @@
   margin-bottom: 20px;
   visibility: visible !important;
 }
+
+/* QR Code Scanner Styles */
+#qr-reader {
+  width: 100% !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+#qr-reader__scan_region {
+  position: relative;
+  min-height: 100%;
+}
+
+#qr-reader__scan_region img {
+  display: none;
+}
+
+#qr-reader__dashboard {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px;
+  z-index: 1;
+  display: none;
+}
+
+#qr-reader__dashboard button {
+  display: none;
+}
+
+#qr-reader__camera_selection {
+  display: none;
+}
+
+#qr-reader__status {
+  display: none;
+}
