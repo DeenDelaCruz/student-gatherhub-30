@@ -2,12 +2,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CalendarClock, Users, QrCode, Edit, Eye, ToggleLeft, ToggleRight } from "lucide-react";
+import { CalendarClock, Users, UsersCheck, QrCode, Edit, Eye, ToggleLeft, ToggleRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { supabase, getEventInterestCount } from "@/integrations/supabase/client";
+import { supabase, getEventInterestCount, getEventCheckedInCount } from "@/integrations/supabase/client";
 
 interface EventCardProps {
   title: string;
@@ -36,23 +36,29 @@ const EventCard = ({
   const navigate = useNavigate();
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   const [active, setActive] = useState(isActive);
-  const [attendeesCount, setAttendeesCount] = useState(initialAttendees);
+  const [interestedCount, setInterestedCount] = useState(initialAttendees);
+  const [checkedInCount, setCheckedInCount] = useState(0);
   const canEdit = isInformationOfficer && createdBy === user?.id;
 
-  // Fetch current attendee count on mount
+  // Fetch current attendee counts on mount
   useEffect(() => {
-    const fetchAttendeeCount = async () => {
+    const fetchAttendeeCounts = async () => {
       if (id) {
         try {
-          const count = await getEventInterestCount(id.toString());
-          setAttendeesCount(count);
+          // Get interested users count
+          const interested = await getEventInterestCount(id.toString());
+          setInterestedCount(interested);
+          
+          // Get checked-in users count
+          const checkedIn = await getEventCheckedInCount(id.toString());
+          setCheckedInCount(checkedIn);
         } catch (error) {
-          console.error("Error fetching attendee count:", error);
+          console.error("Error fetching attendee counts:", error);
         }
       }
     };
     
-    fetchAttendeeCount();
+    fetchAttendeeCounts();
     
     // Subscribe to changes in event attendees table
     const channel = supabase
@@ -65,8 +71,8 @@ const EventCard = ({
           filter: `event_id=eq.${id}` 
         }, 
         () => {
-          // Refresh count when there's a change
-          fetchAttendeeCount();
+          // Refresh counts when there's a change
+          fetchAttendeeCounts();
         }
       )
       .subscribe();
@@ -188,7 +194,16 @@ const EventCard = ({
               className="text-xs h-7 px-2"
               onClick={handleViewAttendees}
             >
-              <Users className="h-3 w-3 mr-1" /> {attendeesCount}
+              <Users className="h-3 w-3 mr-1" /> {interestedCount}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-xs h-7 px-2"
+              onClick={handleViewAttendees}
+            >
+              <UsersCheck className="h-3 w-3 mr-1" /> {checkedInCount}
             </Button>
             
             <Button 
