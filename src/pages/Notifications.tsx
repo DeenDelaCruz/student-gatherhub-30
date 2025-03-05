@@ -34,7 +34,13 @@ const Notifications = () => {
           throw error;
         }
         
-        setNotifications(data || []);
+        // Explicitly cast the data to match our Notification type
+        const typedNotifications = data?.map(item => ({
+          ...item,
+          type: item.type as 'event' | 'info' | 'reminder'
+        })) || [];
+        
+        setNotifications(typedNotifications);
       } catch (error: any) {
         console.error("Error fetching notifications:", error);
         toast.error("Failed to load notifications");
