@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CalendarClock, Users, UsersCheck, QrCode, Edit, Eye, ToggleLeft, ToggleRight } from "lucide-react";
+import { CalendarClock, Users, UserCheck, QrCode, Edit, Eye, ToggleLeft, ToggleRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -203,7 +203,7 @@ const EventCard = ({
               className="text-xs h-7 px-2"
               onClick={handleViewAttendees}
             >
-              <UsersCheck className="h-3 w-3 mr-1" /> {checkedInCount}
+              <UserCheck className="h-3 w-3 mr-1" /> {checkedInCount}
             </Button>
             
             <Button 
