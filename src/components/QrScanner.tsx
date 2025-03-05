@@ -15,7 +15,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   const [hasPermissions, setHasPermissions] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const cameraContainerRef = useRef<HTMLDivElement>(null);
+  const scannerContainerId = "qr-reader-container";
 
   useEffect(() => {
     // Check camera permissions
@@ -32,22 +32,34 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     // Cleanup on unmount
     return () => {
       if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop();
+        scannerRef.current.stop()
+          .catch(err => console.error("Error stopping scanner on unmount:", err));
       }
     };
   }, []);
 
   const startScan = async () => {
-    if (isProcessing || !cameraContainerRef.current) return;
+    if (isProcessing) return;
     
     try {
       setIsScanning(true);
       setError(null);
       
-      const html5QrCode = new Html5Qrcode("qr-reader");
+      // Make sure we have a valid container element
+      const scannerContainer = document.getElementById(scannerContainerId);
+      if (!scannerContainer) {
+        throw new Error("Scanner container not found");
+      }
+      
+      // Create scanner instance
+      const html5QrCode = new Html5Qrcode(scannerContainerId);
       scannerRef.current = html5QrCode;
       
-      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+      const config = { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1
+      };
       
       await html5QrCode.start(
         { facingMode: "environment" }, 
@@ -55,9 +67,12 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         (decodedText) => {
           // Success callback
           console.log("QR Code detected:", decodedText);
-          html5QrCode.stop();
-          setIsScanning(false);
-          onScanComplete(decodedText);
+          html5QrCode.stop()
+            .then(() => {
+              setIsScanning(false);
+              onScanComplete(decodedText);
+            })
+            .catch(err => console.error("Error stopping scanner after success:", err));
         },
         (errorMessage) => {
           // Error callback - we'll just log it without showing to user
@@ -112,8 +127,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       ) : isScanning ? (
         <div className="relative w-full h-full flex flex-col items-center">
           <div 
-            id="qr-reader" 
-            ref={cameraContainerRef} 
+            id={scannerContainerId} 
             className="w-full h-full"
           ></div>
           <div className="absolute inset-0 pointer-events-none">
