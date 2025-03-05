@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
 import { Loader2, Camera, X } from 'lucide-react';
+import { useAuth } from '@/context/auth';
 
 interface QrScannerProps {
   onScanComplete: (data: string) => void;
@@ -16,6 +17,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerContainerId = "qr-reader-container";
+  const { user, refreshProfileData } = useAuth();
 
   useEffect(() => {
     // Check camera permissions
@@ -61,6 +63,13 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
             .then(() => {
               setIsScanning(false);
               onScanComplete(decodedText);
+              
+              // Refresh profile data after successful scan
+              if (user) {
+                setTimeout(() => {
+                  refreshProfileData(user.id);
+                }, 1000); // Small delay to allow check-in to complete
+              }
             })
             .catch(err => console.error("Error stopping scanner after success:", err));
         },

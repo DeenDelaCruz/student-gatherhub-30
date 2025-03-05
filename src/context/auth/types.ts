@@ -11,4 +11,5 @@ export interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   hasRole: (role: UserRole) => boolean;
+  refreshProfileData: (userId: string) => Promise<void>;
 }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +30,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Error fetching user data:", error);
       toast.error("Failed to load user data");
+    }
+  };
+
+  const refreshProfileData = async (userId: string) => {
+    try {
+      console.log("Refreshing profile data for:", userId);
+      
+      // Fetch profile data
+      const profileData = await fetchProfileData(userId);
+      setProfile(profileData);
+    } catch (error) {
+      console.error("Error refreshing profile data:", error);
     }
   };
 
@@ -147,7 +158,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       roles, 
       loading: loading || !initialized, 
       signOut, 
-      hasRole 
+      hasRole,
+      refreshProfileData 
     }}>
       {children}
     </AuthContext.Provider>
