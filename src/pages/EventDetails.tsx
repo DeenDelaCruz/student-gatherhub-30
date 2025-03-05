@@ -4,7 +4,7 @@ import { supabase, getEventInterestCount, isUserInterestedInEvent } from "@/inte
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth";
 import { Event, convertSupabaseEventToEvent } from "@/types/event";
-import { CalendarClock, MapPin, Users, Heart, AlertTriangle } from "lucide-react";
+import { CalendarClock, MapPin, Users, Heart, AlertTriangle, Edit, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import Header from "@/components/Header";
@@ -13,7 +13,7 @@ import { format } from "date-fns";
 const EventDetails = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInterested, setIsInterested] = useState(false);
@@ -21,6 +21,8 @@ const EventDetails = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [subscription, setSubscription] = useState<any>(null);
   const [lastToggleTime, setLastToggleTime] = useState<number | null>(null);
+  const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
+  const canEdit = isInformationOfficer && event?.created_by === user?.id;
 
   const fetchInterestCount = async () => {
     if (!eventId) return;
@@ -216,6 +218,40 @@ const EventDetails = () => {
     navigate(-1);
   };
 
+  const handleEdit = () => {
+    if (!eventId || !canEdit) return;
+    navigate(`/edit-event/${eventId}`);
+  };
+
+  const handleToggleActive = async () => {
+    if (!eventId || !canEdit) {
+      toast.error("You can only change status of events you created");
+      return;
+    }
+
+    if (isUpdating || !event) return;
+    
+    try {
+      setIsUpdating(true);
+      const newStatus = !event.is_active;
+      
+      const { error } = await supabase
+        .from("events")
+        .update({ is_active: newStatus })
+        .eq("id", eventId.toString());
+        
+      if (error) throw error;
+      
+      setEvent({...event, is_active: newStatus});
+      toast.success(`Event ${newStatus ? 'activated' : 'deactivated'} successfully`);
+    } catch (error: any) {
+      console.error("Error toggling event status:", error);
+      toast.error(error.message || "Failed to update event status");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
@@ -271,7 +307,44 @@ const EventDetails = () => {
           </div>
           
           <div className="p-4">
-            <h1 className="text-2xl font-bold mb-2">{event?.title}</h1>
+            <div className="flex justify-between items-start mb-2">
+              <h1 className="text-2xl font-bold">{event?.title}</h1>
+              
+              {canEdit && (
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={handleEdit}
+                    className="flex items-center gap-1"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={handleToggleActive}
+                    className="flex items-center gap-1"
+                    disabled={isUpdating}
+                  >
+                    {event?.is_active ? (
+                      <>
+                        <ToggleRight className="h-4 w-4" />
+                        Active
+                      </>
+                    ) : (
+                      <>
+                        <ToggleLeft className="h-4 w-4" />
+                        Inactive
+                      </>
+                    )}
+                    {isUpdating && <span className="ml-1 animate-spin">•</span>}
+                  </Button>
+                </div>
+              )}
+            </div>
             
             {event && !event.is_active && (
               <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center text-amber-800">
