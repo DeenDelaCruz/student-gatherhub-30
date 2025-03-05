@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor-community/barcode-scanner": "^4.0.1",
     "@capacitor/android": "^7.0.1",
     "@capacitor/barcode-scanner": "^2.0.1",
     "@capacitor/camera": "^7.0.0",

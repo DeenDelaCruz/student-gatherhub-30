@@ -1,6 +1,6 @@
 
 import { Capacitor } from '@capacitor/core';
-import { BarcodeScanner } from '@capacitor/barcode-scanner';
+import { Barcode, BarcodeScanner } from '@capacitor-community/barcode-scanner';
 
 /**
  * Checks and requests camera permissions for barcode scanning

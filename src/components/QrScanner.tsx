@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { BarcodeScanner } from '@capacitor/barcode-scanner';
+import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Camera } from 'lucide-react';
 import { 
   checkAndRequestCameraPermission,
   prepareScanner,
@@ -59,7 +59,10 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           onScanComplete(result.content);
         }
       } else {
-        // Web fallback - simulate a scan for testing
+        // Web fallback - use alternative method or simulate for testing
+        console.log("Using web fallback for QR scanning");
+        
+        // Simulate a scan for testing purposes
         setTimeout(() => {
           onScanComplete(JSON.stringify({ eventId: "web-fallback-event-id" }));
         }, 2000);
@@ -135,6 +138,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         )
       ) : (
         <div className="flex flex-col items-center">
+          <Camera className="h-12 w-12 text-gray-400 mb-2" />
           <p className="text-gray-400 mb-4">Tap to activate camera</p>
           <Button onClick={startScan}>Start Scanning</Button>
         </div>
