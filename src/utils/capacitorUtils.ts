@@ -1,6 +1,6 @@
 
 import { Capacitor } from '@capacitor/core';
-import { BarcodeScanner } from '@capacitor/barcode-scanner';
+import { BarcodeScanner as CapacitorBarcodeScanner } from '@capacitor/barcode-scanner';
 
 /**
  * Checks and requests camera permissions for barcode scanning
@@ -9,7 +9,7 @@ import { BarcodeScanner } from '@capacitor/barcode-scanner';
 export const checkAndRequestCameraPermission = async (): Promise<boolean> => {
   try {
     // Check if permission is already granted
-    const status = await BarcodeScanner.checkPermission({ force: false });
+    const status = await CapacitorBarcodeScanner.checkPermission({ force: false });
     
     if (status.granted) {
       return true;
@@ -17,7 +17,7 @@ export const checkAndRequestCameraPermission = async (): Promise<boolean> => {
     
     if (status.denied || status.restricted || status.neverAsked) {
       // Request permission
-      const requestResult = await BarcodeScanner.checkPermission({ force: true });
+      const requestResult = await CapacitorBarcodeScanner.checkPermission({ force: true });
       return requestResult.granted;
     }
     
@@ -34,7 +34,7 @@ export const checkAndRequestCameraPermission = async (): Promise<boolean> => {
 export const prepareScanner = () => {
   if (Capacitor.isNativePlatform()) {
     // Hide the webpage content for native platforms
-    BarcodeScanner.hideBackground();
+    CapacitorBarcodeScanner.hideBackground();
     
     // Add a class to make the body transparent
     document.body.classList.add('scanner-active');
@@ -47,12 +47,12 @@ export const prepareScanner = () => {
 export const stopScanner = () => {
   if (Capacitor.isNativePlatform()) {
     // Show the webpage content
-    BarcodeScanner.showBackground();
+    CapacitorBarcodeScanner.showBackground();
     
     // Remove the transparency class
     document.body.classList.remove('scanner-active');
     
     // Make sure scanner is stopped
-    BarcodeScanner.stopScan();
+    CapacitorBarcodeScanner.stopScan();
   }
 };

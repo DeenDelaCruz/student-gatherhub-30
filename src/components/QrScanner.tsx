@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { BarcodeScanner } from '@capacitor/barcode-scanner';
+import { BarcodeScanner as CapacitorBarcodeScanner } from '@capacitor/barcode-scanner';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { 
@@ -52,7 +52,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         prepareScanner();
         
         // Start the scanner
-        const result = await BarcodeScanner.startScan();
+        const result = await CapacitorBarcodeScanner.startScan();
         
         // If user didn't cancel scanning
         if (result.hasContent) {
@@ -76,7 +76,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
 
   const handleCancel = () => {
     if (Capacitor.isNativePlatform() && isScanning) {
-      BarcodeScanner.stopScan();
+      CapacitorBarcodeScanner.stopScan();
       stopScanner();
     }
     setIsScanning(false);
