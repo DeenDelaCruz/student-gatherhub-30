@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -15,12 +16,23 @@ import {
   SelectTrigger,
   SelectValue, 
 } from "@/components/ui/select";
-import { supabase, checkInUserToEvent } from "@/integrations/supabase/client";
+import { supabase, checkInUserToEvent, getEventAttendees } from "@/integrations/supabase/client";
 import QrScanner from "@/components/QrScanner";
 
 interface Event {
   id: string;
   title: string;
+}
+
+interface Attendee {
+  id: string;
+  check_in_time: string | null;
+  user_id: string;
+  profile: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  } | null;
 }
 
 const Scanner = () => {
@@ -29,7 +41,8 @@ const Scanner = () => {
   const [qrImageUrl, setQrImageUrl] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<string>("");
   const [events, setEvents] = useState<Event[]>([]);
-  const [attendees, setAttendees] = useState([]);
+  const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [isLoadingAttendees, setIsLoadingAttendees] = useState(false);
   const [activeTab, setActiveTab] = useState("qrcode");
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [scanSuccess, setScanSuccess] = useState(false);
@@ -65,32 +78,52 @@ const Scanner = () => {
       if (!isInformationOfficer || !selectedEvent) return;
       
       try {
-        const { data, error } = await supabase
-          .from("event_attendees")
-          .select(`
-            id, 
-            check_in_time,
-            profiles:user_id(
-              id, 
-              name, 
-              email
-            )
-          `)
-          .eq("event_id", selectedEvent)
-          .not("check_in_time", "is", null);
-        
-        if (error) throw error;
-        
-        setAttendees(data || []);
-      } catch (error) {
+        setIsLoadingAttendees(true);
+        const attendeesData = await getEventAttendees(selectedEvent, true);
+        setAttendees(attendeesData);
+      } catch (error: any) {
         console.error("Error fetching attendees:", error);
-        toast.error("Failed to load attendees");
+        toast.error(error.message || "Failed to load attendees");
+        setAttendees([]);
+      } finally {
+        setIsLoadingAttendees(false);
       }
     };
     
     if (activeTab === "attendees" && selectedEvent) {
       fetchAttendees();
     }
+  }, [selectedEvent, activeTab, isInformationOfficer]);
+  
+  // Subscribe to real-time updates for event_attendees
+  useEffect(() => {
+    if (!selectedEvent || !isInformationOfficer) return;
+    
+    const channel = supabase
+      .channel(`event-attendees-${selectedEvent}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'event_attendees',
+          filter: `event_id=eq.${selectedEvent}`
+        }, 
+        () => {
+          // Refresh attendees when there's a change
+          if (activeTab === "attendees") {
+            console.log("Real-time update received for event attendees");
+            
+            getEventAttendees(selectedEvent, true)
+              .then(data => setAttendees(data))
+              .catch(error => console.error("Error refreshing attendees:", error));
+          }
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedEvent, activeTab, isInformationOfficer]);
   
   const generateQRCode = () => {
@@ -139,7 +172,18 @@ const Scanner = () => {
     setScanResult(scannedData);
     
     try {
-      const { eventId } = JSON.parse(scannedData);
+      let eventId;
+      try {
+        const parsedData = JSON.parse(scannedData);
+        eventId = parsedData.eventId;
+        
+        if (!eventId) {
+          throw new Error("Invalid QR code data: missing eventId");
+        }
+      } catch (parseError) {
+        console.error("Error parsing QR code:", parseError);
+        throw new Error("Invalid QR code format");
+      }
       
       const success = await checkInUserToEvent(eventId, user.id);
       
@@ -413,15 +457,19 @@ const Scanner = () => {
                 </div>
                 
                 <div className="attendees-list space-y-2 max-h-96 overflow-y-auto">
-                  {selectedEvent ? (
+                  {isLoadingAttendees ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : selectedEvent ? (
                     attendees.length > 0 ? (
-                      attendees.map((attendee: any) => (
+                      attendees.map((attendee) => (
                         <div 
                           key={attendee.id}
                           className="p-3 bg-gray-50 rounded-lg flex flex-col"
                         >
-                          <div className="font-medium">{attendee.profiles?.name || 'Unknown'}</div>
-                          <div className="text-sm text-gray-500">{attendee.profiles?.email || 'No email'}</div>
+                          <div className="font-medium">{attendee.profile?.name || 'Unknown'}</div>
+                          <div className="text-sm text-gray-500">{attendee.profile?.email || 'No email'}</div>
                           <div className="text-xs text-gray-400 mt-1">
                             {attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : 'Not checked in'}
                           </div>

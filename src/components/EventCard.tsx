@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { CalendarClock, Users, QrCode, Edit, Eye, ToggleLeft, ToggleRight } from "lucide-react";
@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getEventInterestCount } from "@/integrations/supabase/client";
 
 interface EventCardProps {
   title: string;
@@ -25,7 +25,7 @@ const EventCard = ({
   title, 
   imageSrc, 
   id, 
-  attendees = 0, 
+  attendees: initialAttendees = 0, 
   isActive = true,
   date,
   onClick, 
@@ -36,7 +36,45 @@ const EventCard = ({
   const navigate = useNavigate();
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   const [active, setActive] = useState(isActive);
+  const [attendeesCount, setAttendeesCount] = useState(initialAttendees);
   const canEdit = isInformationOfficer && createdBy === user?.id;
+
+  // Fetch current attendee count on mount
+  useEffect(() => {
+    const fetchAttendeeCount = async () => {
+      if (id) {
+        try {
+          const count = await getEventInterestCount(id.toString());
+          setAttendeesCount(count);
+        } catch (error) {
+          console.error("Error fetching attendee count:", error);
+        }
+      }
+    };
+    
+    fetchAttendeeCount();
+    
+    // Subscribe to changes in event attendees table
+    const channel = supabase
+      .channel(`event-interest-${id}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'event_attendees',
+          filter: `event_id=eq.${id}` 
+        }, 
+        () => {
+          // Refresh count when there's a change
+          fetchAttendeeCount();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
 
   const handleEditEvent = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -49,14 +87,22 @@ const EventCard = ({
 
   const handleViewAttendees = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toast.info(`Viewing ${attendees} attendees for: ${title}`);
-    // In a real app, navigate to attendees page or open modal
+    navigate("/scanner");
+    // Set a small timeout to allow the page to load before switching to the attendees tab
+    setTimeout(() => {
+      const tabsElement = document.querySelector('[role="tablist"]');
+      if (tabsElement) {
+        const attendeesTab = tabsElement.querySelector('[value="attendees"]') as HTMLElement;
+        if (attendeesTab) {
+          attendeesTab.click();
+        }
+      }
+    }, 100);
   };
 
   const handleGenerateQR = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toast.success(`QR code generated for: ${title}`);
-    // In a real app, generate and display QR code
+    navigate("/scanner");
   };
 
   const toggleEventStatus = async (e: React.MouseEvent) => {
@@ -142,7 +188,7 @@ const EventCard = ({
               className="text-xs h-7 px-2"
               onClick={handleViewAttendees}
             >
-              <Users className="h-3 w-3 mr-1" /> {attendees}
+              <Users className="h-3 w-3 mr-1" /> {attendeesCount}
             </Button>
             
             <Button 

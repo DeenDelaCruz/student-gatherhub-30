@@ -107,3 +107,64 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
     return false;
   }
 };
+
+/**
+ * Get all attendees for an event
+ * @param eventId The ID of the event
+ * @param checkedInOnly Whether to only return checked-in attendees
+ * @returns A list of event attendees with profile information
+ */
+export const getEventAttendees = async (eventId: string, checkedInOnly: boolean = false) => {
+  try {
+    let query = supabase
+      .from("event_attendees")
+      .select(`
+        id,
+        check_in_time,
+        user_id
+      `)
+      .eq("event_id", eventId);
+    
+    if (checkedInOnly) {
+      query = query.not("check_in_time", "is", null);
+    }
+    
+    const { data: attendeesData, error: attendeesError } = await query;
+    
+    if (attendeesError) {
+      console.error("Error fetching event attendees:", attendeesError);
+      throw attendeesError;
+    }
+    
+    if (!attendeesData || attendeesData.length === 0) {
+      return [];
+    }
+    
+    // Extract user IDs to fetch profiles
+    const userIds = attendeesData.map(attendee => attendee.user_id);
+    
+    // Fetch user profiles in a separate query
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, name, email")
+      .in("id", userIds);
+    
+    if (profilesError) {
+      console.error("Error fetching profiles:", profilesError);
+      throw profilesError;
+    }
+    
+    // Map profiles to attendees
+    return attendeesData.map(attendee => {
+      const profile = profilesData?.find(profile => profile.id === attendee.user_id) || null;
+      return {
+        ...attendee,
+        profile
+      };
+    });
+  } catch (error) {
+    console.error("Error getting event attendees:", error);
+    throw error;
+  }
+};
+
