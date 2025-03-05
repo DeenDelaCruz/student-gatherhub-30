@@ -38,20 +38,10 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     };
   }, []);
 
-  const startScan = async () => {
-    if (isProcessing) return;
-    
+  // First create a scanner reference then start the scan
+  const initializeScanner = async () => {
     try {
-      setIsScanning(true);
-      setError(null);
-      
-      // Make sure we have a valid container element
-      const scannerContainer = document.getElementById(scannerContainerId);
-      if (!scannerContainer) {
-        throw new Error("Scanner container not found");
-      }
-      
-      // Create scanner instance
+      // Create scanner instance first
       const html5QrCode = new Html5Qrcode(scannerContainerId);
       scannerRef.current = html5QrCode;
       
@@ -81,11 +71,44 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         }
       );
     } catch (err: any) {
-      console.error('Failed to start scanner:', err);
+      console.error('Failed to initialize scanner:', err);
       setError(err.toString());
       setIsScanning(false);
     }
   };
+
+  const startScan = () => {
+    if (isProcessing) return;
+    
+    setIsScanning(true);
+    setError(null);
+    
+    // We'll handle the actual scanner initialization after the container is rendered
+    // through the useEffect below
+  };
+
+  // This effect runs when isScanning changes to true, ensuring the DOM element exists
+  useEffect(() => {
+    if (isScanning) {
+      // Give the DOM time to render the scanner container
+      setTimeout(() => {
+        const scannerContainer = document.getElementById(scannerContainerId);
+        
+        if (!scannerContainer) {
+          console.error("Scanner container not found after render");
+          setError("Could not initialize camera. Please try again.");
+          setIsScanning(false);
+          return;
+        }
+        
+        initializeScanner().catch(err => {
+          console.error("Failed to start scanner:", err);
+          setError(err.toString());
+          setIsScanning(false);
+        });
+      }, 100); // Small delay to ensure DOM is updated
+    }
+  }, [isScanning]);
 
   const handleCancel = () => {
     if (scannerRef.current && scannerRef.current.isScanning) {
