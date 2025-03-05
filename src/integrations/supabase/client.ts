@@ -51,3 +51,72 @@ export const isUserInterestedInEvent = async (eventId: string, userId: string): 
   
   return !!data;
 };
+
+/**
+ * Gets the count of attendees that have checked in to an event
+ * @param eventId The ID of the event
+ * @returns The number of attendees checked in to the event
+ */
+export const getEventAttendeeCount = async (eventId: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from("event_attendees")
+    .select("*", { count: 'exact', head: true })
+    .eq("event_id", eventId)
+    .not("check_in_time", "is", null);
+  
+  if (error) {
+    console.error("Error getting event attendee count:", error);
+    return 0;
+  }
+  
+  return count || 0;
+};
+
+/**
+ * Checks in a user to an event
+ * @param eventId The ID of the event
+ * @param userId The ID of the user
+ * @returns Whether the check-in was successful
+ */
+export const checkInUserToEvent = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    // Check if user has already checked in
+    const { data: existingCheckIn, error: checkError } = await supabase
+      .from("event_attendees")
+      .select("id, check_in_time")
+      .eq("event_id", eventId)
+      .eq("user_id", userId)
+      .maybeSingle();
+      
+    if (checkError) throw checkError;
+    
+    if (existingCheckIn && existingCheckIn.check_in_time) {
+      // Already checked in
+      return true;
+    } else if (existingCheckIn) {
+      // Update existing record (user was interested)
+      const { error: updateError } = await supabase
+        .from("event_attendees")
+        .update({ check_in_time: new Date().toISOString() })
+        .eq("id", existingCheckIn.id);
+        
+      if (updateError) throw updateError;
+      return true;
+    } else {
+      // Create new record with check-in
+      const { error: insertError } = await supabase
+        .from("event_attendees")
+        .insert({
+          event_id: eventId,
+          user_id: userId,
+          check_in_time: new Date().toISOString()
+        });
+        
+      if (insertError) throw insertError;
+      return true;
+    }
+  } catch (error) {
+    console.error("Error checking in user:", error);
+    return false;
+  }
+};

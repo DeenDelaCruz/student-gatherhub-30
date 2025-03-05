@@ -1,61 +1,234 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
-import { QrCode, Loader2, Users, Download, RefreshCw } from "lucide-react";
+import { QrCode, Loader2, Users, Download, RefreshCw, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue, 
+} from "@/components/ui/select";
 
-const MOCK_ATTENDEES = [
-  { id: 1, name: "John Doe", email: "john@example.com", timestamp: "2025-01-15T10:30:00Z" },
-  { id: 2, name: "Jane Smith", email: "jane@example.com", timestamp: "2025-01-15T10:35:00Z" },
-  { id: 3, name: "Mike Johnson", email: "mike@example.com", timestamp: "2025-01-15T10:40:00Z" },
-  { id: 4, name: "Sarah Williams", email: "sarah@example.com", timestamp: "2025-01-15T10:45:00Z" },
-];
+interface Event {
+  id: string;
+  title: string;
+}
 
 const Scanner = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [qrValue, setQrValue] = useState("");
   const [qrImageUrl, setQrImageUrl] = useState("");
-  const [eventName, setEventName] = useState("");
-  const [attendees, setAttendees] = useState(MOCK_ATTENDEES);
+  const [selectedEvent, setSelectedEvent] = useState<string>("");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [attendees, setAttendees] = useState([]);
   const [activeTab, setActiveTab] = useState("qrcode");
+  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [scanSuccess, setScanSuccess] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { hasRole, user } = useAuth();
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   
+  useEffect(() => {
+    // Fetch active events for the information officer
+    const fetchEvents = async () => {
+      if (!isInformationOfficer) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("events")
+          .select("id, title")
+          .eq("is_active", true)
+          .order("event_date", { ascending: false });
+          
+        if (error) throw error;
+        
+        setEvents(data || []);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+        toast.error("Failed to load events");
+      }
+    };
+    
+    fetchEvents();
+  }, [isInformationOfficer]);
+  
+  useEffect(() => {
+    // Fetch attendees for the selected event
+    const fetchAttendees = async () => {
+      if (!isInformationOfficer || !selectedEvent) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("event_attendees")
+          .select(`
+            id, 
+            check_in_time,
+            profiles:user_id(
+              id, 
+              name, 
+              email
+            )
+          `)
+          .eq("event_id", selectedEvent)
+          .not("check_in_time", "is", null);
+        
+        if (error) throw error;
+        
+        setAttendees(data || []);
+      } catch (error) {
+        console.error("Error fetching attendees:", error);
+        toast.error("Failed to load attendees");
+      }
+    };
+    
+    if (activeTab === "attendees" && selectedEvent) {
+      fetchAttendees();
+    }
+  }, [selectedEvent, activeTab, isInformationOfficer]);
+  
   const generateQRCode = () => {
-    if (!eventName.trim()) {
-      toast.error("Please enter an event name");
+    if (!selectedEvent) {
+      toast.error("Please select an event");
       return;
     }
     
     setIsGenerating(true);
     
+    // Create a QR code with the event ID encoded
+    const eventInfo = JSON.stringify({ eventId: selectedEvent });
+    
     // Simulate QR code generation
     setTimeout(() => {
       setIsGenerating(false);
       
-      // Generate a mock QR code URL with the event name encoded
-      // In a real app, you would use a proper QR code generation API
-      const mockQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(eventName)}`;
+      // In a real app, use a proper QR code generation API
+      const mockQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(eventInfo)}`;
       setQrImageUrl(mockQrImageUrl);
-      setQrValue(eventName);
+      setQrValue(eventInfo);
+      
+      const eventTitle = events.find(e => e.id === selectedEvent)?.title || "Selected event";
       
       toast.success("QR Code generated", {
-        description: `QR Code for "${eventName}" event is ready`,
+        description: `QR Code for "${eventTitle}" event is ready`,
         position: "top-center",
         duration: 5000,
       });
     }, 1500);
   };
   
+  const handleScanQR = () => {
+    // In a real app, this would activate the camera and scan a QR code
+    // Here we'll simulate scanning the generated QR code
+    
+    if (!user) {
+      toast.error("Please log in to scan QR codes");
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    // Simulate scanning process
+    setTimeout(async () => {
+      try {
+        // Simulate a successful scan with the last generated QR code
+        // In a real app, this would come from the QR scanner
+        const scannedData = qrValue || JSON.stringify({ eventId: events[0]?.id });
+        setScanResult(scannedData);
+        
+        // Parse the scanned data
+        const { eventId } = JSON.parse(scannedData);
+        
+        // Check if user has already checked in for this event
+        const { data: existingCheckIn, error: checkError } = await supabase
+          .from("event_attendees")
+          .select("id, check_in_time")
+          .eq("event_id", eventId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+          
+        if (checkError) throw checkError;
+        
+        if (existingCheckIn && existingCheckIn.check_in_time) {
+          // User already checked in
+          toast.info("You've already checked in to this event");
+        } else if (existingCheckIn) {
+          // User was interested but hadn't checked in yet
+          const { error: updateError } = await supabase
+            .from("event_attendees")
+            .update({ check_in_time: new Date().toISOString() })
+            .eq("id", existingCheckIn.id);
+            
+          if (updateError) throw updateError;
+          
+          setScanSuccess(true);
+          toast.success("Attendance recorded", {
+            description: "You've been successfully checked in to the event",
+          });
+        } else {
+          // User wasn't interested, create new record with check-in
+          const { error: insertError } = await supabase
+            .from("event_attendees")
+            .insert({
+              event_id: eventId,
+              user_id: user.id,
+              check_in_time: new Date().toISOString()
+            });
+            
+          if (insertError) throw insertError;
+          
+          setScanSuccess(true);
+          toast.success("Attendance recorded", {
+            description: "You've been successfully checked in to the event",
+          });
+        }
+        
+        // Get event details to show confirmation
+        const { data: eventData, error: eventError } = await supabase
+          .from("events")
+          .select("title")
+          .eq("id", eventId)
+          .single();
+          
+        if (eventError) throw eventError;
+        
+        if (eventData) {
+          toast.success(`Checked in to: ${eventData.title}`);
+        }
+        
+      } catch (error: any) {
+        console.error("Error processing QR code:", error);
+        setScanSuccess(false);
+        toast.error(error.message || "Failed to process QR code");
+      } finally {
+        setIsProcessing(false);
+      }
+    }, 2000);
+  };
+  
+  const resetScanResult = () => {
+    setScanResult(null);
+    setScanSuccess(false);
+  };
+  
   const exportAttendees = () => {
+    if (!selectedEvent) {
+      toast.error("Please select an event first");
+      return;
+    }
+    
     // In a real app, generate CSV or Excel file
-    toast.success("Attendance list exported", {
+    const eventTitle = events.find(e => e.id === selectedEvent)?.title || "event";
+    toast.success(`Attendance list for "${eventTitle}" exported`, {
       description: "The attendance list has been downloaded",
     });
   };
@@ -94,7 +267,7 @@ const Scanner = () => {
                   <QrCode size={32} className="text-campus-accent" />
                 </div>
                 <h2 className="text-xl font-medium mt-4">
-                  {isInformationOfficer ? "Generate QR Code" : "Scan QR Code"}
+                  {isInformationOfficer ? "Generate Event QR Code" : "Scan Event QR Code"}
                 </h2>
                 <p className="text-gray-500 text-sm mt-2">
                   {isInformationOfficer 
@@ -109,18 +282,33 @@ const Scanner = () => {
                   {!qrImageUrl ? (
                     <div className="space-y-4">
                       <div className="space-y-2 text-left">
-                        <Label htmlFor="eventName">Event Name</Label>
-                        <Input
-                          id="eventName"
-                          placeholder="Enter event name"
-                          value={eventName}
-                          onChange={(e) => setEventName(e.target.value)}
-                        />
+                        <Label htmlFor="eventSelect">Select an Event</Label>
+                        <Select 
+                          onValueChange={setSelectedEvent} 
+                          value={selectedEvent}
+                        >
+                          <SelectTrigger id="eventSelect">
+                            <SelectValue placeholder="Select an event" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {events.length > 0 ? (
+                              events.map((event) => (
+                                <SelectItem key={event.id} value={event.id}>
+                                  {event.title}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-events" disabled>
+                                No active events available
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <Button
                         onClick={generateQRCode}
-                        disabled={isGenerating || !eventName.trim()}
+                        disabled={isGenerating || !selectedEvent}
                         className="w-full bg-campus-accent text-white rounded-full py-3 px-4 font-medium hover:bg-campus-accent/90 transition-colors disabled:opacity-70 flex items-center justify-center"
                       >
                         {isGenerating ? (
@@ -140,7 +328,7 @@ const Scanner = () => {
                       </div>
                       
                       <div className="text-sm font-medium text-gray-700 bg-gray-50 p-2 rounded-lg break-all">
-                        {qrValue}
+                        Event: {events.find(e => e.id === selectedEvent)?.title}
                       </div>
                       
                       <div className="flex gap-2">
@@ -173,24 +361,65 @@ const Scanner = () => {
                   )}
                 </>
               ) : (
-                // Regular QR scanner for students - keeping the existing code
+                // QR scanner for students
                 <>
-                  <div className="scanner-viewport relative mb-6 rounded-xl overflow-hidden bg-black/5 aspect-square flex items-center justify-center">
-                    <div className="text-gray-400">Camera viewfinder</div>
-                  </div>
-                  
-                  <button
-                    onClick={() => {
-                      toast.success("Attendance recorded", {
-                        description: "You've been checked in to Comp Sci General Assembly 2025",
-                        position: "top-center",
-                        duration: 5000,
-                      });
-                    }}
-                    className="w-full bg-campus-accent text-white rounded-full py-3 px-4 font-medium hover:bg-campus-accent/90 transition-colors disabled:opacity-70 flex items-center justify-center"
-                  >
-                    Start Scanning
-                  </button>
+                  {!scanResult ? (
+                    <>
+                      <div className="scanner-viewport relative mb-6 rounded-xl overflow-hidden bg-black/5 aspect-square flex items-center justify-center">
+                        {isProcessing ? (
+                          <div className="text-gray-500 flex flex-col items-center gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                            <p>Processing...</p>
+                          </div>
+                        ) : (
+                          <div className="text-gray-400">Camera viewfinder</div>
+                        )}
+                      </div>
+                      
+                      <Button
+                        onClick={handleScanQR}
+                        disabled={isProcessing}
+                        className="w-full bg-campus-accent text-white rounded-full py-3 px-4 font-medium hover:bg-campus-accent/90 transition-colors disabled:opacity-70 flex items-center justify-center"
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin mr-2" />
+                            Processing...
+                          </>
+                        ) : (
+                          "Start Scanning"
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    // Show scan result
+                    <div className="space-y-4">
+                      <div className={`p-6 rounded-xl border-2 flex flex-col items-center gap-2 ${scanSuccess ? 'border-green-400 bg-green-50' : 'border-red-400 bg-red-50'}`}>
+                        {scanSuccess ? (
+                          <>
+                            <CheckCircle className="h-12 w-12 text-green-500" />
+                            <h3 className="text-lg font-medium">Check-in Successful!</h3>
+                            <p className="text-sm text-gray-600">You have been checked in to the event.</p>
+                          </>
+                        ) : (
+                          <>
+                            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                              <QrCode className="h-6 w-6 text-red-500" />
+                            </div>
+                            <h3 className="text-lg font-medium">Check-in Failed</h3>
+                            <p className="text-sm text-gray-600">Unable to process the QR code.</p>
+                          </>
+                        )}
+                      </div>
+                      
+                      <Button
+                        onClick={resetScanResult}
+                        className="w-full"
+                      >
+                        Scan Another QR Code
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </motion.div>
@@ -204,40 +433,74 @@ const Scanner = () => {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col gap-4 mb-6">
                   <div className="flex items-center gap-2">
                     <Users className="text-campus-accent" />
                     <h2 className="text-xl font-medium">Attendees</h2>
                   </div>
                   
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={exportAttendees}
-                    className="flex items-center gap-1"
-                  >
-                    <Download size={16} />
-                    Export
-                  </Button>
+                  <div className="space-y-2 text-left">
+                    <Label htmlFor="attendeesEventSelect">Select an Event</Label>
+                    <Select 
+                      onValueChange={setSelectedEvent} 
+                      value={selectedEvent}
+                    >
+                      <SelectTrigger id="attendeesEventSelect">
+                        <SelectValue placeholder="Select an event" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {events.length > 0 ? (
+                          events.map((event) => (
+                            <SelectItem key={event.id} value={event.id}>
+                              {event.title}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-events" disabled>
+                            No active events available
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={exportAttendees}
+                      className="flex items-center gap-1"
+                      disabled={!selectedEvent}
+                    >
+                      <Download size={16} />
+                      Export List
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="attendees-list space-y-2 max-h-96 overflow-y-auto">
-                  {attendees.map((attendee) => (
-                    <div 
-                      key={attendee.id}
-                      className="p-3 bg-gray-50 rounded-lg flex flex-col"
-                    >
-                      <div className="font-medium">{attendee.name}</div>
-                      <div className="text-sm text-gray-500">{attendee.email}</div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {new Date(attendee.timestamp).toLocaleString()}
+                  {selectedEvent ? (
+                    attendees.length > 0 ? (
+                      attendees.map((attendee: any) => (
+                        <div 
+                          key={attendee.id}
+                          className="p-3 bg-gray-50 rounded-lg flex flex-col"
+                        >
+                          <div className="font-medium">{attendee.profiles?.name || 'Unknown'}</div>
+                          <div className="text-sm text-gray-500">{attendee.profiles?.email || 'No email'}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : 'Not checked in'}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        No attendees have checked in yet
                       </div>
-                    </div>
-                  ))}
-                  
-                  {attendees.length === 0 && (
+                    )
+                  ) : (
                     <div className="text-center py-8 text-gray-500">
-                      No attendees yet
+                      Select an event to view attendees
                     </div>
                   )}
                 </div>
