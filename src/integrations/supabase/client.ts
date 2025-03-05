@@ -12,7 +12,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 /**
- * Get the number of attendees interested in an event
+ * Get the number of users interested in an event (regardless of check-in status)
  */
 export const getEventInterestCount = async (eventId: string): Promise<number> => {
   try {
@@ -26,6 +26,26 @@ export const getEventInterestCount = async (eventId: string): Promise<number> =>
     return count || 0;
   } catch (error) {
     console.error("Error getting event interest count:", error);
+    return 0;
+  }
+};
+
+/**
+ * Get the number of users who have checked in to an event
+ */
+export const getEventCheckedInCount = async (eventId: string): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from("event_attendees")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", eventId)
+      .not("check_in_time", "is", null);
+    
+    if (error) throw error;
+    
+    return count || 0;
+  } catch (error) {
+    console.error("Error getting event check-in count:", error);
     return 0;
   }
 };
@@ -52,14 +72,22 @@ export const isUserInterestedInEvent = async (eventId: string, userId: string): 
 };
 
 /**
- * Get attendees for an event
+ * Get attendees for an event with optional filtering for checked-in only
  */
-export const getEventAttendees = async (eventId: string, includeProfiles = false): Promise<any[]> => {
+export const getEventAttendees = async (
+  eventId: string, 
+  includeProfiles = false,
+  checkedInOnly = false
+): Promise<any[]> => {
   try {
     let query = supabase
       .from("event_attendees")
       .select(includeProfiles ? "*, profile:profiles(*)" : "*")
       .eq("event_id", eventId);
+    
+    if (checkedInOnly) {
+      query = query.not("check_in_time", "is", null);
+    }
     
     const { data, error } = await query;
     
