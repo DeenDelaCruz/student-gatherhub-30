@@ -17,11 +17,12 @@ const Navigation = () => {
   const location = useLocation();
   const { hasRole, user } = useAuth();
   const isStudent = hasRole("student") && !hasRole("information_officer") && !hasRole("admin");
+  const isInfoOfficer = hasRole("information_officer");
   const [unreadCount, setUnreadCount] = useState(0);
   
   useEffect(() => {
     const fetchUnreadCount = async () => {
-      if (!user || !isStudent) return;
+      if (!user) return;
       
       try {
         const { count, error } = await supabase
@@ -40,7 +41,7 @@ const Navigation = () => {
     fetchUnreadCount();
     
     // Subscribe to changes
-    if (user && isStudent) {
+    if (user) {
       const channel = supabase
         .channel('notification-count')
         .on(
@@ -61,19 +62,21 @@ const Navigation = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, isStudent]);
+  }, [user]);
   
   const getNavItems = () => {
     const baseItems: NavItem[] = [
       { icon: Calendar, label: "Events", path: "/" },
-      { icon: QrCode, label: "QR", path: "/scanner" },
+      { icon: QrCode, label: "Scanner", path: "/scanner" },
     ];
     
     // Show People button only for admins and information officers
     if (!isStudent) {
       baseItems.push({ icon: Users, label: "People", path: "/people" });
-    } else {
-      // Show Notifications button for students
+    }
+    
+    // Show Notifications button for students and information officers
+    if (isStudent || isInfoOfficer) {
       baseItems.push({ 
         icon: Bell, 
         label: "Notifications", 
