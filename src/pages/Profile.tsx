@@ -1,4 +1,3 @@
-
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -32,9 +31,6 @@ const Profile = () => {
     { icon: Calendar, label: "My Events", count: profile?.events_attended || 0 }
   ];
 
-  // Filter out the 'student' role from display
-  const displayRoles = roles.filter((role: UserRole) => role !== 'student');
-
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
       <Header />
@@ -54,10 +50,7 @@ const Profile = () => {
               <h2 className="text-xl font-medium">{profile?.name || "Loading..."}</h2>
               <p className="text-gray-500 text-sm">{profile?.email || "Loading..."}</p>
               <div className="flex flex-wrap gap-1 mt-1">
-                <span className="inline-block bg-gray-100 text-xs px-2 py-1 rounded-full">
-                  {profile?.year || "Student"}
-                </span>
-                {displayRoles.map((role, index) => (
+                {roles.map((role, index) => (
                   <span 
                     key={index} 
                     className={`inline-block text-xs px-2 py-1 rounded-full ${
