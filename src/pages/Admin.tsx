@@ -84,7 +84,7 @@ const Admin = () => {
           }
         }
         
-        // Fetch students - using the same approach
+        // Fetch students, but exclude those who are also information officers
         const { data: studentRoleData, error: studentRoleError } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -97,19 +97,39 @@ const Admin = () => {
           if (studentRoleData && studentRoleData.length > 0) {
             const studentIds = studentRoleData.map(item => item.user_id);
             
-            const { data: studentProfileData, error: studentProfileError } = await supabase
-              .from('profiles')
-              .select('id, name, email, year, events_attended')
-              .in('id', studentIds);
+            // Get information officer IDs to filter them out
+            const { data: officerRoleData, error: officerCheckError } = await supabase
+              .from('user_roles')
+              .select('user_id')
+              .eq('role', 'information_officer')
+              .in('user_id', studentIds);
               
-            if (studentProfileError) {
-              console.error("Error fetching student profiles:", studentProfileError);
-              toast.error("Failed to load student profiles");
+            if (officerCheckError) {
+              console.error("Error checking officer roles:", officerCheckError);
+              toast.error("Failed to filter students");
             } else {
-              setStudents(studentProfileData ? studentProfileData.map(profile => ({
-                user_id: profile.id,
-                profiles: profile
-              })) : []);
+              // Filter out users who have both roles
+              const officerUserIds = officerRoleData ? officerRoleData.map(item => item.user_id) : [];
+              const pureStudentIds = studentIds.filter(id => !officerUserIds.includes(id));
+              
+              if (pureStudentIds.length > 0) {
+                const { data: studentProfileData, error: studentProfileError } = await supabase
+                  .from('profiles')
+                  .select('id, name, email, year, events_attended')
+                  .in('id', pureStudentIds);
+                  
+                if (studentProfileError) {
+                  console.error("Error fetching student profiles:", studentProfileError);
+                  toast.error("Failed to load student profiles");
+                } else {
+                  setStudents(studentProfileData ? studentProfileData.map(profile => ({
+                    user_id: profile.id,
+                    profiles: profile
+                  })) : []);
+                }
+              } else {
+                setStudents([]);
+              }
             }
           } else {
             setStudents([]);
