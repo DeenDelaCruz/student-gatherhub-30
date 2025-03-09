@@ -1,3 +1,4 @@
+
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -25,13 +26,13 @@ const Profile = () => {
     }
   };
 
+  // Only show notifications and settings to non-student roles or admins
   const menuItems = [
     { icon: Calendar, label: "My Events", count: profile?.events_attended || 0 },
-    { icon: Bell, label: "Notifications", toggle: profile?.notifications },
-    // Only show settings to users who have permission to edit their profile
-    ...(hasRole('student') || hasRole('information_officer') || hasRole('admin') 
-      ? [{ icon: Settings, label: "Account Settings" }] 
-      : [])
+    // Show notifications only to non-students or admins
+    ...((!hasRole('student') || hasRole('admin')) ? [{ icon: Bell, label: "Notifications", toggle: profile?.notifications }] : []),
+    // Only show settings to information officers or admins
+    ...(hasRole('information_officer') || hasRole('admin') ? [{ icon: Settings, label: "Account Settings" }] : [])
   ];
 
   return (
