@@ -1,9 +1,10 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
-import { Loader2, Camera, X } from 'lucide-react';
+import { Loader2, Camera, X, Upload } from 'lucide-react';
 import { useAuth } from '@/context/auth';
+import { Input } from '@/components/ui/input';
 
 interface QrScannerProps {
   onScanComplete: (data: string) => void;
@@ -15,7 +16,9 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   const [isScanning, setIsScanning] = useState(false);
   const [hasPermissions, setHasPermissions] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isUploadMode, setIsUploadMode] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerContainerId = "qr-reader-container";
   const { user, refreshProfileData } = useAuth();
 
@@ -90,6 +93,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     if (isProcessing) return;
     
     setIsScanning(true);
+    setIsUploadMode(false);
     setError(null);
     
     // We'll handle the actual scanner initialization after the container is rendered
@@ -125,7 +129,59 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         .catch(err => console.error("Error stopping scanner:", err));
     }
     setIsScanning(false);
+    setIsUploadMode(false);
     onCancel();
+  };
+
+  const toggleUploadMode = () => {
+    if (isProcessing) return;
+    setIsUploadMode(true);
+    setIsScanning(false);
+    setError(null);
+    
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      scannerRef.current.stop()
+        .catch(err => console.error("Error stopping scanner:", err));
+    }
+  };
+
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    
+    if (!scannerRef.current) {
+      scannerRef.current = new Html5Qrcode(scannerContainerId);
+    }
+    
+    setIsProcessing(true);
+    
+    scannerRef.current.scanFile(file, true)
+      .then(decodedText => {
+        console.log("QR Code from image:", decodedText);
+        onScanComplete(decodedText);
+        
+        // Refresh profile data after successful scan
+        if (user) {
+          setTimeout(() => {
+            refreshProfileData(user.id);
+          }, 1000);
+        }
+      })
+      .catch(err => {
+        console.error("Error scanning uploaded image:", err);
+        setError("Could not find a valid QR code in the image");
+      })
+      .finally(() => {
+        setIsProcessing(false);
+      });
+  };
+
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   if (hasPermissions === null) {
@@ -133,18 +189,6 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       <div className="text-center p-4">
         <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
         <p>Checking camera permissions...</p>
-      </div>
-    );
-  }
-
-  if (hasPermissions === false) {
-    return (
-      <div className="text-center p-4">
-        <p className="text-red-500 mb-2">Camera permission denied</p>
-        <p className="text-sm text-gray-500 mb-4">
-          {error || "Please enable camera access in your browser settings to scan QR codes."}
-        </p>
-        <Button onClick={onCancel}>Go Back</Button>
       </div>
     );
   }
@@ -175,12 +219,64 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
             Cancel
           </Button>
         </div>
+      ) : isUploadMode ? (
+        <div className="flex flex-col items-center p-4">
+          <Upload className="h-12 w-12 text-gray-400 mb-2" />
+          <p className="text-gray-400 mb-4">Upload a QR code image</p>
+          
+          <input 
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleFileUpload}
+          />
+          
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <Button onClick={triggerFileUpload} className="w-full">
+              Select Image
+            </Button>
+            
+            <Button variant="outline" onClick={() => setIsUploadMode(false)}>
+              Back
+            </Button>
+          </div>
+          
+          {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+        </div>
       ) : (
-        <div className="flex flex-col items-center">
-          <Camera className="h-12 w-12 text-gray-400 mb-2" />
-          <p className="text-gray-400 mb-4">Tap to activate camera</p>
-          <Button onClick={startScan}>Start Scanning</Button>
-          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+        <div className="flex flex-col items-center p-4">
+          {hasPermissions === false ? (
+            <>
+              <p className="text-red-500 mb-2">Camera permission denied</p>
+              <p className="text-sm text-gray-500 mb-4">
+                {error || "Please enable camera access in your browser settings or use image upload instead."}
+              </p>
+              <Button onClick={toggleUploadMode} className="mb-2">Upload QR Image</Button>
+              <Button variant="outline" onClick={onCancel}>Go Back</Button>
+            </>
+          ) : (
+            <>
+              <Camera className="h-12 w-12 text-gray-400 mb-2" />
+              <p className="text-gray-400 mb-4">Choose scan method</p>
+              
+              <div className="flex flex-col gap-3 w-full max-w-xs">
+                <Button onClick={startScan} className="w-full">
+                  Use Camera
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={toggleUploadMode}
+                  className="w-full"
+                >
+                  Upload QR Image
+                </Button>
+              </div>
+              
+              {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+            </>
+          )}
         </div>
       )}
     </div>
