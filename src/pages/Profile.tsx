@@ -3,13 +3,13 @@ import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { User, Calendar, LogOut } from "lucide-react";
+import { User, Calendar, LogOut, BarChart } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 const Profile = () => {
-  const { profile, signOut, roles } = useAuth();
+  const { profile, signOut, roles, hasRole } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -26,7 +26,7 @@ const Profile = () => {
     }
   };
 
-  // Only show My Events menu item
+  // My Events menu item for all users
   const menuItems = [
     { icon: Calendar, label: "My Events", count: profile?.events_attended || 0 }
   ];
@@ -122,6 +122,22 @@ const Profile = () => {
               </div>
             </div>
           ))}
+          
+          {/* Admin Panel link - only visible to admins */}
+          {hasRole('admin') && (
+            <div 
+              onClick={() => navigate('/admin')}
+              className="bg-white rounded-xl shadow-sm mb-3 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center">
+                <div className="bg-blue-100 rounded-full p-2 mr-3">
+                  <BarChart size={18} className="text-blue-600" />
+                </div>
+                <span>Admin Dashboard</span>
+              </div>
+              <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Stats</span>
+            </div>
+          )}
           
           {/* Logout Button */}
           <motion.div

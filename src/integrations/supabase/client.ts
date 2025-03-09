@@ -131,9 +131,9 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
     
     // Increment events_attended counter in user profile
     try {
-      const { data, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
-        .update({ events_attended: supabase.rpc('increment_counter').data })
+        .update({ events_attended: profile?.events_attended + 1 || 1 })
         .eq('id', userId);
       
       if (updateError) {
@@ -186,5 +186,37 @@ export const getEventInterestedUsers = async (eventId: string, includeProfiles =
   } catch (error) {
     console.error('Error getting event interested users:', error);
     return [];
+  }
+};
+
+// Get total number of users
+export const getTotalUsers = async (): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true });
+      
+    if (error) throw error;
+    
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting total users count:', error);
+    return 0;
+  }
+};
+
+// Get total number of events created
+export const getTotalEvents = async (): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('events')
+      .select('*', { count: 'exact', head: true });
+      
+    if (error) throw error;
+    
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting total events count:', error);
+    return 0;
   }
 };

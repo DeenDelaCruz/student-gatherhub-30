@@ -18,6 +18,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const CreateEvent = lazy(() => import("@/pages/CreateEvent"));
 const EditEvent = lazy(() => import("@/pages/EditEvent"));
 const EventDetails = lazy(() => import("@/pages/EventDetails"));
+const Admin = lazy(() => import("@/pages/Admin"));
 
 // Loading fallback
 const PageLoader = () => (
@@ -83,6 +84,12 @@ const routesConfig: RouteConfig[] = [
     path: "/event/:eventId",
     element: <EventDetails />,
     requiresAuth: true,
+  },
+  {
+    path: "/admin",
+    element: <Admin />,
+    requiresAuth: true,
+    allowedRoles: ["admin"],
   },
   {
     path: "*",
