@@ -207,7 +207,7 @@ const EventCard = ({
         <h3 className="font-medium text-gray-900">{title}</h3>
         
         <div className="mt-3 flex flex-wrap gap-1">
-          {/* View button for all users */}
+          {/* View button with popover for all users */}
           <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger asChild>
               <Button 
