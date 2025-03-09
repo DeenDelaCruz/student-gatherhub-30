@@ -402,3 +402,47 @@ export const promoteStudentToInfoOfficer = async (userId: string): Promise<boole
     return false;
   }
 };
+
+/**
+ * User Events Functions
+ */
+
+// Get events attended by a user
+export const getUserAttendedEvents = async (userId: string): Promise<any[]> => {
+  try {
+    // First get the event IDs the user has attended
+    const { data: attendanceData, error: attendanceError } = await supabase
+      .from('event_attendees_new')
+      .select('event_id')
+      .eq('user_id', userId);
+      
+    if (attendanceError) {
+      console.error('Error getting user attendance:', attendanceError);
+      return [];
+    }
+    
+    if (!attendanceData || attendanceData.length === 0) {
+      return [];
+    }
+    
+    // Extract the event IDs
+    const eventIds = attendanceData.map(item => item.event_id);
+    
+    // Now fetch the event details
+    const { data: eventsData, error: eventsError } = await supabase
+      .from('events')
+      .select('id, title, event_date, location, image_url')
+      .in('id', eventIds)
+      .order('event_date', { ascending: false });
+      
+    if (eventsError) {
+      console.error('Error getting events:', eventsError);
+      return [];
+    }
+    
+    return eventsData || [];
+  } catch (error) {
+    console.error('Error getting user attended events:', error);
+    return [];
+  }
+};
