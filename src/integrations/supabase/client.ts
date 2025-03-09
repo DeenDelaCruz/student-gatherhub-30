@@ -9,3 +9,347 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Event Interest functions
+export const getEventInterestCount = async (eventId: string): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('event_interested')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+      
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting event interest count:', error);
+    return 0;
+  }
+};
+
+export const isUserInterestedInEvent = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('event_interested')
+      .select('*')
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (error) throw error;
+    return !!data;
+  } catch (error) {
+    console.error('Error checking if user is interested in event:', error);
+    return false;
+  }
+};
+
+export const markEventInterest = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('event_interested')
+      .insert({ event_id: eventId, user_id: userId });
+      
+    if (error) throw error;
+    
+    // Increment events_upcoming in the user's profile
+    await supabase.rpc('increment_profile_events_upcoming', { user_id: userId });
+    
+    return true;
+  } catch (error) {
+    console.error('Error marking event interest:', error);
+    return false;
+  }
+};
+
+export const removeEventInterest = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('event_interested')
+      .delete()
+      .eq('event_id', eventId)
+      .eq('user_id', userId);
+      
+    if (error) throw error;
+    
+    // Decrement events_upcoming in the user's profile
+    await supabase.rpc('decrement_profile_events_upcoming', { user_id: userId });
+    
+    return true;
+  } catch (error) {
+    console.error('Error removing event interest:', error);
+    return false;
+  }
+};
+
+// Event Attendees functions
+export const getEventCheckedInCount = async (eventId: string): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('event_attendees_new')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+      
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting event checked-in count:', error);
+    return 0;
+  }
+};
+
+export const getEventAttendees = async (eventId: string, includeProfiles = false): Promise<any[]> => {
+  try {
+    let query = supabase
+      .from('event_attendees_new')
+      .select(includeProfiles ? 'id, check_in_time, user_id, profiles:user_id(id, name, email)' : '*')
+      .eq('event_id', eventId);
+      
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting event attendees:', error);
+    return [];
+  }
+};
+
+export const getEventInterestedUsers = async (eventId: string, includeProfiles = false): Promise<any[]> => {
+  try {
+    let query = supabase
+      .from('event_interested')
+      .select(includeProfiles ? 'id, created_at, user_id, profiles:user_id(id, name, email)' : '*')
+      .eq('event_id', eventId);
+      
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting interested users:', error);
+    return [];
+  }
+};
+
+export const checkInUserToEvent = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    // Check if the user is already checked in
+    const { data: existingCheckIn, error: checkError } = await supabase
+      .from('event_attendees_new')
+      .select('*')
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (checkError) throw checkError;
+    
+    // If user is already checked in, return success
+    if (existingCheckIn) return true;
+    
+    // Otherwise, create a new check-in record
+    const { error } = await supabase
+      .from('event_attendees_new')
+      .insert({ event_id: eventId, user_id: userId });
+      
+    if (error) throw error;
+    
+    // Increment events_attended in the user's profile
+    await supabase
+      .from('profiles')
+      .update({ events_attended: supabase.rpc('increment', { row_id: userId, column_name: 'events_attended' }) })
+      .eq('id', userId);
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking in user to event:', error);
+    return false;
+  }
+};
+
+// Admin functions
+export const getTotalUsers = async (): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true });
+      
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting total users:', error);
+    return 0;
+  }
+};
+
+export const getTotalEvents = async (): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('events')
+      .select('*', { count: 'exact', head: true });
+      
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting total events:', error);
+    return 0;
+  }
+};
+
+export const getInformationOfficers = async (): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('user_id, profiles:user_id(id, name, email)')
+      .eq('role', 'information_officer');
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting information officers:', error);
+    return [];
+  }
+};
+
+export const getStudents = async (): Promise<any[]> => {
+  try {
+    // Get users with only the student role (no other roles)
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('user_id, profiles:user_id(id, name, email, events_attended)')
+      .eq('role', 'student');
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting students:', error);
+    return [];
+  }
+};
+
+export const demoteUserToStudent = async (userId: string): Promise<boolean> => {
+  try {
+    // First check if the user already has a student role
+    const { data: existingStudentRole, error: checkError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', 'student')
+      .maybeSingle();
+      
+    if (checkError) throw checkError;
+    
+    // Begin transaction
+    // Remove information_officer role
+    const { error: deleteError } = await supabase
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+      .eq('role', 'information_officer');
+      
+    if (deleteError) throw deleteError;
+    
+    // If student role doesn't exist, add it
+    if (!existingStudentRole) {
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({ user_id: userId, role: 'student' });
+        
+      if (insertError) throw insertError;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error demoting user to student:', error);
+    return false;
+  }
+};
+
+export const promoteStudentToInfoOfficer = async (userId: string): Promise<boolean> => {
+  try {
+    // Add information_officer role
+    const { error } = await supabase
+      .from('user_roles')
+      .insert({ user_id: userId, role: 'information_officer' });
+      
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error promoting student to information officer:', error);
+    return false;
+  }
+};
+
+export const getAllEvents = async (): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('event_date', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting all events:', error);
+    return [];
+  }
+};
+
+export const deleteEvent = async (eventId: string): Promise<boolean> => {
+  try {
+    // Delete all related records first
+    // 1. Delete event_interested records
+    await supabase
+      .from('event_interested')
+      .delete()
+      .eq('event_id', eventId);
+      
+    // 2. Delete event_attendees_new records
+    await supabase
+      .from('event_attendees_new')
+      .delete()
+      .eq('event_id', eventId);
+      
+    // 3. Delete the event itself
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId);
+      
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    return false;
+  }
+};
+
+export const getUserAttendedEvents = async (userId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('event_attendees_new')
+      .select('event_id')
+      .eq('user_id', userId);
+      
+    if (error) throw error;
+    
+    if (!data || data.length === 0) return [];
+    
+    // Get the event details for each attended event
+    const eventIds = data.map(item => item.event_id);
+    
+    const { data: events, error: eventsError } = await supabase
+      .from('events')
+      .select('*')
+      .in('id', eventIds)
+      .order('event_date', { ascending: false });
+      
+    if (eventsError) throw eventsError;
+    
+    return events || [];
+  } catch (error) {
+    console.error('Error getting user attended events:', error);
+    return [];
+  }
+};
