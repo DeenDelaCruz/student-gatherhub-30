@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase, getEventInterestCount, isUserInterestedInEvent } from "@/integrations/supabase/client";
+import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInterest, removeEventInterest } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth";
 import { Event, convertSupabaseEventToEvent } from "@/types/event";
@@ -82,7 +83,7 @@ const EventDetails = () => {
         { 
           event: '*', 
           schema: 'public', 
-          table: 'event_attendees',
+          table: 'event_interested',
           filter: `event_id=eq.${eventId}` 
         }, 
         async () => {
@@ -134,15 +135,7 @@ const EventDetails = () => {
       setLastToggleTime(Date.now());
 
       if (newInterestedState) {
-        const { error } = await supabase
-          .from("event_attendees")
-          .insert({
-            event_id: eventId.toString(),
-            user_id: user.id,
-            check_in_time: null
-          });
-          
-        if (error) throw error;
+        await markEventInterest(eventId, user.id);
         
         if (event) {
           const eventDate = new Date(event.event_date);
@@ -170,14 +163,7 @@ const EventDetails = () => {
         
         toast.success("You are now interested in this event");
       } else {
-        const { error } = await supabase
-          .from("event_attendees")
-          .delete()
-          .eq("event_id", eventId.toString())
-          .eq("user_id", user.id)
-          .is("check_in_time", null);
-          
-        if (error) throw error;
+        await removeEventInterest(eventId, user.id);
         toast.success("You are no longer interested in this event");
       }
       

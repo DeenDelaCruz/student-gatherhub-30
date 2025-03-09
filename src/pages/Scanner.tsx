@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue, 
 } from "@/components/ui/select";
-import { supabase, checkInUserToEvent, getEventAttendees } from "@/integrations/supabase/client";
+import { supabase, checkInUserToEvent, getEventAttendees, getEventInterestedUsers } from "@/integrations/supabase/client";
 import QrScanner from "@/components/QrScanner";
 
 interface Event {
@@ -35,6 +35,17 @@ interface Attendee {
   } | null;
 }
 
+interface InterestedUser {
+  id: string;
+  created_at: string;
+  user_id: string;
+  profile: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  } | null;
+}
+
 const Scanner = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [qrValue, setQrValue] = useState("");
@@ -42,8 +53,10 @@ const Scanner = () => {
   const [selectedEvent, setSelectedEvent] = useState<string>("");
   const [events, setEvents] = useState<Event[]>([]);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
-  const [isLoadingAttendees, setIsLoadingAttendees] = useState(false);
+  const [interestedUsers, setInterestedUsers] = useState<InterestedUser[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [activeTab, setActiveTab] = useState("qrcode");
+  const [activeUserTab, setActiveUserTab] = useState("attendees");
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [scanSuccess, setScanSuccess] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -74,55 +87,79 @@ const Scanner = () => {
   }, [isInformationOfficer]);
   
   useEffect(() => {
-    const fetchAttendees = async () => {
+    const fetchUsersData = async () => {
       if (!isInformationOfficer || !selectedEvent) return;
       
       try {
-        setIsLoadingAttendees(true);
+        setIsLoadingUsers(true);
+        
+        // Fetch attendees (checked in users)
         const attendeesData = await getEventAttendees(selectedEvent, true);
         setAttendees(attendeesData);
+        
+        // Fetch interested users
+        const interestedData = await getEventInterestedUsers(selectedEvent, true);
+        setInterestedUsers(interestedData);
       } catch (error: any) {
-        console.error("Error fetching attendees:", error);
-        toast.error(error.message || "Failed to load attendees");
-        setAttendees([]);
+        console.error("Error fetching users data:", error);
+        toast.error(error.message || "Failed to load users data");
       } finally {
-        setIsLoadingAttendees(false);
+        setIsLoadingUsers(false);
       }
     };
     
     if (activeTab === "attendees" && selectedEvent) {
-      fetchAttendees();
+      fetchUsersData();
     }
   }, [selectedEvent, activeTab, isInformationOfficer]);
   
-  // Subscribe to real-time updates for event_attendees
+  // Subscribe to real-time updates for event data
   useEffect(() => {
-    if (!selectedEvent || !isInformationOfficer) return;
+    if (!selectedEvent || !isInformationOfficer || activeTab !== "attendees") return;
     
-    const channel = supabase
+    // Create channel for attendees updates
+    const attendeesChannel = supabase
       .channel(`event-attendees-${selectedEvent}`)
       .on('postgres_changes', 
         { 
           event: '*', 
           schema: 'public', 
-          table: 'event_attendees',
+          table: 'event_attendees_new',
           filter: `event_id=eq.${selectedEvent}`
         }, 
         () => {
-          // Refresh attendees when there's a change
-          if (activeTab === "attendees") {
-            console.log("Real-time update received for event attendees");
-            
-            getEventAttendees(selectedEvent, true)
-              .then(data => setAttendees(data))
-              .catch(error => console.error("Error refreshing attendees:", error));
-          }
+          console.log("Real-time update received for event attendees");
+          
+          getEventAttendees(selectedEvent, true)
+            .then(data => setAttendees(data))
+            .catch(error => console.error("Error refreshing attendees:", error));
+        }
+      )
+      .subscribe();
+      
+    // Create channel for interested users updates
+    const interestedChannel = supabase
+      .channel(`event-interested-${selectedEvent}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'event_interested',
+          filter: `event_id=eq.${selectedEvent}`
+        }, 
+        () => {
+          console.log("Real-time update received for interested users");
+          
+          getEventInterestedUsers(selectedEvent, true)
+            .then(data => setInterestedUsers(data))
+            .catch(error => console.error("Error refreshing interested users:", error));
         }
       )
       .subscribe();
       
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(attendeesChannel);
+      supabase.removeChannel(interestedChannel);
     };
   }, [selectedEvent, activeTab, isInformationOfficer]);
   
@@ -151,15 +188,6 @@ const Scanner = () => {
         duration: 5000,
       });
     }, 1500);
-  };
-  
-  const handleScanQR = () => {
-    if (!user) {
-      toast.error("Please log in to scan QR codes");
-      return;
-    }
-    
-    setIsProcessing(true);
   };
   
   const handleScanComplete = async (scannedData: string) => {
@@ -225,15 +253,15 @@ const Scanner = () => {
     setScanSuccess(false);
   };
   
-  const exportAttendees = () => {
+  const exportUsersList = () => {
     if (!selectedEvent) {
       toast.error("Please select an event first");
       return;
     }
     
     const eventTitle = events.find(e => e.id === selectedEvent)?.title || "event";
-    toast.success(`Attendance list for "${eventTitle}" exported`, {
-      description: "The attendance list has been downloaded",
+    toast.success(`User list for "${eventTitle}" exported`, {
+      description: "The list has been downloaded",
     });
   };
   
@@ -255,7 +283,7 @@ const Scanner = () => {
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="qrcode">QR Code</TabsTrigger>
             {isInformationOfficer && (
-              <TabsTrigger value="attendees">Attendees</TabsTrigger>
+              <TabsTrigger value="attendees">Users</TabsTrigger>
             )}
           </TabsList>
           
@@ -414,16 +442,16 @@ const Scanner = () => {
                 <div className="flex flex-col gap-4 mb-6">
                   <div className="flex items-center gap-2">
                     <Users className="text-campus-accent" />
-                    <h2 className="text-xl font-medium">Attendees</h2>
+                    <h2 className="text-xl font-medium">Event Users</h2>
                   </div>
                   
                   <div className="space-y-2 text-left">
-                    <Label htmlFor="attendeesEventSelect">Select an Event</Label>
+                    <Label htmlFor="usersEventSelect">Select an Event</Label>
                     <Select 
                       onValueChange={setSelectedEvent} 
                       value={selectedEvent}
                     >
-                      <SelectTrigger id="attendeesEventSelect">
+                      <SelectTrigger id="usersEventSelect">
                         <SelectValue placeholder="Select an event" />
                       </SelectTrigger>
                       <SelectContent>
@@ -442,47 +470,79 @@ const Scanner = () => {
                     </Select>
                   </div>
                   
-                  <div className="flex justify-end">
+                  <div className="flex justify-between items-center">
+                    <Tabs
+                      value={activeUserTab}
+                      onValueChange={setActiveUserTab}
+                      className="w-full"
+                    >
+                      <TabsList>
+                        <TabsTrigger value="attendees">Attendees ({attendees.length})</TabsTrigger>
+                        <TabsTrigger value="interested">Interested ({interestedUsers.length})</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                    
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={exportAttendees}
-                      className="flex items-center gap-1"
+                      onClick={exportUsersList}
+                      className="flex items-center gap-1 ml-2"
                       disabled={!selectedEvent}
                     >
                       <Download size={16} />
-                      Export List
+                      Export
                     </Button>
                   </div>
                 </div>
                 
-                <div className="attendees-list space-y-2 max-h-96 overflow-y-auto">
-                  {isLoadingAttendees ? (
+                <div className="users-list space-y-2 max-h-96 overflow-y-auto">
+                  {isLoadingUsers ? (
                     <div className="flex justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                     </div>
                   ) : selectedEvent ? (
-                    attendees.length > 0 ? (
-                      attendees.map((attendee) => (
-                        <div 
-                          key={attendee.id}
-                          className="p-3 bg-gray-50 rounded-lg flex flex-col"
-                        >
-                          <div className="font-medium">{attendee.profile?.name || 'Unknown'}</div>
-                          <div className="text-sm text-gray-500">{attendee.profile?.email || 'No email'}</div>
-                          <div className="text-xs text-gray-400 mt-1">
-                            {attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : 'Not checked in'}
+                    activeUserTab === "attendees" ? (
+                      attendees.length > 0 ? (
+                        attendees.map((attendee) => (
+                          <div 
+                            key={attendee.id}
+                            className="p-3 bg-gray-50 rounded-lg flex flex-col"
+                          >
+                            <div className="font-medium">{attendee.profile?.name || 'Unknown'}</div>
+                            <div className="text-sm text-gray-500">{attendee.profile?.email || 'No email'}</div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              Checked in: {attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : 'Not checked in'}
+                            </div>
                           </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          No attendees have checked in yet
                         </div>
-                      ))
+                      )
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        No attendees have checked in yet
-                      </div>
+                      interestedUsers.length > 0 ? (
+                        interestedUsers.map((user) => (
+                          <div 
+                            key={user.id}
+                            className="p-3 bg-gray-50 rounded-lg flex flex-col"
+                          >
+                            <div className="font-medium">{user.profile?.name || 'Unknown'}</div>
+                            <div className="text-sm text-gray-500">{user.profile?.email || 'No email'}</div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              Interested since: {new Date(user.created_at).toLocaleString()}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          No users have shown interest yet
+                        </div>
+                      )
                     )
                   ) : (
                     <div className="text-center py-8 text-gray-500">
-                      Select an event to view attendees
+                      Select an event to view users
                     </div>
                   )}
                 </div>

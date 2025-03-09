@@ -60,14 +60,31 @@ const EventCard = ({
     
     fetchAttendeeCounts();
     
-    // Subscribe to changes in event attendees table
-    const channel = supabase
+    // Subscribe to changes in event interested table
+    const interestChannel = supabase
       .channel(`event-interest-${id}`)
       .on('postgres_changes', 
         { 
           event: '*', 
           schema: 'public', 
-          table: 'event_attendees',
+          table: 'event_interested',
+          filter: `event_id=eq.${id}` 
+        }, 
+        () => {
+          // Refresh counts when there's a change
+          fetchAttendeeCounts();
+        }
+      )
+      .subscribe();
+      
+    // Subscribe to changes in event attendees table
+    const attendeesChannel = supabase
+      .channel(`event-attendees-${id}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'event_attendees_new',
           filter: `event_id=eq.${id}` 
         }, 
         () => {
@@ -78,7 +95,8 @@ const EventCard = ({
       .subscribe();
       
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(interestChannel);
+      supabase.removeChannel(attendeesChannel);
     };
   }, [id]);
 

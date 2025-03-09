@@ -12,12 +12,12 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 /**
- * Get the number of users interested in an event (regardless of check-in status)
+ * Get the number of users interested in an event (not checked in yet)
  */
 export const getEventInterestCount = async (eventId: string): Promise<number> => {
   try {
     const { count, error } = await supabase
-      .from("event_attendees")
+      .from("event_interested")
       .select("*", { count: "exact", head: true })
       .eq("event_id", eventId);
     
@@ -36,10 +36,9 @@ export const getEventInterestCount = async (eventId: string): Promise<number> =>
 export const getEventCheckedInCount = async (eventId: string): Promise<number> => {
   try {
     const { count, error } = await supabase
-      .from("event_attendees")
+      .from("event_attendees_new")
       .select("*", { count: "exact", head: true })
-      .eq("event_id", eventId)
-      .not("check_in_time", "is", null);
+      .eq("event_id", eventId);
     
     if (error) throw error;
     
@@ -56,7 +55,7 @@ export const getEventCheckedInCount = async (eventId: string): Promise<number> =
 export const isUserInterestedInEvent = async (eventId: string, userId: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase
-      .from("event_attendees")
+      .from("event_interested")
       .select("*")
       .eq("event_id", eventId)
       .eq("user_id", userId)
@@ -76,20 +75,13 @@ export const isUserInterestedInEvent = async (eventId: string, userId: string): 
  */
 export const getEventAttendees = async (
   eventId: string, 
-  includeProfiles = false,
-  checkedInOnly = false
+  includeProfiles = false
 ): Promise<any[]> => {
   try {
-    let query = supabase
-      .from("event_attendees")
+    const { data, error } = await supabase
+      .from("event_attendees_new")
       .select(includeProfiles ? "*, profile:profiles(*)" : "*")
       .eq("event_id", eventId);
-    
-    if (checkedInOnly) {
-      query = query.not("check_in_time", "is", null);
-    }
-    
-    const { data, error } = await query;
     
     if (error) throw error;
     
@@ -101,41 +93,81 @@ export const getEventAttendees = async (
 };
 
 /**
+ * Get interested users for an event
+ */
+export const getEventInterestedUsers = async (
+  eventId: string, 
+  includeProfiles = false
+): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("event_interested")
+      .select(includeProfiles ? "*, profile:profiles(*)" : "*")
+      .eq("event_id", eventId);
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error getting event interested users:", error);
+    throw error;
+  }
+};
+
+/**
+ * Mark user interest in an event
+ */
+export const markEventInterest = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("event_interested")
+      .insert({
+        event_id: eventId,
+        user_id: userId
+      });
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error("Error marking event interest:", error);
+    throw error;
+  }
+};
+
+/**
+ * Remove user interest in an event
+ */
+export const removeEventInterest = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("event_interested")
+      .delete()
+      .eq("event_id", eventId)
+      .eq("user_id", userId);
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error("Error removing event interest:", error);
+    throw error;
+  }
+};
+
+/**
  * Check in a user to an event
  */
 export const checkInUserToEvent = async (eventId: string, userId: string): Promise<boolean> => {
   try {
-    // First, check if the user has already registered interest
-    const { data: existingData, error: existingError } = await supabase
-      .from("event_attendees")
-      .select("*")
-      .eq("event_id", eventId)
-      .eq("user_id", userId)
-      .maybeSingle();
+    const { error } = await supabase
+      .from("event_attendees_new")
+      .insert({
+        event_id: eventId,
+        user_id: userId
+      });
     
-    if (existingError) throw existingError;
-    
-    if (existingData) {
-      // User already registered interest, update check-in time
-      const { error } = await supabase
-        .from("event_attendees")
-        .update({ check_in_time: new Date().toISOString() })
-        .eq("event_id", eventId)
-        .eq("user_id", userId);
-      
-      if (error) throw error;
-    } else {
-      // User has not registered interest, create new record
-      const { error } = await supabase
-        .from("event_attendees")
-        .insert({
-          event_id: eventId,
-          user_id: userId,
-          check_in_time: new Date().toISOString()
-        });
-      
-      if (error) throw error;
-    }
+    if (error) throw error;
     
     // Increment the events_attended count in the user's profile
     await incrementEventsAttendedCount(userId);
