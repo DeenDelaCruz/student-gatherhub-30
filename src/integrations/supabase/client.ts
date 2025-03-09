@@ -100,8 +100,15 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
       
     if (error) throw error;
     
-    // Update user's attended events count
-    await supabase.rpc('increment_user_attended_events', { user_id: userId });
+    // Update user's attended events count - using a direct update instead of RPC
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ events_attended: supabase.rpc('get_events_attended_count', { user_id: userId }) })
+      .eq('id', userId);
+    
+    if (updateError) {
+      console.error('Error updating attended events count:', updateError);
+    }
     
     return true;
   } catch (error) {
@@ -199,14 +206,50 @@ export const getTotalEvents = async (): Promise<number> => {
 // Get all information officers
 export const getInformationOfficers = async (): Promise<any[]> => {
   try {
-    const { data, error } = await supabase
+    console.log('Fetching information officers...');
+    
+    // First, fetch all user_ids with the information_officer role
+    const { data: roleData, error: roleError } = await supabase
       .from('user_roles')
-      .select('user_id, profiles!user_id(id, name, email)')
+      .select('user_id')
       .eq('role', 'information_officer');
-      
-    if (error) throw error;
-    console.log('Information officers data:', data);
-    return data || [];
+    
+    if (roleError) {
+      console.error("Error fetching officer roles:", roleError);
+      return [];
+    }
+    
+    console.log("Role data:", roleData);
+    
+    if (!roleData || roleData.length === 0) {
+      console.log("No information officers found");
+      return [];
+    }
+    
+    // Extract user_ids from the role data
+    const officerIds = roleData.map(item => item.user_id);
+    console.log("Found officer IDs:", officerIds);
+    
+    // Then, fetch the profile data for those user_ids
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .in('id', officerIds);
+    
+    if (profileError) {
+      console.error("Error fetching profiles:", profileError);
+      return [];
+    }
+    
+    console.log("Retrieved profiles:", profileData);
+    
+    // Format the data to include both user_id and profile info
+    const officers = profileData.map(profile => ({
+      user_id: profile.id,
+      profiles: profile
+    }));
+    
+    return officers || [];
   } catch (error) {
     console.error('Error getting information officers:', error);
     return [];
