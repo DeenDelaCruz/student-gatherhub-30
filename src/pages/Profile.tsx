@@ -7,6 +7,7 @@ import { User, Calendar, LogOut, BarChart } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { UserRole } from "@/context/auth/types";
 
 const Profile = () => {
   const { profile, signOut, roles, hasRole } = useAuth();
@@ -31,6 +32,9 @@ const Profile = () => {
     { icon: Calendar, label: "My Events", count: profile?.events_attended || 0 }
   ];
 
+  // Filter out the 'student' role from display
+  const displayRoles = roles.filter((role: UserRole) => role !== 'student');
+
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
       <Header />
@@ -53,7 +57,7 @@ const Profile = () => {
                 <span className="inline-block bg-gray-100 text-xs px-2 py-1 rounded-full">
                   {profile?.year || "Student"}
                 </span>
-                {roles.map((role, index) => (
+                {displayRoles.map((role, index) => (
                   <span 
                     key={index} 
                     className={`inline-block text-xs px-2 py-1 rounded-full ${
