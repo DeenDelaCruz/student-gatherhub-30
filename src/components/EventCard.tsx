@@ -281,15 +281,16 @@ const EventCard = ({
           
           {isInformationOfficer && (
             <>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className={cn("text-xs h-7 px-2", canEdit ? "text-blue-500" : "")}
-                onClick={handleEditEvent}
-              >
-                {canEdit ? <Edit className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
-                {canEdit ? "Edit" : "View"}
-              </Button>
+              {canEdit && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs h-7 px-2 text-blue-500"
+                  onClick={handleEditEvent}
+                >
+                  <Edit className="h-3 w-3 mr-1" /> Edit
+                </Button>
+              )}
               
               <Button 
                 variant="outline" 
