@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -8,12 +7,9 @@ import { Users, CalendarDays, Activity, User, Shield, Trash2, UserMinus, UserPlu
 import { motion } from "framer-motion";
 import { 
   getTotalUsers, 
-  getTotalEvents, 
-  getInformationOfficers, 
-  demoteUserToStudent, 
+  getTotalEvents,
   getAllEvents, 
   deleteEvent,
-  getStudents,
   promoteStudentToInfoOfficer
 } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Admin = () => {
   const { hasRole } = useAuth();
@@ -45,19 +42,82 @@ const Admin = () => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const [users, events, officers, allEvents, allStudents] = await Promise.all([
-          getTotalUsers(),
-          getTotalEvents(),
-          getInformationOfficers(),
-          getAllEvents(),
-          getStudents()
-        ]);
         
+        // Fetch total users count
+        const users = await getTotalUsers();
         setTotalUsers(users);
+        
+        // Fetch total events count
+        const events = await getTotalEvents();
         setTotalEvents(events);
-        setInfoOfficers(officers);
+        
+        // Fetch information officers - using the same approach as in People.tsx
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'information_officer');
+          
+        if (roleError) {
+          console.error("Error fetching officer roles:", roleError);
+          toast.error("Failed to load information officers");
+        } else {
+          if (roleData && roleData.length > 0) {
+            const officerIds = roleData.map(item => item.user_id);
+            
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('id, name, email, year')
+              .in('id', officerIds);
+              
+            if (profileError) {
+              console.error("Error fetching officer profiles:", profileError);
+              toast.error("Failed to load officer profiles");
+            } else {
+              setInfoOfficers(profileData ? profileData.map(profile => ({
+                user_id: profile.id,
+                profiles: profile
+              })) : []);
+            }
+          } else {
+            setInfoOfficers([]);
+          }
+        }
+        
+        // Fetch students - using the same approach
+        const { data: studentRoleData, error: studentRoleError } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'student');
+          
+        if (studentRoleError) {
+          console.error("Error fetching student roles:", studentRoleError);
+          toast.error("Failed to load students");
+        } else {
+          if (studentRoleData && studentRoleData.length > 0) {
+            const studentIds = studentRoleData.map(item => item.user_id);
+            
+            const { data: studentProfileData, error: studentProfileError } = await supabase
+              .from('profiles')
+              .select('id, name, email, year, events_attended')
+              .in('id', studentIds);
+              
+            if (studentProfileError) {
+              console.error("Error fetching student profiles:", studentProfileError);
+              toast.error("Failed to load student profiles");
+            } else {
+              setStudents(studentProfileData ? studentProfileData.map(profile => ({
+                user_id: profile.id,
+                profiles: profile
+              })) : []);
+            }
+          } else {
+            setStudents([]);
+          }
+        }
+        
+        // Fetch all events
+        const allEvents = await getAllEvents();
         setEvents(allEvents);
-        setStudents(allStudents);
         
         // Simulate online users - approximately 10-30% of total users
         const simulatedOnlineUsers = Math.max(1, Math.floor(users * (Math.random() * 0.2 + 0.1)));
@@ -85,18 +145,87 @@ const Admin = () => {
     setActionLoading(prev => ({ ...prev, [`user-${userId}`]: true }));
     
     try {
-      const success = await demoteUserToStudent(userId);
+      // First check if the user already has a student role
+      const { data: existingStudentRole, error: checkError } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('role', 'student')
+        .maybeSingle();
+        
+      if (checkError) throw checkError;
       
-      if (success) {
-        toast.success("User demoted to student successfully");
-        // Refresh the information officers list
-        const officers = await getInformationOfficers();
-        setInfoOfficers(officers);
-        // Refresh the students list
-        const allStudents = await getStudents();
-        setStudents(allStudents);
+      // Begin transaction
+      // Remove information_officer role
+      const { error: deleteError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role', 'information_officer');
+        
+      if (deleteError) throw deleteError;
+      
+      // If student role doesn't exist, add it
+      if (!existingStudentRole) {
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: 'student' });
+          
+        if (insertError) throw insertError;
+      }
+      
+      toast.success("User demoted to student successfully");
+      
+      // Refresh the information officers list
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'information_officer');
+        
+      if (roleError) throw roleError;
+      
+      if (roleData && roleData.length > 0) {
+        const officerIds = roleData.map(item => item.user_id);
+        
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, name, email, year')
+          .in('id', officerIds);
+          
+        if (profileError) throw profileError;
+        
+        setInfoOfficers(profileData ? profileData.map(profile => ({
+          user_id: profile.id,
+          profiles: profile
+        })) : []);
       } else {
-        toast.error("Failed to demote user");
+        setInfoOfficers([]);
+      }
+      
+      // Refresh the students list
+      const { data: studentRoleData, error: studentRoleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'student');
+        
+      if (studentRoleError) throw studentRoleError;
+      
+      if (studentRoleData && studentRoleData.length > 0) {
+        const studentIds = studentRoleData.map(item => item.user_id);
+        
+        const { data: studentProfileData, error: studentProfileError } = await supabase
+          .from('profiles')
+          .select('id, name, email, year, events_attended')
+          .in('id', studentIds);
+          
+        if (studentProfileError) throw studentProfileError;
+        
+        setStudents(studentProfileData ? studentProfileData.map(profile => ({
+          user_id: profile.id,
+          profiles: profile
+        })) : []);
+      } else {
+        setStudents([]);
       }
     } catch (error) {
       console.error("Error demoting user:", error);
@@ -116,12 +245,58 @@ const Admin = () => {
       
       if (success) {
         toast.success("Student promoted to information officer successfully");
+        
         // Refresh the information officers list
-        const officers = await getInformationOfficers();
-        setInfoOfficers(officers);
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'information_officer');
+          
+        if (roleError) throw roleError;
+        
+        if (roleData && roleData.length > 0) {
+          const officerIds = roleData.map(item => item.user_id);
+          
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, name, email, year')
+            .in('id', officerIds);
+            
+          if (profileError) throw profileError;
+          
+          setInfoOfficers(profileData ? profileData.map(profile => ({
+            user_id: profile.id,
+            profiles: profile
+          })) : []);
+        } else {
+          setInfoOfficers([]);
+        }
+        
         // Refresh the students list
-        const allStudents = await getStudents();
-        setStudents(allStudents);
+        const { data: studentRoleData, error: studentRoleError } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'student');
+          
+        if (studentRoleError) throw studentRoleError;
+        
+        if (studentRoleData && studentRoleData.length > 0) {
+          const studentIds = studentRoleData.map(item => item.user_id);
+          
+          const { data: studentProfileData, error: studentProfileError } = await supabase
+            .from('profiles')
+            .select('id, name, email, year, events_attended')
+            .in('id', studentIds);
+            
+          if (studentProfileError) throw studentProfileError;
+          
+          setStudents(studentProfileData ? studentProfileData.map(profile => ({
+            user_id: profile.id,
+            profiles: profile
+          })) : []);
+        } else {
+          setStudents([]);
+        }
       } else {
         toast.error("Failed to promote student");
       }
