@@ -164,6 +164,8 @@ const Index = () => {
                     isActive={event.is_active}
                     onClick={() => handleEventClick(event.id)}
                     createdBy={event.created_by}
+                    description={event.description}
+                    location={event.location}
                   />
                 ))
               ) : (
