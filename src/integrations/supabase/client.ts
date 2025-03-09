@@ -78,14 +78,39 @@ export const getEventAttendees = async (
   includeProfiles = false
 ): Promise<any[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("event_attendees_new")
-      .select(includeProfiles ? "*, profile:profiles(*)" : "*")
+      .select("*")
       .eq("event_id", eventId);
     
-    if (error) throw error;
-    
-    return data || [];
+    if (includeProfiles) {
+      // Instead of using the implicit join, we'll fetch profiles separately
+      const { data: attendees, error } = await query;
+      
+      if (error) throw error;
+      if (!attendees || attendees.length === 0) return [];
+      
+      // Get all user IDs from attendees
+      const userIds = attendees.map(a => a.user_id);
+      
+      // Fetch profiles for these users
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Merge the data
+      return attendees.map(attendee => {
+        const profile = profiles?.find(p => p.id === attendee.user_id) || null;
+        return { ...attendee, profile };
+      });
+    } else {
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    }
   } catch (error) {
     console.error("Error getting event attendees:", error);
     throw error;
@@ -100,14 +125,39 @@ export const getEventInterestedUsers = async (
   includeProfiles = false
 ): Promise<any[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("event_interested")
-      .select(includeProfiles ? "*, profile:profiles(*)" : "*")
+      .select("*")
       .eq("event_id", eventId);
     
-    if (error) throw error;
-    
-    return data || [];
+    if (includeProfiles) {
+      // Instead of using the implicit join, we'll fetch profiles separately
+      const { data: interestedUsers, error } = await query;
+      
+      if (error) throw error;
+      if (!interestedUsers || interestedUsers.length === 0) return [];
+      
+      // Get all user IDs from interested users
+      const userIds = interestedUsers.map(u => u.user_id);
+      
+      // Fetch profiles for these users
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Merge the data
+      return interestedUsers.map(user => {
+        const profile = profiles?.find(p => p.id === user.user_id) || null;
+        return { ...user, profile };
+      });
+    } else {
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    }
   } catch (error) {
     console.error("Error getting event interested users:", error);
     throw error;
