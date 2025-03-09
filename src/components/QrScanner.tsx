@@ -17,6 +17,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   const [hasPermissions, setHasPermissions] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploadMode, setIsUploadMode] = useState(false);
+  const [isLocalProcessing, setIsLocalProcessing] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerContainerId = "qr-reader-container";
@@ -150,12 +151,11 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     if (!file) return;
 
     setError(null);
+    setIsLocalProcessing(true);
     
     if (!scannerRef.current) {
       scannerRef.current = new Html5Qrcode(scannerContainerId);
     }
-    
-    setIsProcessing(true);
     
     scannerRef.current.scanFile(file, true)
       .then(decodedText => {
@@ -174,7 +174,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         setError("Could not find a valid QR code in the image");
       })
       .finally(() => {
-        setIsProcessing(false);
+        setIsLocalProcessing(false);
       });
   };
 
@@ -195,7 +195,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
 
   return (
     <div className="scanner-viewport relative mb-6 rounded-xl overflow-hidden bg-black/5 aspect-square flex items-center justify-center">
-      {isProcessing ? (
+      {isProcessing || isLocalProcessing ? (
         <div className="text-gray-500 flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin" />
           <p>Processing...</p>
@@ -233,7 +233,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           />
           
           <div className="flex flex-col gap-3 w-full max-w-xs">
-            <Button onClick={triggerFileUpload} className="w-full">
+            <Button onClick={triggerFileInput} className="w-full">
               Select Image
             </Button>
             

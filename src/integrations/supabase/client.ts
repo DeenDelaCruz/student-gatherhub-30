@@ -9,3 +9,173 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Get count of users interested in an event
+export const getEventInterestCount = async (eventId: string): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('event_interested')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+      
+    if (error) throw error;
+    
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting event interest count:', error);
+    return 0;
+  }
+};
+
+// Get count of users checked in to an event
+export const getEventCheckedInCount = async (eventId: string): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('event_attendees_new')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+      
+    if (error) throw error;
+    
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting event checked-in count:', error);
+    return 0;
+  }
+};
+
+// Check if a user is interested in an event
+export const isUserInterestedInEvent = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('event_interested')
+      .select('*')
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (error) throw error;
+    
+    return !!data;
+  } catch (error) {
+    console.error('Error checking if user is interested in event:', error);
+    return false;
+  }
+};
+
+// Mark user interest in an event
+export const markEventInterest = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('event_interested')
+      .insert({
+        event_id: eventId,
+        user_id: userId
+      });
+      
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error marking event interest:', error);
+    return false;
+  }
+};
+
+// Remove user interest in an event
+export const removeEventInterest = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('event_interested')
+      .delete()
+      .eq('event_id', eventId)
+      .eq('user_id', userId);
+      
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error removing event interest:', error);
+    return false;
+  }
+};
+
+// Check in a user to an event
+export const checkInUserToEvent = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    // Check if user is already checked in
+    const { data: existingCheckIn, error: checkError } = await supabase
+      .from('event_attendees_new')
+      .select('*')
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (checkError) throw checkError;
+    
+    // If already checked in, return true
+    if (existingCheckIn) {
+      return true;
+    }
+    
+    // Otherwise, create new check-in
+    const { error } = await supabase
+      .from('event_attendees_new')
+      .insert({
+        event_id: eventId,
+        user_id: userId,
+        check_in_time: new Date().toISOString()
+      });
+      
+    if (error) throw error;
+    
+    // Increment events_attended counter in user profile
+    await supabase
+      .from('profiles')
+      .update({ events_attended: supabase.rpc('increment', { value: 1 }) })
+      .eq('id', userId);
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking in user to event:', error);
+    return false;
+  }
+};
+
+// Get all attendees for an event with profile information
+export const getEventAttendees = async (eventId: string, includeProfiles = false): Promise<any[]> => {
+  try {
+    let query = supabase
+      .from('event_attendees_new')
+      .select(includeProfiles ? 'id, user_id, check_in_time, profile:profiles(id, name, email)' : '*')
+      .eq('event_id', eventId);
+      
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting event attendees:', error);
+    return [];
+  }
+};
+
+// Get all interested users for an event with profile information
+export const getEventInterestedUsers = async (eventId: string, includeProfiles = false): Promise<any[]> => {
+  try {
+    let query = supabase
+      .from('event_interested')
+      .select(includeProfiles ? 'id, user_id, created_at, profile:profiles(id, name, email)' : '*')
+      .eq('event_id', eventId);
+      
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting event interested users:', error);
+    return [];
+  }
+};
