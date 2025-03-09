@@ -133,7 +133,7 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
     try {
       const { data, error: updateError } = await supabase
         .from('profiles')
-        .update({ events_attended: profile => profile.events_attended + 1 })
+        .update({ events_attended: supabase.rpc('increment_counter').data })
         .eq('id', userId);
       
       if (updateError) {

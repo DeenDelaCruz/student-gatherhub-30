@@ -3,13 +3,13 @@ import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { User, Calendar, Bell, Settings, ArrowRight, LogOut } from "lucide-react";
+import { User, Calendar, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 const Profile = () => {
-  const { profile, signOut, roles, hasRole } = useAuth();
+  const { profile, signOut, roles } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -26,13 +26,9 @@ const Profile = () => {
     }
   };
 
-  // Only show notifications and settings to non-student roles or admins
+  // Only show My Events menu item
   const menuItems = [
-    { icon: Calendar, label: "My Events", count: profile?.events_attended || 0 },
-    // Show notifications only to non-students or admins
-    ...((!hasRole('student') || hasRole('admin')) ? [{ icon: Bell, label: "Notifications", toggle: profile?.notifications }] : []),
-    // Only show settings to information officers or admins
-    ...(hasRole('information_officer') || hasRole('admin') ? [{ icon: Settings, label: "Account Settings" }] : [])
+    { icon: Calendar, label: "My Events", count: profile?.events_attended || 0 }
   ];
 
   return (
@@ -123,32 +119,9 @@ const Profile = () => {
                     {item.count}
                   </span>
                 )}
-                {typeof item.toggle !== 'undefined' && (
-                  <div className={`w-10 h-5 rounded-full relative ${item.toggle ? 'bg-campus-accent' : 'bg-gray-300'} transition-colors`}>
-                    <div className={`absolute top-0.5 ${item.toggle ? 'right-0.5' : 'left-0.5'} bg-white h-4 w-4 rounded-full transition-all`}></div>
-                  </div>
-                )}
-                {typeof item.count === 'undefined' && typeof item.toggle === 'undefined' && (
-                  <ArrowRight size={16} className="text-gray-400" />
-                )}
               </div>
             </div>
           ))}
-          
-          {/* Display admin panel link for admins and information officers */}
-          {(hasRole('admin') || hasRole('information_officer')) && (
-            <div 
-              className="bg-white rounded-xl shadow-sm mb-3 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center">
-                <div className="bg-blue-100 rounded-full p-2 mr-3">
-                  <Settings size={18} className="text-blue-600" />
-                </div>
-                <span>Admin Panel</span>
-              </div>
-              <ArrowRight size={16} className="text-gray-400" />
-            </div>
-          )}
           
           {/* Logout Button */}
           <motion.div
