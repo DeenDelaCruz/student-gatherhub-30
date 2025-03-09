@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -272,7 +273,7 @@ const Admin = () => {
           setInfoOfficers([]);
         }
         
-        // Refresh the students list
+        // Refresh the students list by getting only users with student role
         const { data: studentRoleData, error: studentRoleError } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -280,20 +281,38 @@ const Admin = () => {
           
         if (studentRoleError) throw studentRoleError;
         
+        // Filter out users who also have information_officer role
         if (studentRoleData && studentRoleData.length > 0) {
           const studentIds = studentRoleData.map(item => item.user_id);
           
-          const { data: studentProfileData, error: studentProfileError } = await supabase
-            .from('profiles')
-            .select('id, name, email, year, events_attended')
-            .in('id', studentIds);
+          // Check which of these students also have information_officer role
+          const { data: officerRoleData, error: officerCheckError } = await supabase
+            .from('user_roles')
+            .select('user_id')
+            .eq('role', 'information_officer')
+            .in('user_id', studentIds);
             
-          if (studentProfileError) throw studentProfileError;
+          if (officerCheckError) throw officerCheckError;
           
-          setStudents(studentProfileData ? studentProfileData.map(profile => ({
-            user_id: profile.id,
-            profiles: profile
-          })) : []);
+          // Filter out users who have both roles
+          const officerUserIds = officerRoleData ? officerRoleData.map(item => item.user_id) : [];
+          const pureStudentIds = studentIds.filter(id => !officerUserIds.includes(id));
+          
+          if (pureStudentIds.length > 0) {
+            const { data: studentProfileData, error: studentProfileError } = await supabase
+              .from('profiles')
+              .select('id, name, email, year, events_attended')
+              .in('id', pureStudentIds);
+              
+            if (studentProfileError) throw studentProfileError;
+            
+            setStudents(studentProfileData ? studentProfileData.map(profile => ({
+              user_id: profile.id,
+              profiles: profile
+            })) : []);
+          } else {
+            setStudents([]);
+          }
         } else {
           setStudents([]);
         }
