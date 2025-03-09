@@ -131,9 +131,24 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
     
     // Increment events_attended counter in user profile
     try {
+      // First get the current profile data
+      const { data: currentProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('events_attended')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) {
+        console.error('Error fetching profile for attendance update:', profileError);
+        return true; // Still return true since check-in was successful
+      }
+      
+      // Increment the events_attended count
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ events_attended: profile?.events_attended + 1 || 1 })
+        .update({ 
+          events_attended: (currentProfile?.events_attended || 0) + 1 
+        })
         .eq('id', userId);
       
       if (updateError) {
@@ -218,5 +233,111 @@ export const getTotalEvents = async (): Promise<number> => {
   } catch (error) {
     console.error('Error getting total events count:', error);
     return 0;
+  }
+};
+
+// Delete an event (Admin only)
+export const deleteEvent = async (eventId: string): Promise<boolean> => {
+  try {
+    // Delete the event
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId);
+      
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    return false;
+  }
+};
+
+// Demote a user from information_officer to student role (Admin only)
+export const demoteUserToStudent = async (userId: string): Promise<boolean> => {
+  try {
+    // First check if the user has the information_officer role
+    const { data: roles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', 'information_officer');
+      
+    if (rolesError) throw rolesError;
+    
+    if (!roles || roles.length === 0) {
+      console.warn('User does not have the information_officer role');
+      return false;
+    }
+    
+    // Delete the information_officer role
+    const { error: deleteError } = await supabase
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId)
+      .eq('role', 'information_officer');
+      
+    if (deleteError) throw deleteError;
+    
+    // Ensure the user has the student role
+    const { data: studentRoles, error: studentRolesError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', 'student');
+      
+    if (studentRolesError) throw studentRolesError;
+    
+    // If the user doesn't have the student role, add it
+    if (!studentRoles || studentRoles.length === 0) {
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userId,
+          role: 'student'
+        });
+        
+      if (insertError) throw insertError;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error demoting user to student:', error);
+    return false;
+  }
+};
+
+// Get all users with information_officer role
+export const getInformationOfficers = async (): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('user_id, profiles:profiles(id, name, email)')
+      .eq('role', 'information_officer');
+      
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting information officers:', error);
+    return [];
+  }
+};
+
+// Get all events for admin management
+export const getAllEvents = async (): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting all events:', error);
+    return [];
   }
 };
