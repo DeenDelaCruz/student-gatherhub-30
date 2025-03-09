@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -7,7 +6,7 @@ import EventCard from "@/components/EventCard";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, createEventReminderNotifications } from "@/integrations/supabase/client";
 import { Event, convertSupabaseEventsToEvents } from "@/types/event";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
@@ -55,7 +54,6 @@ const Index = () => {
 
     fetchEvents();
 
-    // Subscribe to changes in the events table
     const channel = supabase
       .channel('events-changes')
       .on(
@@ -75,6 +73,34 @@ const Index = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      const checkEventReminders = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('event-reminders', {
+            method: 'POST',
+          });
+          
+          if (error) {
+            console.error('Error checking event reminders:', error);
+          } else {
+            console.log('Event reminders check completed:', data);
+          }
+        } catch (error) {
+          console.error('Error invoking event-reminders function:', error);
+        }
+      };
+      
+      checkEventReminders();
+      
+      const reminderInterval = setInterval(checkEventReminders, 6 * 60 * 60 * 1000);
+      
+      return () => {
+        clearInterval(reminderInterval);
+      };
+    }
+  }, [user]);
+
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     if (!term.trim()) {
@@ -89,7 +115,6 @@ const Index = () => {
   };
 
   const handleDateSelect = (date: Date) => {
-    // Filter events by date
     const selectedDate = new Date(date);
     selectedDate.setHours(0, 0, 0, 0);
     
