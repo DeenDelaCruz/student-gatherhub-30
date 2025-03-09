@@ -19,7 +19,6 @@ const EventDetails = () => {
   const [isInterested, setIsInterested] = useState(false);
   const [interestedCount, setInterestedCount] = useState(0);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [subscription, setSubscription] = useState<any>(null);
   const [lastToggleTime, setLastToggleTime] = useState<number | null>(null);
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   const canEdit = isInformationOfficer && event?.created_by === user?.id;
@@ -71,12 +70,6 @@ const EventDetails = () => {
     if (!isUpdating) {
       fetchEventDetails();
     }
-
-    return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
-    };
   }, [eventId, user, isUpdating]);
 
   useEffect(() => {
@@ -92,40 +85,29 @@ const EventDetails = () => {
           table: 'event_attendees',
           filter: `event_id=eq.${eventId}` 
         }, 
-        async (payload) => {
-          console.log("Realtime update received:", payload);
-          
-          if (isUpdating || (lastToggleTime && Date.now() - lastToggleTime < 2000)) {
+        async () => {
+          if (lastToggleTime && Date.now() - lastToggleTime < 2000) {
             console.log("Skipping real-time update due to recent toggle");
             return;
           }
           
-          await fetchInterestCount();
-          
-          if (user) {
-            await fetchUserInterest();
+          if (!isUpdating) {
+            await fetchInterestCount();
+            if (user) {
+              await fetchUserInterest();
+            }
           }
         }
       )
       .subscribe();
 
     console.log(`Subscribed to channel: ${channelName}`);
-    setSubscription(channel);
-
+    
     return () => {
       console.log(`Unsubscribing from channel: ${channelName}`);
       supabase.removeChannel(channel);
-      setSubscription(null);
     };
   }, [eventId, isLoading, isUpdating, user, lastToggleTime]);
-
-  useEffect(() => {
-    return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
-    };
-  }, [subscription]);
 
   const handleToggleInterest = async () => {
     if (!user) {
@@ -143,24 +125,15 @@ const EventDetails = () => {
 
     try {
       setIsUpdating(true);
-
+      
       const newInterestedState = !isInterested;
       setIsInterested(newInterestedState);
+      
       setInterestedCount(prevCount => newInterestedState ? prevCount + 1 : Math.max(0, prevCount - 1));
       
       setLastToggleTime(Date.now());
 
-      if (newInterestedState === false) {
-        const { error } = await supabase
-          .from("event_attendees")
-          .delete()
-          .eq("event_id", eventId.toString())
-          .eq("user_id", user.id)
-          .is("check_in_time", null);
-          
-        if (error) throw error;
-        toast.success("You are no longer interested in this event");
-      } else {
+      if (newInterestedState) {
         const { error } = await supabase
           .from("event_attendees")
           .insert({
@@ -196,9 +169,19 @@ const EventDetails = () => {
         }
         
         toast.success("You are now interested in this event");
+      } else {
+        const { error } = await supabase
+          .from("event_attendees")
+          .delete()
+          .eq("event_id", eventId.toString())
+          .eq("user_id", user.id)
+          .is("check_in_time", null);
+          
+        if (error) throw error;
+        toast.success("You are no longer interested in this event");
       }
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       await fetchUserInterest();
       await fetchInterestCount();
