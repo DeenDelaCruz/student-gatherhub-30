@@ -100,14 +100,25 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
       
     if (error) throw error;
     
-    // Update user's attended events count - using a direct update instead of RPC
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ events_attended: supabase.rpc('get_events_attended_count', { user_id: userId }) })
-      .eq('id', userId);
+    // Update user's attended events count - using a direct update
+    // First get the count of events the user has attended
+    const { count, error: countError } = await supabase
+      .from('event_attendees_new')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
     
-    if (updateError) {
-      console.error('Error updating attended events count:', updateError);
+    if (countError) {
+      console.error('Error getting attended events count:', countError);
+    } else {
+      // Now update the profile with the count
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ events_attended: count || 0 })
+        .eq('id', userId);
+      
+      if (updateError) {
+        console.error('Error updating attended events count:', updateError);
+      }
     }
     
     return true;
