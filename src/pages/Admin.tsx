@@ -4,9 +4,18 @@ import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/auth";
 import { useNavigate } from "react-router-dom";
-import { Users, CalendarDays, Activity, User, Shield, Trash2, UserMinus } from "lucide-react";
+import { Users, CalendarDays, Activity, User, Shield, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { motion } from "framer-motion";
-import { getTotalUsers, getTotalEvents, getInformationOfficers, demoteUserToStudent, getAllEvents, deleteEvent } from "@/integrations/supabase/client";
+import { 
+  getTotalUsers, 
+  getTotalEvents, 
+  getInformationOfficers, 
+  demoteUserToStudent, 
+  getAllEvents, 
+  deleteEvent,
+  getStudents,
+  promoteStudentToInfoOfficer
+} from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -20,6 +29,7 @@ const Admin = () => {
   const [totalEvents, setTotalEvents] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [infoOfficers, setInfoOfficers] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
   // For demonstration, we'll simulate this since we can't track actual online users without a real-time backend
@@ -35,17 +45,19 @@ const Admin = () => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const [users, events, officers, allEvents] = await Promise.all([
+        const [users, events, officers, allEvents, allStudents] = await Promise.all([
           getTotalUsers(),
           getTotalEvents(),
           getInformationOfficers(),
-          getAllEvents()
+          getAllEvents(),
+          getStudents()
         ]);
         
         setTotalUsers(users);
         setTotalEvents(events);
         setInfoOfficers(officers);
         setEvents(allEvents);
+        setStudents(allStudents);
         
         // Simulate online users - approximately 10-30% of total users
         const simulatedOnlineUsers = Math.max(1, Math.floor(users * (Math.random() * 0.2 + 0.1)));
@@ -80,6 +92,9 @@ const Admin = () => {
         // Refresh the information officers list
         const officers = await getInformationOfficers();
         setInfoOfficers(officers);
+        // Refresh the students list
+        const allStudents = await getStudents();
+        setStudents(allStudents);
       } else {
         toast.error("Failed to demote user");
       }
@@ -89,6 +104,33 @@ const Admin = () => {
     } finally {
       // Clear loading state for this specific user
       setActionLoading(prev => ({ ...prev, [`user-${userId}`]: false }));
+    }
+  };
+
+  const handlePromoteStudent = async (userId: string) => {
+    // Set loading state for this specific student
+    setActionLoading(prev => ({ ...prev, [`student-${userId}`]: true }));
+    
+    try {
+      const success = await promoteStudentToInfoOfficer(userId);
+      
+      if (success) {
+        toast.success("Student promoted to information officer successfully");
+        // Refresh the information officers list
+        const officers = await getInformationOfficers();
+        setInfoOfficers(officers);
+        // Refresh the students list
+        const allStudents = await getStudents();
+        setStudents(allStudents);
+      } else {
+        toast.error("Failed to promote student");
+      }
+    } catch (error) {
+      console.error("Error promoting student:", error);
+      toast.error("An error occurred while promoting student");
+    } finally {
+      // Clear loading state for this specific student
+      setActionLoading(prev => ({ ...prev, [`student-${userId}`]: false }));
     }
   };
 
@@ -259,10 +301,14 @@ const Admin = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="users">
                     <User className="h-4 w-4 mr-2" />
-                    Users
+                    Officers
+                  </TabsTrigger>
+                  <TabsTrigger value="students">
+                    <Users className="h-4 w-4 mr-2" />
+                    Students
                   </TabsTrigger>
                   <TabsTrigger value="events">
                     <CalendarDays className="h-4 w-4 mr-2" />
@@ -299,6 +345,48 @@ const Admin = () => {
                               <>
                                 <UserMinus className="h-4 w-4 mr-1" />
                                 Demote
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="students" className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Students</h3>
+                  
+                  {loading ? (
+                    <div className="h-16 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                    </div>
+                  ) : students.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-4 text-center">No students found</p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {students.map((student) => (
+                        <div key={student.user_id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-sm">{student.profiles?.name || 'Unknown'}</p>
+                            <p className="text-xs text-gray-500">{student.profiles?.email || 'No email'}</p>
+                            <p className="text-xs text-gray-400">
+                              {student.profiles?.events_attended || 0} events attended
+                            </p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="border-green-500 text-green-600 hover:bg-green-50"
+                            onClick={() => handlePromoteStudent(student.user_id)}
+                            disabled={actionLoading[`student-${student.user_id}`]}
+                          >
+                            {actionLoading[`student-${student.user_id}`] ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-green-600"></div>
+                            ) : (
+                              <>
+                                <UserPlus className="h-4 w-4 mr-1" />
+                                Promote
                               </>
                             )}
                           </Button>
