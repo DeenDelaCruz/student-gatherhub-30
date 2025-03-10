@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -65,13 +66,20 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           html5QrCode.stop()
             .then(() => {
               setIsScanning(false);
-              onScanComplete(decodedText);
               
-              // Refresh profile data after successful scan
-              if (user) {
-                setTimeout(() => {
-                  refreshProfileData(user.id);
-                }, 1000); // Small delay to allow check-in to complete
+              // Ensure we're passing valid data to the onScanComplete callback
+              if (typeof decodedText === 'string' && decodedText.trim()) {
+                onScanComplete(decodedText.trim());
+                
+                // Refresh profile data after successful scan
+                if (user) {
+                  setTimeout(() => {
+                    console.log("Refreshing profile data for user:", user.id);
+                    refreshProfileData(user.id);
+                  }, 2000); // Increased delay to allow check-in to complete
+                }
+              } else {
+                setError("Invalid QR code data received");
               }
             })
             .catch(err => console.error("Error stopping scanner after success:", err));
@@ -159,13 +167,20 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     scannerRef.current.scanFile(file, true)
       .then(decodedText => {
         console.log("QR Code from image:", decodedText);
-        onScanComplete(decodedText);
         
-        // Refresh profile data after successful scan
-        if (user) {
-          setTimeout(() => {
-            refreshProfileData(user.id);
-          }, 1000);
+        // Ensure we're passing valid data to the onScanComplete callback
+        if (typeof decodedText === 'string' && decodedText.trim()) {
+          onScanComplete(decodedText.trim());
+          
+          // Refresh profile data after successful scan
+          if (user) {
+            setTimeout(() => {
+              console.log("Refreshing profile data for user:", user.id);
+              refreshProfileData(user.id);
+            }, 2000); // Increased delay to allow check-in to complete
+          }
+        } else {
+          setError("Invalid QR code data received from image");
         }
       })
       .catch(err => {

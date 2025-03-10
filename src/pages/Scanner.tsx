@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -113,7 +112,6 @@ const Scanner = () => {
     }
   }, [selectedEvent, activeTab, isInformationOfficer]);
   
-  // Subscribe to real-time updates for event data
   useEffect(() => {
     if (!selectedEvent || !isInformationOfficer || activeTab !== "attendees") return;
     
@@ -202,32 +200,57 @@ const Scanner = () => {
     
     try {
       let eventId;
+      
+      // First, clean up the scanned data
+      const cleanedData = scannedData.trim();
+      console.log("Cleaned data:", cleanedData);
+      
       try {
         // Check if the scanned data is already a valid event ID (simple UUID)
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (uuidRegex.test(scannedData)) {
+        if (uuidRegex.test(cleanedData)) {
           console.log("Direct UUID detected in QR code");
-          eventId = scannedData;
+          eventId = cleanedData;
         } else {
           // Try parsing as JSON
-          const parsedData = JSON.parse(scannedData);
-          eventId = parsedData.eventId;
+          const parsedData = JSON.parse(cleanedData);
           console.log("Parsed JSON data from QR code:", parsedData);
           
+          // Look for eventId or id properties
+          eventId = parsedData.eventId || parsedData.id;
+          
           if (!eventId) {
-            throw new Error("Invalid QR code data: missing eventId");
+            // Look for the first UUID-like value in any property
+            for (const key in parsedData) {
+              const value = parsedData[key];
+              if (typeof value === 'string' && uuidRegex.test(value)) {
+                console.log(`Found UUID in property ${key}:`, value);
+                eventId = value;
+                break;
+              }
+            }
+          }
+          
+          if (!eventId) {
+            throw new Error("Could not find valid event ID in parsed JSON data");
           }
         }
       } catch (parseError) {
         console.error("Error parsing QR code:", parseError);
         
         // If parsing fails, check if the string itself might be an event ID
-        const potentialEventId = scannedData.trim();
-        if (potentialEventId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-          eventId = potentialEventId;
+        if (cleanedData.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          eventId = cleanedData;
           console.log("Using raw string as event ID:", eventId);
         } else {
-          throw new Error("Invalid QR code format");
+          // Last resort - try to find a UUID pattern anywhere in the string
+          const uuidMatch = cleanedData.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+          if (uuidMatch) {
+            eventId = uuidMatch[0];
+            console.log("Extracted UUID from string:", eventId);
+          } else {
+            throw new Error("Invalid QR code format: no valid event ID found");
+          }
         }
       }
       
@@ -236,18 +259,35 @@ const Scanner = () => {
       }
       
       console.log("Using event ID for check-in:", eventId);
-      const success = await checkInUserToEvent(eventId, user.id);
+      
+      // Attempt to check in with retries
+      let success = false;
+      let attempts = 0;
+      
+      while (!success && attempts < 3) {
+        attempts++;
+        console.log(`Check-in attempt ${attempts} for user ${user.id} to event ${eventId}`);
+        success = await checkInUserToEvent(eventId, user.id);
+        
+        if (!success && attempts < 3) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
       
       if (success) {
         setScanSuccess(true);
         
+        // Get event details
         const { data: eventData, error: eventError } = await supabase
           .from("events")
           .select("title")
           .eq("id", eventId)
-          .single();
+          .maybeSingle();
           
-        if (eventError) throw eventError;
+        if (eventError) {
+          console.error("Error fetching event details:", eventError);
+        }
         
         if (eventData) {
           toast.success(`Checked in to: ${eventData.title}`, {
@@ -258,9 +298,16 @@ const Scanner = () => {
             description: "You've been successfully checked in to the event",
           });
         }
+        
+        // Refresh profile data after successful check-in
+        if (user) {
+          setTimeout(() => {
+            refreshProfileData(user.id);
+          }, 2000);
+        }
       } else {
         setScanSuccess(false);
-        toast.error("Failed to check in to the event");
+        throw new Error(`Failed to check in to the event after ${attempts} attempts`);
       }
     } catch (error: any) {
       console.error("Error processing QR code:", error);
