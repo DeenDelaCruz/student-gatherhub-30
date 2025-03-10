@@ -59,7 +59,7 @@ const Scanner = () => {
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [scanSuccess, setScanSuccess] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { hasRole, user } = useAuth();
+  const { hasRole, user, refreshProfileData } = useAuth();
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   
   useEffect(() => {
@@ -92,11 +92,9 @@ const Scanner = () => {
       try {
         setIsLoadingUsers(true);
         
-        // Fetch attendees (checked in users)
         const attendeesData = await getEventAttendees(selectedEvent, true);
         setAttendees(attendeesData);
         
-        // Fetch interested users
         const interestedData = await getEventInterestedUsers(selectedEvent, true);
         setInterestedUsers(interestedData);
       } catch (error: any) {
@@ -115,7 +113,6 @@ const Scanner = () => {
   useEffect(() => {
     if (!selectedEvent || !isInformationOfficer || activeTab !== "attendees") return;
     
-    // Create channel for attendees updates
     const attendeesChannel = supabase
       .channel(`event-attendees-${selectedEvent}`)
       .on('postgres_changes', 
@@ -135,7 +132,6 @@ const Scanner = () => {
       )
       .subscribe();
       
-    // Create channel for interested users updates
     const interestedChannel = supabase
       .channel(`event-interested-${selectedEvent}`)
       .on('postgres_changes', 
@@ -201,26 +197,20 @@ const Scanner = () => {
     try {
       let eventId;
       
-      // First, clean up the scanned data
       const cleanedData = scannedData.trim();
       console.log("Cleaned data:", cleanedData);
       
       try {
-        // Check if the scanned data is already a valid event ID (simple UUID)
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (uuidRegex.test(cleanedData)) {
           console.log("Direct UUID detected in QR code");
           eventId = cleanedData;
         } else {
-          // Try parsing as JSON
           const parsedData = JSON.parse(cleanedData);
           console.log("Parsed JSON data from QR code:", parsedData);
           
-          // Look for eventId or id properties
           eventId = parsedData.eventId || parsedData.id;
           
           if (!eventId) {
-            // Look for the first UUID-like value in any property
             for (const key in parsedData) {
               const value = parsedData[key];
               if (typeof value === 'string' && uuidRegex.test(value)) {
@@ -238,12 +228,10 @@ const Scanner = () => {
       } catch (parseError) {
         console.error("Error parsing QR code:", parseError);
         
-        // If parsing fails, check if the string itself might be an event ID
         if (cleanedData.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
           eventId = cleanedData;
           console.log("Using raw string as event ID:", eventId);
         } else {
-          // Last resort - try to find a UUID pattern anywhere in the string
           const uuidMatch = cleanedData.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
           if (uuidMatch) {
             eventId = uuidMatch[0];
@@ -260,7 +248,6 @@ const Scanner = () => {
       
       console.log("Using event ID for check-in:", eventId);
       
-      // Attempt to check in with retries
       let success = false;
       let attempts = 0;
       
@@ -270,7 +257,6 @@ const Scanner = () => {
         success = await checkInUserToEvent(eventId, user.id);
         
         if (!success && attempts < 3) {
-          // Wait before retry
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
@@ -278,7 +264,6 @@ const Scanner = () => {
       if (success) {
         setScanSuccess(true);
         
-        // Get event details
         const { data: eventData, error: eventError } = await supabase
           .from("events")
           .select("title")
@@ -299,9 +284,9 @@ const Scanner = () => {
           });
         }
         
-        // Refresh profile data after successful check-in
         if (user) {
           setTimeout(() => {
+            console.log("Refreshing profile data for user:", user.id);
             refreshProfileData(user.id);
           }, 2000);
         }

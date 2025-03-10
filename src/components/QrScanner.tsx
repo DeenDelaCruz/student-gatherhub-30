@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerContainerId = "qr-reader-container";
-  const { user, refreshProfileData } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     // Check camera permissions
@@ -75,7 +74,6 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
                 if (user) {
                   setTimeout(() => {
                     console.log("Refreshing profile data for user:", user.id);
-                    refreshProfileData(user.id);
                   }, 2000); // Increased delay to allow check-in to complete
                 }
               } else {
@@ -176,7 +174,6 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           if (user) {
             setTimeout(() => {
               console.log("Refreshing profile data for user:", user.id);
-              refreshProfileData(user.id);
             }, 2000); // Increased delay to allow check-in to complete
           }
         } else {
