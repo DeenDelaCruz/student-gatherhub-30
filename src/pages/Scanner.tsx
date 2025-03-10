@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -61,7 +60,7 @@ const Scanner = () => {
   const [activeTab, setActiveTab] = useState("qrcode");
   const [activeUserTab, setActiveUserTab] = useState("attendees");
   const [scanResult, setScanResult] = useState<string | null>(null);
-  const [scanSuccess, setScanSuccess] = useState(false);
+  const [scanSuccess, setScanSuccess] = useState<boolean | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const { hasRole, user, refreshProfileData } = useAuth();
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
@@ -196,6 +195,7 @@ const Scanner = () => {
     
     setIsProcessing(true);
     setScanResult(scannedData);
+    setScanSuccess(null);
     console.log("Raw scanned data:", scannedData);
     
     try {
@@ -321,7 +321,7 @@ const Scanner = () => {
   
   const resetScanResult = () => {
     setScanResult(null);
-    setScanSuccess(false);
+    setScanSuccess(null);
   };
   
   const exportUsersList = () => {
@@ -471,25 +471,30 @@ const Scanner = () => {
                     />
                   ) : (
                     <div className="space-y-4">
-                      <div className={`p-6 rounded-xl border-2 flex flex-col items-center gap-2 ${scanSuccess ? 'border-green-400 bg-green-50' : 'border-red-400 bg-red-50'}`}>
-                        {scanSuccess ? (
-                          <>
-                            <CheckCircle className="h-12 w-12 text-green-500" />
-                            <h3 className="text-lg font-medium">Check-in Successful!</h3>
-                            <p className="text-sm text-gray-600">You have been checked in to the event.</p>
-                          </>
-                        ) : (
-                          <>
-                            <AlertTriangle className="h-12 w-12 text-red-500" />
-                            <h3 className="text-lg font-medium">Check-in Failed</h3>
-                            <p className="text-sm text-gray-600">Unable to process the QR code.</p>
-                          </>
-                        )}
-                      </div>
+                      {scanSuccess === null ? (
+                        <div className="p-6 rounded-xl border-2 bg-blue-50 border-blue-400 flex flex-col items-center gap-2">
+                          <Loader2 className="h-12 w-12 text-blue-500 animate-spin" />
+                          <h3 className="text-lg font-medium">Processing...</h3>
+                          <p className="text-sm text-gray-600">Verifying your check-in.</p>
+                        </div>
+                      ) : scanSuccess ? (
+                        <div className="p-6 rounded-xl border-2 border-green-400 bg-green-50 flex flex-col items-center gap-2">
+                          <CheckCircle className="h-12 w-12 text-green-500" />
+                          <h3 className="text-lg font-medium">Check-in Successful!</h3>
+                          <p className="text-sm text-gray-600">You have been checked in to the event.</p>
+                        </div>
+                      ) : (
+                        <div className="p-6 rounded-xl border-2 border-red-400 bg-red-50 flex flex-col items-center gap-2">
+                          <AlertTriangle className="h-12 w-12 text-red-500" />
+                          <h3 className="text-lg font-medium">Check-in Failed</h3>
+                          <p className="text-sm text-gray-600">Unable to process the QR code.</p>
+                        </div>
+                      )}
                       
                       <Button
                         onClick={resetScanResult}
                         className="w-full"
+                        disabled={isProcessing}
                       >
                         Scan Another QR Code
                       </Button>
