@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
-import { QrCode, Loader2, Users, Download, RefreshCw, CheckCircle } from "lucide-react";
+import { QrCode, Loader2, Users, Download, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -252,41 +252,51 @@ const Scanner = () => {
       
       console.log("Using event ID for check-in:", eventId);
       
+      // First verify the event exists
+      const { data: eventData, error: eventCheckError } = await supabase
+        .from("events")
+        .select("id, title")
+        .eq("id", eventId)
+        .maybeSingle();
+        
+      if (eventCheckError) {
+        console.error("Error verifying event:", eventCheckError);
+        throw new Error(`Event verification failed: ${eventCheckError.message}`);
+      }
+      
+      if (!eventData) {
+        console.error(`No event found with ID ${eventId}`);
+        throw new Error("Event not found");
+      }
+      
+      console.log("Event verified:", eventData);
+      
       let success = false;
       let attempts = 0;
+      let lastError = null;
       
       while (!success && attempts < 3) {
         attempts++;
         console.log(`Check-in attempt ${attempts} for user ${user.id} to event ${eventId}`);
-        success = await checkInUserToEvent(eventId, user.id);
         
-        if (!success && attempts < 3) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+          success = await checkInUserToEvent(eventId, user.id);
+          if (success) break;
+        } catch (checkInError: any) {
+          console.error(`Attempt ${attempts} failed:`, checkInError);
+          lastError = checkInError;
+          if (attempts < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
       }
       
       if (success) {
         setScanSuccess(true);
         
-        const { data: eventData, error: eventError } = await supabase
-          .from("events")
-          .select("title")
-          .eq("id", eventId)
-          .maybeSingle();
-          
-        if (eventError) {
-          console.error("Error fetching event details:", eventError);
-        }
-        
-        if (eventData) {
-          toast.success(`Checked in to: ${eventData.title}`, {
-            description: "Your attendance has been recorded",
-          });
-        } else {
-          toast.success("Attendance recorded", {
-            description: "You've been successfully checked in to the event",
-          });
-        }
+        toast.success(`Checked in to: ${eventData.title}`, {
+          description: "Your attendance has been recorded",
+        });
         
         if (user && refreshProfileData) {
           setTimeout(() => {
@@ -296,12 +306,14 @@ const Scanner = () => {
         }
       } else {
         setScanSuccess(false);
-        throw new Error(`Failed to check in to the event after ${attempts} attempts`);
+        throw new Error(lastError?.message || `Failed to check in to the event after ${attempts} attempts`);
       }
     } catch (error: any) {
       console.error("Error processing QR code:", error);
       setScanSuccess(false);
-      toast.error(error.message || "Failed to process QR code");
+      toast.error(error.message || "Failed to process QR code", {
+        description: "Please try again or contact an event organizer for assistance",
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -468,9 +480,7 @@ const Scanner = () => {
                           </>
                         ) : (
                           <>
-                            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                              <QrCode className="h-6 w-6 text-red-500" />
-                            </div>
+                            <AlertTriangle className="h-12 w-12 text-red-500" />
                             <h3 className="text-lg font-medium">Check-in Failed</h3>
                             <p className="text-sm text-gray-600">Unable to process the QR code.</p>
                           </>

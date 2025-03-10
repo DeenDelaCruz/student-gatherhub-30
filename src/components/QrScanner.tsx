@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Camera, X, Upload } from 'lucide-react';
 import { useAuth } from '@/context/auth';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 interface QrScannerProps {
   onScanComplete: (data: string) => void;
@@ -23,7 +24,6 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   const { user } = useAuth();
 
   useEffect(() => {
-    // Check camera permissions
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       .then(() => {
         setHasPermissions(true);
@@ -34,7 +34,6 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         setError('Camera access was denied or is not available');
       });
       
-    // Cleanup on unmount
     return () => {
       if (scannerRef.current && scannerRef.current.isScanning) {
         scannerRef.current.stop()
@@ -43,10 +42,8 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     };
   }, []);
 
-  // First create a scanner reference then start the scan
   const initializeScanner = async () => {
     try {
-      // Create scanner instance first
       const html5QrCode = new Html5Qrcode(scannerContainerId);
       scannerRef.current = html5QrCode;
       
@@ -60,31 +57,29 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         { facingMode: "environment" }, 
         config,
         (decodedText) => {
-          // Success callback
           console.log("QR Code detected:", decodedText);
           html5QrCode.stop()
             .then(() => {
               setIsScanning(false);
               
-              // Ensure we're passing valid data to the onScanComplete callback
               if (typeof decodedText === 'string' && decodedText.trim()) {
                 onScanComplete(decodedText.trim());
                 
-                // Refresh profile data after successful scan
-                if (user) {
+                if (user && user.id) {
                   setTimeout(() => {
                     console.log("Refreshing profile data for user:", user.id);
-                  }, 2000); // Increased delay to allow check-in to complete
+                  }, 2000);
                 }
               } else {
                 setError("Invalid QR code data received");
+                toast.error("Invalid QR code", {
+                  description: "The QR code didn't contain valid data"
+                });
               }
             })
             .catch(err => console.error("Error stopping scanner after success:", err));
         },
         (errorMessage) => {
-          // Error callback - we'll just log it without showing to user
-          // as this gets called frequently during scanning
           console.log("QR Code scanning in progress:", errorMessage);
         }
       );
@@ -92,6 +87,9 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       console.error('Failed to initialize scanner:', err);
       setError(err.toString());
       setIsScanning(false);
+      toast.error("Scanner error", {
+        description: "Failed to initialize scanner. Please try again."
+      });
     }
   };
 
@@ -101,15 +99,10 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     setIsScanning(true);
     setIsUploadMode(false);
     setError(null);
-    
-    // We'll handle the actual scanner initialization after the container is rendered
-    // through the useEffect below
   };
 
-  // This effect runs when isScanning changes to true, ensuring the DOM element exists
   useEffect(() => {
     if (isScanning) {
-      // Give the DOM time to render the scanner container
       setTimeout(() => {
         const scannerContainer = document.getElementById(scannerContainerId);
         
@@ -125,7 +118,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           setError(err.toString());
           setIsScanning(false);
         });
-      }, 100); // Small delay to ensure DOM is updated
+      }, 100);
     }
   }, [isScanning]);
 
@@ -166,23 +159,27 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       .then(decodedText => {
         console.log("QR Code from image:", decodedText);
         
-        // Ensure we're passing valid data to the onScanComplete callback
         if (typeof decodedText === 'string' && decodedText.trim()) {
           onScanComplete(decodedText.trim());
           
-          // Refresh profile data after successful scan
-          if (user) {
+          if (user && user.id) {
             setTimeout(() => {
               console.log("Refreshing profile data for user:", user.id);
-            }, 2000); // Increased delay to allow check-in to complete
+            }, 2000);
           }
         } else {
           setError("Invalid QR code data received from image");
+          toast.error("Invalid QR code", {
+            description: "The image didn't contain a valid QR code"
+          });
         }
       })
       .catch(err => {
         console.error("Error scanning uploaded image:", err);
         setError("Could not find a valid QR code in the image");
+        toast.error("QR scan failed", {
+          description: "Could not find a valid QR code in the image"
+        });
       })
       .finally(() => {
         setIsLocalProcessing(false);
