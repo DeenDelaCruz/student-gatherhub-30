@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -17,6 +18,9 @@ import {
 } from "@/components/ui/select";
 import { supabase, checkInUserToEvent, getEventAttendees, getEventInterestedUsers } from "@/integrations/supabase/client";
 import QrScanner from "@/components/QrScanner";
+
+// UUID regex pattern
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Event {
   id: string;
@@ -228,7 +232,7 @@ const Scanner = () => {
       } catch (parseError) {
         console.error("Error parsing QR code:", parseError);
         
-        if (cleanedData.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        if (cleanedData.match(uuidRegex)) {
           eventId = cleanedData;
           console.log("Using raw string as event ID:", eventId);
         } else {
@@ -284,7 +288,7 @@ const Scanner = () => {
           });
         }
         
-        if (user) {
+        if (user && refreshProfileData) {
           setTimeout(() => {
             console.log("Refreshing profile data for user:", user.id);
             refreshProfileData(user.id);

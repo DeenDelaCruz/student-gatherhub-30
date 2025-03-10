@@ -2,13 +2,10 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://nsjyerikykwbitksdurq.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zanllcmlreWt3Yml0a3NkdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA5MzQ0NjIsImV4cCI6MjA1NjUxMDQ2Mn0.Yh3DJlLkv8_PXa3Zrmva1A_YVC-oBFzrB6Y3IXvEVGg";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nsjyerikykwbitksdurq.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zanllcmlreWt3Yml0a3NkdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA5MzQ0NjIsImV4cCI6MjA1NjUxMDQ2Mn0.Yh3DJlLkv8_PXa3Zrmva1A_YVC-oBFzrB6Y3IXvEVGg';
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 // Event Interest functions
 export const getEventInterestCount = async (eventId: string): Promise<number> => {
@@ -52,7 +49,6 @@ export const markEventInterest = async (eventId: string, userId: string): Promis
     if (error) throw error;
     
     // Update the user's profile events_upcoming count
-    // Fix: Properly handle the promise chain when updating profiles
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('events_upcoming')
@@ -89,7 +85,6 @@ export const removeEventInterest = async (eventId: string, userId: string): Prom
     if (error) throw error;
     
     // Update the user's profile events_upcoming count
-    // Fix: Properly handle the promise chain when updating profiles
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('events_upcoming')
@@ -135,16 +130,20 @@ export const getEventAttendees = async (eventId: string, includeProfiles = false
   try {
     let query = supabase
       .from('event_attendees_new')
-      .select(includeProfiles ? 'id, check_in_time, user_id, profiles:user_id(id, name, email)' : '*')
+      .select(includeProfiles ? 'id, check_in_time, user_id, profile:profiles(id, name, email)' : '*')
       .eq('event_id', eventId);
       
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching event attendees:', error);
+      throw new Error(`Failed to load attendees: ${error.message}`);
+    }
+    
     return data || [];
-  } catch (error) {
-    console.error('Error getting event attendees:', error);
-    return [];
+  } catch (error: any) {
+    console.error('Error in getEventAttendees:', error);
+    throw new Error(error.message || 'Failed to load attendees');
   }
 };
 
@@ -152,16 +151,20 @@ export const getEventInterestedUsers = async (eventId: string, includeProfiles =
   try {
     let query = supabase
       .from('event_interested')
-      .select(includeProfiles ? 'id, created_at, user_id, profiles:user_id(id, name, email)' : '*')
+      .select(includeProfiles ? 'id, created_at, user_id, profile:profiles(id, name, email)' : '*')
       .eq('event_id', eventId);
       
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching event interested users:', error);
+      throw new Error(`Failed to load interested users: ${error.message}`);
+    }
+    
     return data || [];
-  } catch (error) {
-    console.error('Error getting interested users:', error);
-    return [];
+  } catch (error: any) {
+    console.error('Error in getEventInterestedUsers:', error);
+    throw new Error(error.message || 'Failed to load interested users');
   }
 };
 
@@ -169,75 +172,80 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
   try {
     console.log(`Attempting to check in user ${userId} to event ${eventId}`);
     
-    // Check if the user is already checked in
+    // First check if the user is already checked in to this event
     const { data: existingCheckIn, error: checkError } = await supabase
       .from('event_attendees_new')
-      .select('*')
+      .select('id')
       .eq('event_id', eventId)
       .eq('user_id', userId)
       .maybeSingle();
       
     if (checkError) {
       console.error('Error checking existing check-in:', checkError);
-      throw checkError;
+      return false;
     }
     
-    // If user is already checked in, return success
     if (existingCheckIn) {
-      console.log('User already checked in to this event');
-      return true;
+      console.log(`User ${userId} is already checked in to event ${eventId}`);
+      return true; // User is already checked in
     }
     
-    // Otherwise, create a new check-in record
-    // Use the service role client to bypass RLS policies if available
-    // For now, we'll try to make the RLS work correctly
-    console.log('Creating new check-in record');
-    const { error } = await supabase
+    // Create a new check-in record with explicit timestamp
+    const now = new Date().toISOString();
+    const { error: insertError } = await supabase
       .from('event_attendees_new')
-      .insert({ 
-        event_id: eventId, 
+      .insert({
+        event_id: eventId,
         user_id: userId,
-        // Make sure we're setting the check_in_time explicitly
-        check_in_time: new Date().toISOString()
+        check_in_time: now,
+        created_at: now
       });
       
-    if (error) {
-      console.error('Error inserting check-in record:', error);
-      throw error;
+    if (insertError) {
+      console.error('Error checking in to event:', insertError);
+      throw new Error(`Check-in failed: ${insertError.message}`);
     }
     
-    // Fix: Properly handle the promise chain when updating profiles
-    console.log('Updating user profile events_attended count');
-    const { data: profileData, error: profileError } = await supabase
+    console.log(`Successfully checked in user ${userId} to event ${eventId}`);
+    
+    // After successful check-in, update the user's profile to increment events_attended
+    await updateUserEventCount(userId);
+    
+    return true;
+  } catch (error) {
+    console.error('Exception during check-in process:', error);
+    return false;
+  }
+};
+
+// Helper function to update user's event counts
+const updateUserEventCount = async (userId: string) => {
+  try {
+    // First get the current counts
+    const { data: profile, error: fetchError } = await supabase
       .from('profiles')
       .select('events_attended')
       .eq('id', userId)
       .single();
       
-    if (profileError) {
-      console.error('Error fetching profile data:', profileError);
-      throw profileError;
+    if (fetchError) {
+      console.error('Error fetching profile for updating event count:', fetchError);
+      return;
     }
     
-    const currentCount = profileData?.events_attended || 0;
-    const newCount = currentCount + 1;
+    const currentCount = profile?.events_attended || 0;
     
-    console.log(`Updating events_attended from ${currentCount} to ${newCount}`);
+    // Update the count
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ events_attended: newCount })
+      .update({ events_attended: currentCount + 1 })
       .eq('id', userId);
       
     if (updateError) {
-      console.error('Error updating profile:', updateError);
-      throw updateError;
+      console.error('Error updating events_attended count:', updateError);
     }
-    
-    console.log('Check-in successful');
-    return true;
   } catch (error) {
-    console.error('Error checking in user to event:', error);
-    return false;
+    console.error('Exception during profile update:', error);
   }
 };
 
