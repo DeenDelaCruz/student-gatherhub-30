@@ -198,21 +198,44 @@ const Scanner = () => {
     
     setIsProcessing(true);
     setScanResult(scannedData);
+    console.log("Raw scanned data:", scannedData);
     
     try {
       let eventId;
       try {
-        const parsedData = JSON.parse(scannedData);
-        eventId = parsedData.eventId;
-        
-        if (!eventId) {
-          throw new Error("Invalid QR code data: missing eventId");
+        // Check if the scanned data is already a valid event ID (simple UUID)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(scannedData)) {
+          console.log("Direct UUID detected in QR code");
+          eventId = scannedData;
+        } else {
+          // Try parsing as JSON
+          const parsedData = JSON.parse(scannedData);
+          eventId = parsedData.eventId;
+          console.log("Parsed JSON data from QR code:", parsedData);
+          
+          if (!eventId) {
+            throw new Error("Invalid QR code data: missing eventId");
+          }
         }
       } catch (parseError) {
         console.error("Error parsing QR code:", parseError);
-        throw new Error("Invalid QR code format");
+        
+        // If parsing fails, check if the string itself might be an event ID
+        const potentialEventId = scannedData.trim();
+        if (potentialEventId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          eventId = potentialEventId;
+          console.log("Using raw string as event ID:", eventId);
+        } else {
+          throw new Error("Invalid QR code format");
+        }
       }
       
+      if (!eventId) {
+        throw new Error("Could not determine event ID from QR code");
+      }
+      
+      console.log("Using event ID for check-in:", eventId);
       const success = await checkInUserToEvent(eventId, user.id);
       
       if (success) {
