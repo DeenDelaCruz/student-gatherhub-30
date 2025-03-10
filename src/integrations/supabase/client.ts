@@ -43,6 +43,23 @@ export const isUserInterestedInEvent = async (eventId: string, userId: string): 
 
 export const markEventInterest = async (eventId: string, userId: string): Promise<boolean> => {
   try {
+    // First verify the profile exists before attempting to mark interest
+    const { data: profileData, error: profileCheckError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+      
+    if (profileCheckError) {
+      console.error('Error verifying user profile:', profileCheckError);
+      throw new Error(`User profile not found: ${profileCheckError.message}`);
+    }
+    
+    if (!profileData) {
+      console.error(`No profile found for user ${userId}`);
+      throw new Error('User profile not found');
+    }
+    
     const { error } = await supabase
       .from('event_interested')
       .insert({ event_id: eventId, user_id: userId });
@@ -50,7 +67,7 @@ export const markEventInterest = async (eventId: string, userId: string): Promis
     if (error) throw error;
     
     // Update the user's profile events_upcoming count
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profileData2, error: profileError } = await supabase
       .from('profiles')
       .select('events_upcoming')
       .eq('id', userId)
@@ -58,7 +75,7 @@ export const markEventInterest = async (eventId: string, userId: string): Promis
       
     if (profileError) throw profileError;
     
-    const currentCount = profileData?.events_upcoming || 0;
+    const currentCount = profileData2?.events_upcoming || 0;
     const newCount = currentCount + 1;
     
     const { error: updateError } = await supabase
