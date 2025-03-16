@@ -268,6 +268,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_user_visit: {
+        Args: {
+          user_id_param: string
+          time_param: string
+        }
+        Returns: undefined
+      }
+      get_recent_visitors: {
+        Args: {
+          limit_param: number
+        }
+        Returns: {
+          user_id: string
+          visit_time: string
+          name: string
+          email: string
+        }[]
+      }
+      get_user_visit: {
+        Args: {
+          user_id_param: string
+          date_param: string
+        }
+        Returns: {
+          id: string
+          visit_time: string
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -280,6 +308,13 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      update_user_visit: {
+        Args: {
+          visit_id_param: string
+          time_param: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

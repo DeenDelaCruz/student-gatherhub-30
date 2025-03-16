@@ -644,13 +644,11 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
     today.setHours(0, 0, 0, 0);
     
     // We need to check if the user has already visited today
-    // Using a raw SQL query to work around the type issue
     const { data: existingVisit, error: checkError } = await supabase
       .rpc('get_user_visit', { 
         user_id_param: userId,
         date_param: today.toISOString()
-      })
-      .single();
+      });
       
     if (checkError) {
       console.error('Error checking existing visit:', checkError);
@@ -658,10 +656,10 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
     }
     
     // If already visited today, update the timestamp
-    if (existingVisit && existingVisit.id) {
+    if (existingVisit && existingVisit.length > 0) {
       const { error: updateError } = await supabase
         .rpc('update_user_visit', {
-          visit_id_param: existingVisit.id,
+          visit_id_param: existingVisit[0].id,
           time_param: new Date().toISOString()
         });
         
@@ -670,7 +668,7 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
         return false;
       }
     } else {
-      // Create a new visit record using raw SQL query to work around type issues
+      // Create a new visit record using RPC function
       const { error: insertError } = await supabase
         .rpc('create_user_visit', { 
           user_id_param: userId,
@@ -692,7 +690,7 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
 
 export const getRecentVisitors = async (limit = 10): Promise<any[]> => {
   try {
-    // Using a raw SQL function to get around the type issue
+    // Using the SQL function to get recent visitors with profile data
     const { data, error } = await supabase
       .rpc('get_recent_visitors', { limit_param: limit });
       
