@@ -28,10 +28,10 @@ const Auth = () => {
       }
     }, 2000); // 2 second safety timeout
     
-    // If already authenticated, redirect to intended location or home
+    // If already authenticated, redirect to home
     if (!loading && user && !redirectAttempted) {
       setRedirectAttempted(true);
-      const from = location.state?.from?.pathname || "/";
+      const from = location.state?.from?.pathname || "/home";
       console.log("User authenticated, redirecting to:", from);
       navigate(from, { replace: true });
     }

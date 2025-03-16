@@ -25,12 +25,6 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname });
 
-  // Special case for auth page to prevent redirect loops - always render children
-  if (location.pathname === "/auth") {
-    console.log("On auth page, rendering children without protection");
-    return <>{children}</>;
-  }
-
   // If still loading, show a loading indicator
   if (loading) {
     return (
@@ -55,7 +49,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   // If roles are specified, check if user has any of the allowed roles
   if (allowedRoles && !allowedRoles.some(role => hasRole(role))) {
     console.log("User doesn't have required role, redirecting to home page");
-    return <Navigate to="/" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   // If authenticated and has required role (or no role specified), show the protected content
