@@ -10,7 +10,7 @@ import { useAuth } from "@/context/auth";
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loading, user } = useAuth();
+  const { loading, user, signOut } = useAuth();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [redirectAttempted, setRedirectAttempted] = useState(false);
   
@@ -46,8 +46,8 @@ const Auth = () => {
       // Log before sign-in attempt
       console.log("Starting Google sign-in process");
       
-      // Clear any existing sessions to prevent conflicts
-      await supabase.auth.signOut();
+      // Always sign out before attempting to sign in again to clear any stale state
+      await signOut();
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -55,7 +55,7 @@ const Auth = () => {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
+            prompt: 'consent', // Always show the consent screen
           }
         },
       });

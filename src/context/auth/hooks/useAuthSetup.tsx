@@ -40,17 +40,18 @@ export const useAuthSetup = (authState: any) => {
         if (initialSession?.user) {
           const userId = initialSession.user.id;
           
+          // Set session and user immediately to prevent auth state flashing
+          setSession(initialSession);
+          setUser(initialSession.user);
+          
           try {
-            // Set session and user first to prevent flashing
-            setSession(initialSession);
-            setUser(initialSession.user);
+            // Load user profile and roles in parallel
+            const [profileData, userRoles] = await Promise.all([
+              fetchProfileData(userId),
+              fetchUserRoles(userId)
+            ]);
             
-            // Load user profile
-            const profileData = await fetchProfileData(userId);
             setProfile(profileData);
-            
-            // Load user roles
-            const userRoles = await fetchUserRoles(userId);
             setRoles(userRoles);
             
             // Track user visit in the background (don't await)
@@ -81,15 +82,18 @@ export const useAuthSetup = (authState: any) => {
               // Immediately update session and user to prevent redirection loops
               setSession(session);
               setUser(session.user);
+              setLoading(true); // Set loading while fetching profile data
               
               const userId = session.user.id;
               
               try {
-                // Load user profile and roles
-                const profileData = await fetchProfileData(userId);
-                setProfile(profileData);
+                // Load user profile and roles in parallel
+                const [profileData, userRoles] = await Promise.all([
+                  fetchProfileData(userId),
+                  fetchUserRoles(userId)
+                ]);
                 
-                const userRoles = await fetchUserRoles(userId);
+                setProfile(profileData);
                 setRoles(userRoles);
                 
                 // Track the visit in the background without blocking auth flow
