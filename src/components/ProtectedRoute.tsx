@@ -35,18 +35,41 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // Use upsert to update if exists or insert if not
-          const { error: upsertError } = await supabase
+          // First check if user already has a visit record
+          const { data: existingVisit, error: fetchError } = await supabase
             .from('user_visits')
-            .upsert(
-              { user_id: user.id, visit_time: now },
-              { onConflict: 'user_id', ignoreDuplicates: false }
-            );
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
             
-          if (upsertError) {
-            console.log("Error tracking user visit:", upsertError.message);
+          if (fetchError) {
+            console.log("Error checking existing visit:", fetchError.message);
+            return;
+          }
+          
+          if (existingVisit) {
+            // Update existing visit record
+            const { error: updateError } = await supabase
+              .from('user_visits')
+              .update({ visit_time: now })
+              .eq('id', existingVisit.id);
+              
+            if (updateError) {
+              console.log("Error updating user visit:", updateError.message);
+            } else {
+              console.log("Updated existing visit record for:", user.id);
+            }
           } else {
-            console.log("Updated user visit record for:", user.id);
+            // Insert new visit record
+            const { error: insertError } = await supabase
+              .from('user_visits')
+              .insert({ user_id: user.id, visit_time: now });
+              
+            if (insertError) {
+              console.log("Error creating user visit:", insertError.message);
+            } else {
+              console.log("Created new visit record for:", user.id);
+            }
           }
         } catch (error) {
           console.log("Exception in tracking user visit:", error);
