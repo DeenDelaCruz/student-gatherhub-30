@@ -9,7 +9,6 @@ export interface AuthContextType {
   profile: any | null;
   roles: UserRole[];
   loading: boolean;
-  authInitialized: boolean;
   signOut: () => Promise<void>;
   hasRole: (role: UserRole) => boolean;
   refreshProfileData: (userId: string) => Promise<void>;
