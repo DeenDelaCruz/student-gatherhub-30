@@ -27,10 +27,21 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     }
   }, [loading, user, allowedRoles, hasRole]);
 
-  console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname, isTabReturn });
+  console.log("ProtectedRoute - Auth state:", { 
+    loading, 
+    isAuthenticated: !!user, 
+    path: location.pathname, 
+    isTabReturn,
+    sessionInitialized: sessionStorage.getItem('auth_initialized') === 'true'
+  });
 
   // Special case for /auth paths - allow direct access without protection
   if (location.pathname === "/auth" || location.pathname.startsWith("/auth/")) {
+    // If user is already authenticated and tries to access auth page, redirect to home
+    if (user && !loading) {
+      console.log("User already authenticated, redirecting from auth to home");
+      return <Navigate to="/home" replace />;
+    }
     return <>{children}</>;
   }
 

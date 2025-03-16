@@ -110,6 +110,9 @@ export const useAuthSetup = (authState: any) => {
                   setProfile(profileData);
                   setRoles(userRoles);
                   setLoading(false);
+                  
+                  // Mark auth as initialized
+                  sessionStorage.setItem('auth_initialized', 'true');
                 }
                 
                 // Track the visit in the background without blocking auth flow
@@ -128,6 +131,9 @@ export const useAuthSetup = (authState: any) => {
                 setProfile(null);
                 setRoles([]);
                 setLoading(false);
+                
+                // Clear initialized flag
+                sessionStorage.removeItem('auth_initialized');
               }
             } else if (event === 'TOKEN_REFRESHED') {
               // Just update the session

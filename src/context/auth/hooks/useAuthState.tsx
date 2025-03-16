@@ -11,65 +11,106 @@ import { UserRole } from '../types';
 export const useAuthState = () => {
   // Initialize state from sessionStorage if available to prevent verification on tab switch
   const [session, setSession] = useState<Session | null>(() => {
-    const storedSession = sessionStorage.getItem('auth_session');
-    return storedSession ? JSON.parse(storedSession) : null;
+    try {
+      const storedSession = sessionStorage.getItem('auth_session');
+      return storedSession ? JSON.parse(storedSession) : null;
+    } catch (error) {
+      console.error('Error parsing session from storage:', error);
+      return null;
+    }
   });
   
   const [user, setUser] = useState<User | null>(() => {
-    const storedUser = sessionStorage.getItem('auth_user');
-    return storedUser ? JSON.parse(storedUser) : null;
+    try {
+      const storedUser = sessionStorage.getItem('auth_user');
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch (error) {
+      console.error('Error parsing user from storage:', error);
+      return null;
+    }
   });
   
   const [profile, setProfile] = useState<any | null>(() => {
-    const storedProfile = sessionStorage.getItem('auth_profile');
-    return storedProfile ? JSON.parse(storedProfile) : null;
+    try {
+      const storedProfile = sessionStorage.getItem('auth_profile');
+      return storedProfile ? JSON.parse(storedProfile) : null;
+    } catch (error) {
+      console.error('Error parsing profile from storage:', error);
+      return null;
+    }
   });
   
   const [roles, setRoles] = useState<UserRole[]>(() => {
-    const storedRoles = sessionStorage.getItem('auth_roles');
-    return storedRoles ? JSON.parse(storedRoles) : [];
+    try {
+      const storedRoles = sessionStorage.getItem('auth_roles');
+      return storedRoles ? JSON.parse(storedRoles) : [];
+    } catch (error) {
+      console.error('Error parsing roles from storage:', error);
+      return [];
+    }
   });
   
   const [loading, setLoading] = useState<boolean>(() => {
+    // We are loading if we don't have session data yet
     return !(sessionStorage.getItem('auth_initialized') === 'true');
   });
 
   // Update sessionStorage when auth state changes
   useEffect(() => {
-    if (session) {
-      sessionStorage.setItem('auth_session', JSON.stringify(session));
-    } else {
-      sessionStorage.removeItem('auth_session');
+    try {
+      if (session) {
+        sessionStorage.setItem('auth_session', JSON.stringify(session));
+      } else {
+        sessionStorage.removeItem('auth_session');
+      }
+    } catch (error) {
+      console.error('Error storing session:', error);
     }
   }, [session]);
 
   useEffect(() => {
-    if (user) {
-      sessionStorage.setItem('auth_user', JSON.stringify(user));
-    } else {
-      sessionStorage.removeItem('auth_user');
+    try {
+      if (user) {
+        sessionStorage.setItem('auth_user', JSON.stringify(user));
+      } else {
+        sessionStorage.removeItem('auth_user');
+      }
+    } catch (error) {
+      console.error('Error storing user:', error);
     }
   }, [user]);
 
   useEffect(() => {
-    if (profile) {
-      sessionStorage.setItem('auth_profile', JSON.stringify(profile));
-    } else {
-      sessionStorage.removeItem('auth_profile');
+    try {
+      if (profile) {
+        sessionStorage.setItem('auth_profile', JSON.stringify(profile));
+      } else {
+        sessionStorage.removeItem('auth_profile');
+      }
+    } catch (error) {
+      console.error('Error storing profile:', error);
     }
   }, [profile]);
 
   useEffect(() => {
-    if (roles.length > 0) {
-      sessionStorage.setItem('auth_roles', JSON.stringify(roles));
-    } else {
-      sessionStorage.removeItem('auth_roles');
+    try {
+      if (roles.length > 0) {
+        sessionStorage.setItem('auth_roles', JSON.stringify(roles));
+      } else {
+        sessionStorage.removeItem('auth_roles');
+      }
+    } catch (error) {
+      console.error('Error storing roles:', error);
     }
   }, [roles]);
 
   useEffect(() => {
-    if (!loading) {
-      sessionStorage.setItem('auth_initialized', 'true');
+    try {
+      if (!loading) {
+        sessionStorage.setItem('auth_initialized', 'true');
+      }
+    } catch (error) {
+      console.error('Error storing auth initialization state:', error);
     }
   }, [loading]);
 
