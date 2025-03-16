@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -906,4 +907,175 @@ const Admin = () => {
                 
                 {/* Officers Tab */}
                 <TabsContent value="users" className="mt-4">
-                  <h3 className="text-sm font
+                  <h3 className="text-sm font-medium mb-2">Information Officers</h3>
+                  <div className="rounded-md border overflow-hidden">
+                    {loading ? (
+                      <div className="h-24 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                      </div>
+                    ) : infoOfficers.length === 0 ? (
+                      <div className="p-4 text-sm text-center text-gray-500">
+                        No information officers found
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Year</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {infoOfficers.map((officer, index) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{officer.profiles?.name || 'Unknown'}</TableCell>
+                              <TableCell>{officer.profiles?.email || 'No email'}</TableCell>
+                              <TableCell>{officer.profiles?.year || 'N/A'}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDemoteUser(officer.user_id)}
+                                  disabled={actionLoading[`user-${officer.user_id}`]}
+                                  className="h-8"
+                                >
+                                  {actionLoading[`user-${officer.user_id}`] ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                  ) : (
+                                    <>
+                                      <UserMinus className="h-3.5 w-3.5 mr-1" />
+                                      Demote
+                                    </>
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                {/* Students Tab */}
+                <TabsContent value="students" className="mt-4">
+                  <h3 className="text-sm font-medium mb-2">Students</h3>
+                  <div className="rounded-md border overflow-hidden">
+                    {loading ? (
+                      <div className="h-24 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                      </div>
+                    ) : students.length === 0 ? (
+                      <div className="p-4 text-sm text-center text-gray-500">
+                        No students found
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Year</TableHead>
+                            <TableHead>Events Attended</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {students.map((student, index) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{student.profiles?.name || 'Unknown'}</TableCell>
+                              <TableCell>{student.profiles?.email || 'No email'}</TableCell>
+                              <TableCell>{student.profiles?.year || 'N/A'}</TableCell>
+                              <TableCell>{student.profiles?.events_attended || 0}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handlePromoteStudent(student.user_id)}
+                                  disabled={actionLoading[`student-${student.user_id}`]}
+                                  className="h-8"
+                                >
+                                  {actionLoading[`student-${student.user_id}`] ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-campus-accent"></div>
+                                  ) : (
+                                    <>
+                                      <UserPlus className="h-3.5 w-3.5 mr-1" />
+                                      Promote
+                                    </>
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                {/* Events Tab */}
+                <TabsContent value="events" className="mt-4">
+                  <h3 className="text-sm font-medium mb-2">Events</h3>
+                  <div className="rounded-md border overflow-hidden">
+                    {loading ? (
+                      <div className="h-24 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                      </div>
+                    ) : events.length === 0 ? (
+                      <div className="p-4 text-sm text-center text-gray-500">
+                        No events found
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {events.map((event, index) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium">{event.title || 'Unknown'}</TableCell>
+                              <TableCell>{event.event_date ? new Date(event.event_date).toLocaleDateString() : 'No date'}</TableCell>
+                              <TableCell>{event.location || 'No location'}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                  disabled={actionLoading[`event-${event.id}`]}
+                                  className="h-8"
+                                >
+                                  {actionLoading[`event-${event.id}`] ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                      Delete
+                                    </>
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </main>
+      <Navigation />
+    </div>
+  );
+};
+
+export default Admin;
