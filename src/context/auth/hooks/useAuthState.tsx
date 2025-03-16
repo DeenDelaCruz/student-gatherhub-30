@@ -34,8 +34,16 @@ export const useAuthState = () => {
         console.error('Error signing out:', error);
         throw error;
       }
+      
+      // Clear all auth state
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setRoles([]);
+      
     } catch (error: any) {
       console.error('Error signing out:', error.message);
+      throw error; // Re-throw to let component handle the error
     } finally {
       setLoading(false);
     }

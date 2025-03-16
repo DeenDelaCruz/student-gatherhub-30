@@ -1,7 +1,6 @@
-
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 import { useNavigate } from "react-router-dom";
 import { User, Calendar, LogOut, BarChart, MapPin, Clock } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,17 +22,14 @@ const Profile = () => {
     try {
       await signOut();
       toast.success("Logged out successfully");
-      // Ensure immediate navigation to auth page
-      setTimeout(() => {
-        navigate("/auth", { replace: true });
-      }, 100);
+      // Force navigation to auth page
+      navigate("/auth", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Failed to log out. Please try again.");
     }
   };
 
-  // Load user's attended events
   useEffect(() => {
     const fetchAttendedEvents = async () => {
       if (profile?.id) {
@@ -45,7 +41,6 @@ const Profile = () => {
     fetchAttendedEvents();
   }, [profile?.id]);
 
-  // My Events menu item for all users
   const menuItems = [
     { 
       icon: Calendar, 
@@ -145,7 +140,6 @@ const Profile = () => {
             </div>
           ))}
           
-          {/* Attended Events List - only visible when clicked */}
           {showEvents && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -204,7 +198,6 @@ const Profile = () => {
             </motion.div>
           )}
           
-          {/* Admin Panel link - only visible to admins */}
           {hasRole('admin') && (
             <div 
               onClick={() => navigate('/admin')}
@@ -220,7 +213,6 @@ const Profile = () => {
             </div>
           )}
           
-          {/* Logout Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
