@@ -15,6 +15,10 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, loading, hasRole } = useAuth();
   const location = useLocation();
+  
+  // Check if we're returning from a tab switch
+  const isTabReturn = document.visibilityState === "visible" && 
+                      sessionStorage.getItem('auth_initialized') === 'true';
 
   // Show permission error only when authentication is complete and user lacks necessary role
   useEffect(() => {
@@ -23,15 +27,20 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     }
   }, [loading, user, allowedRoles, hasRole]);
 
-  console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname });
+  console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname, isTabReturn });
 
   // Special case for /auth paths - allow direct access without protection
   if (location.pathname === "/auth" || location.pathname.startsWith("/auth/")) {
     return <>{children}</>;
   }
 
+  // If we're returning from a tab switch and have auth data, skip loading screen
+  if (isTabReturn && user) {
+    return <>{children}</>;
+  }
+
   // Show loading indicator only during initial authentication
-  if (loading) {
+  if (loading && !isTabReturn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-campus-bg">
         <div className="flex flex-col items-center">

@@ -14,11 +14,20 @@ export const useAuthSetup = (authState: any) => {
     setProfile,
     setRoles,
     setLoading,
-    loading
+    loading,
+    user
   } = authState;
 
   useEffect(() => {
+    // If we already have auth data from sessionStorage, skip initial verification
+    if (sessionStorage.getItem('auth_initialized') === 'true' && user) {
+      console.log("Auth already initialized from sessionStorage, skipping setup");
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
+    
     // Set up authentication listener
     const setupAuth = async () => {
       try {
@@ -159,5 +168,5 @@ export const useAuthSetup = (authState: any) => {
       isMounted = false;
       clearTimeout(loadingTimeout);
     };
-  }, [setSession, setUser, setProfile, setRoles, setLoading, loading]);
+  }, [setSession, setUser, setProfile, setRoles, setLoading, loading, user]);
 };
