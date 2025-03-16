@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
-  // Track user visit when authenticated
+  // Track user visit when authenticated - with improved duplicate prevention
   useEffect(() => {
     if (user && !loading) {
       const trackUserVisit = async () => {
@@ -37,8 +37,10 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           // First check if user already has a visit record
           const { data: existingVisit, error: fetchError } = await supabase
             .from('user_visits')
-            .select('id')
+            .select('id, visit_time')
             .eq('user_id', user.id)
+            .order('visit_time', { ascending: false })
+            .limit(1)
             .maybeSingle();
             
           if (fetchError) {
@@ -46,8 +48,19 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
             return;
           }
           
+          // If there's an existing visit, check if it's recent (within the last 5 minutes)
+          // to prevent duplicate entries from frequent page refreshes
           if (existingVisit) {
-            // Update existing visit record
+            const lastVisitTime = new Date(existingVisit.visit_time).getTime();
+            const currentTime = new Date(now).getTime();
+            const fiveMinutesInMs = 5 * 60 * 1000;
+            
+            if (currentTime - lastVisitTime < fiveMinutesInMs) {
+              console.log(`Skipping visit record for user ${user.id} - last visit was less than 5 minutes ago`);
+              return;
+            }
+            
+            // Update existing visit record if it's older than 5 minutes
             const { error: updateError } = await supabase
               .from('user_visits')
               .update({ visit_time: now })

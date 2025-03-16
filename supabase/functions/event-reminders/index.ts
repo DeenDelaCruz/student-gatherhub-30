@@ -94,13 +94,12 @@ serve(async (req) => {
       // Notify each interested user
       for (const user of interestedUsers) {
         // Check if user already has a reminder notification for this event
-        const { data: existingNotification, error: checkError } = await supabase
+        const { data: existingNotifications, error: checkError } = await supabase
           .from("notifications")
           .select("*")
           .eq("user_id", user.user_id)
           .eq("related_id", event.id.toString())
-          .eq("type", "reminder")
-          .maybeSingle();
+          .eq("type", "reminder");
           
         if (checkError) {
           console.error(`Error checking existing notification for user ${user.user_id}:`, checkError);
@@ -108,8 +107,8 @@ serve(async (req) => {
         }
         
         // Skip if user already has a reminder notification for this event
-        if (existingNotification) {
-          console.log(`User ${user.user_id} already has a reminder notification for event ${event.id}`);
+        if (existingNotifications && existingNotifications.length > 0) {
+          console.log(`User ${user.user_id} already has ${existingNotifications.length} reminder notification(s) for event ${event.id}`);
           continue;
         }
         
@@ -155,13 +154,12 @@ serve(async (req) => {
           }
           
           // Check if officer already has a reminder notification for this event
-          const { data: existingNotification, error: checkError } = await supabase
+          const { data: existingNotifications, error: checkError } = await supabase
             .from("notifications")
             .select("*")
             .eq("user_id", officer.user_id)
             .eq("related_id", event.id.toString())
-            .eq("type", "reminder")
-            .maybeSingle();
+            .eq("type", "reminder");
             
           if (checkError) {
             console.error(`Error checking existing notification for officer ${officer.user_id}:`, checkError);
@@ -169,8 +167,8 @@ serve(async (req) => {
           }
           
           // Skip if officer already has a reminder notification for this event
-          if (existingNotification) {
-            console.log(`Officer ${officer.user_id} already has a reminder notification for event ${event.id}`);
+          if (existingNotifications && existingNotifications.length > 0) {
+            console.log(`Officer ${officer.user_id} already has ${existingNotifications.length} reminder notification(s) for event ${event.id}`);
             continue;
           }
           
