@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, subMinutes } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -36,7 +36,6 @@ const Admin = () => {
   const [recentVisitors, setRecentVisitors] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
   const [loadingVisitors, setLoadingVisitors] = useState<boolean>(true);
-  // For demonstration, we'll simulate this since we can't track actual online users without a real-time backend
   const [onlineUsers, setOnlineUsers] = useState<number>(0);
 
   useEffect(() => {
@@ -166,9 +165,23 @@ const Admin = () => {
         const allEvents = await getAllEvents();
         setEvents(allEvents);
         
-        // Simulate online users - approximately 10-30% of total users
-        const simulatedOnlineUsers = Math.max(1, Math.floor(users * (Math.random() * 0.2 + 0.1)));
-        setOnlineUsers(simulatedOnlineUsers);
+        // Get actual online users based on recent visits in the last 15 minutes
+        const fifteenMinutesAgo = subMinutes(new Date(), 15).toISOString();
+        
+        const { data: onlineVisitorsData, error: onlineVisitorsError } = await supabase
+          .from('user_visits')
+          .select('user_id')
+          .gte('visit_time', fifteenMinutesAgo);
+          
+        if (onlineVisitorsError) {
+          console.error("Error fetching online users:", onlineVisitorsError);
+          setOnlineUsers(0);
+        } else {
+          // Count distinct users who visited in the last 15 minutes
+          const uniqueUserIds = new Set();
+          onlineVisitorsData?.forEach(visit => uniqueUserIds.add(visit.user_id));
+          setOnlineUsers(uniqueUserIds.size);
+        }
       } catch (error) {
         console.error("Error fetching statistics:", error);
         toast({
@@ -283,7 +296,7 @@ const Admin = () => {
     const interval = setInterval(() => {
       fetchStats();
       fetchRecentVisitors();
-    }, 30000);
+    }, 15000);
     
     return () => clearInterval(interval);
   }, [hasRole, navigate]);
