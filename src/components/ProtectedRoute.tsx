@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
-  // Track user visit when authenticated - updated to track sign-ins specifically
+  // Track user visit when authenticated - updated to update timestamp on each sign-in
   useEffect(() => {
     if (user && !loading) {
       const trackUserVisit = async () => {
@@ -35,20 +35,46 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // Always create a new visit record when the component mounts with an authenticated user
-          // This ensures a record is created on each sign-in
-          console.log(`Creating/updating visit record for user ${user.id}`);
-          const { error: insertError } = await supabase
+          // First check if a record already exists for this user
+          const { data: existingRecord, error: fetchError } = await supabase
             .from('user_visits')
-            .insert({ 
-              user_id: user.id, 
-              visit_time: now 
-            });
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (fetchError) {
+            console.log("Error checking existing visit record:", fetchError.message);
+            return;
+          }
+          
+          if (existingRecord) {
+            // Update the existing record
+            console.log(`Updating existing visit record for user ${user.id}`);
+            const { error: updateError } = await supabase
+              .from('user_visits')
+              .update({ visit_time: now })
+              .eq('id', existingRecord.id);
               
-          if (insertError) {
-            console.log("Error creating user visit:", insertError.message);
+            if (updateError) {
+              console.log("Error updating user visit:", updateError.message);
+            } else {
+              console.log("Updated visit record for:", user.id, "at", now);
+            }
           } else {
-            console.log("Created new visit record for:", user.id, "at", now);
+            // Create a new record
+            console.log(`Creating new visit record for user ${user.id}`);
+            const { error: insertError } = await supabase
+              .from('user_visits')
+              .insert({ 
+                user_id: user.id, 
+                visit_time: now 
+              });
+                
+            if (insertError) {
+              console.log("Error creating user visit:", insertError.message);
+            } else {
+              console.log("Created new visit record for:", user.id, "at", now);
+            }
           }
         } catch (error) {
           console.log("Exception in tracking user visit:", error);
@@ -62,7 +88,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [user, loading]); // Removed location.pathname to only track on auth changes
+  }, [user, loading]); // Dependency on user and loading to update on auth changes
 
   useEffect(() => {
     // Check for role-based access when component mounts and authentication is complete
