@@ -70,14 +70,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         console.log("Initial session:", initialSession ? "exists" : "null");
-        setSession(initialSession);
-        setUser(initialSession?.user || null);
         
         // If we have a user, load profile and roles
         if (initialSession?.user) {
           const userId = initialSession.user.id;
           
           try {
+            // Set session and user first to prevent flashing
+            setSession(initialSession);
+            setUser(initialSession.user);
+            
             // Load user profile
             const profileData = await fetchProfileData(userId);
             setProfile(profileData);
@@ -99,6 +101,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } else {
           // No user, complete auth flow
+          setSession(null);
+          setUser(null);
           setLoading(false);
           setAuthInitialized(true);
         }
@@ -106,15 +110,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
-            console.log("Auth state changed:", event);
-            setSession(session);
-            setUser(session?.user || null);
+            console.log("Auth state changed:", event, session?.user?.email);
             
             if (event === 'SIGNED_IN' && session?.user) {
+              // Immediately update session and user to prevent redirection loops
+              setSession(session);
+              setUser(session.user);
+              
               const userId = session.user.id;
               
               try {
-                // Load user profile and roles first to ensure UI shows correctly
+                // Load user profile and roles
                 const profileData = await fetchProfileData(userId);
                 setProfile(profileData);
                 
@@ -133,9 +139,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               }
             } else if (event === 'SIGNED_OUT') {
               // Clear user data on sign out
+              setSession(null);
+              setUser(null);
               setProfile(null);
               setRoles([]);
               setLoading(false);
+            } else if (event === 'TOKEN_REFRESHED') {
+              // Just update the session
+              setSession(session);
+            } else if (event === 'USER_UPDATED') {
+              // Update user data
+              setSession(session);
+              setUser(session?.user || null);
+            } else if (event === 'INITIAL_SESSION') {
+              // This is handled by the initial getSession call
+              console.log("Initial session event");
             }
           }
         );
