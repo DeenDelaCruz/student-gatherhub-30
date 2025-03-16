@@ -643,17 +643,11 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Run a custom query to check for existing visits
+    // Run a custom query to check for existing visits using rpc
     const { data: visitData, error: visitQueryError } = await supabase
-      .from('user_roles') // Use a valid table as a starting point
-      .select('id')
-      .limit(1)
-      .then(async () => {
-        // Then execute a custom query using supabase.rpc
-        return await supabase.rpc('get_user_visit', {
-          user_id_param: userId,
-          date_param: today.toISOString()
-        });
+      .rpc('get_user_visit', {
+        user_id_param: userId,
+        date_param: today.toISOString()
       });
       
     if (visitQueryError) {
@@ -663,10 +657,11 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
     
     // If already visited today, update the timestamp
     if (visitData && visitData.length > 0) {
-      const { error: updateError } = await supabase.rpc('update_user_visit', {
-        visit_id_param: visitData[0].id,
-        time_param: new Date().toISOString()
-      });
+      const { error: updateError } = await supabase
+        .rpc('update_user_visit', {
+          visit_id_param: visitData[0].id,
+          time_param: new Date().toISOString()
+        });
         
       if (updateError) {
         console.error('Error updating visit record:', updateError);
@@ -674,10 +669,11 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
       }
     } else {
       // Create a new visit record
-      const { error: createError } = await supabase.rpc('create_user_visit', {
-        user_id_param: userId,
-        time_param: new Date().toISOString()
-      });
+      const { error: createError } = await supabase
+        .rpc('create_user_visit', {
+          user_id_param: userId,
+          time_param: new Date().toISOString()
+        });
         
       if (createError) {
         console.error('Error creating visit record:', createError);
@@ -696,14 +692,8 @@ export const getRecentVisitors = async (limit = 10): Promise<any[]> => {
   try {
     // Using the SQL function to get recent visitors with profile data
     const { data, error } = await supabase
-      .from('user_roles') // Use a valid table as a starting point
-      .select('id')
-      .limit(1)
-      .then(async () => {
-        // Then execute a custom query using supabase.rpc
-        return await supabase.rpc('get_recent_visitors', {
-          limit_param: limit
-        });
+      .rpc('get_recent_visitors', {
+        limit_param: limit
       });
       
     if (error) {
@@ -711,10 +701,10 @@ export const getRecentVisitors = async (limit = 10): Promise<any[]> => {
       throw error;
     }
     
+    // Since we're using RPC function, data is properly typed by the function return
     return data || [];
   } catch (error) {
     console.error('Exception during getRecentVisitors:', error);
     return [];
   }
 };
-
