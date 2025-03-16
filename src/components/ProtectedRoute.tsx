@@ -33,6 +33,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
             return;
           }
           
+          const now = new Date().toISOString();
+          
           // First check if there's an existing record for this user
           const { data: existingVisit, error: fetchError } = await supabase
             .from('user_visits')
@@ -45,8 +47,6 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
             return;
           }
           
-          const now = new Date().toISOString();
-          
           if (existingVisit) {
             // Update the existing record
             const { error: updateError } = await supabase
@@ -56,6 +56,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
               
             if (updateError) {
               console.log("Error updating user visit:", updateError.message);
+            } else {
+              console.log("Updated existing user visit record for:", user.id);
             }
           } else {
             // Insert a new record if none exists
@@ -65,6 +67,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
               
             if (insertError) {
               console.log("Error recording user visit:", insertError.message);
+            } else {
+              console.log("Created new user visit record for:", user.id);
             }
           }
         } catch (error) {
