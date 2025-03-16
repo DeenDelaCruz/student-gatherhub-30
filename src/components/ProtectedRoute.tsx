@@ -25,8 +25,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname });
 
-  // Special case for /auth page - allow direct access without protection
-  if (location.pathname === "/auth") {
+  // Special case for /auth paths - allow direct access without protection
+  if (location.pathname === "/auth" || location.pathname.startsWith("/auth/")) {
     return <>{children}</>;
   }
 

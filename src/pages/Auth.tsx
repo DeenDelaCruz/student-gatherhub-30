@@ -45,7 +45,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth`, // Ensure we redirect back to auth to handle the redirection
+          redirectTo: `${window.location.origin}/auth/callback`, // Use a dedicated callback route
         },
       });
       

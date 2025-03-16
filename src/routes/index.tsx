@@ -14,6 +14,7 @@ const Scanner = lazy(() => import("@/pages/Scanner"));
 const People = lazy(() => import("@/pages/People"));
 const Notifications = lazy(() => import("@/pages/Notifications"));
 const Auth = lazy(() => import("@/pages/Auth"));
+const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const CreateEvent = lazy(() => import("@/pages/CreateEvent"));
 const EditEvent = lazy(() => import("@/pages/EditEvent"));
@@ -40,6 +41,11 @@ const routesConfig: RouteConfig[] = [
   {
     path: "/auth",
     element: <Auth />,
+    requiresAuth: false,
+  },
+  {
+    path: "/auth/callback",
+    element: <AuthCallback />,
     requiresAuth: false,
   },
   {
