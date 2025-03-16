@@ -12,24 +12,31 @@ const Auth = () => {
   const location = useLocation();
   const { loading, user } = useAuth();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [initialCheckDone, setInitialCheckDone] = useState(false);
   const [redirectAttempted, setRedirectAttempted] = useState(false);
-
+  
+  // Force showing the auth form after a delay regardless of loading state
+  const [forceShowAuth, setForceShowAuth] = useState(false);
+  
   useEffect(() => {
-    console.log("Auth page - Auth state:", { loading, isAuthenticated: !!user, redirectAttempted });
+    console.log("Auth page - Auth state:", { loading, isAuthenticated: !!user, redirectAttempted, forceShowAuth });
     
-    // Only redirect after initial loading is complete
-    if (!loading) {
-      setInitialCheckDone(true);
-      
-      // If already authenticated, redirect to intended location or home
-      if (user && !redirectAttempted) {
-        setRedirectAttempted(true);
-        const from = location.state?.from?.pathname || "/";
-        console.log("User authenticated, redirecting to:", from);
-        navigate(from, { replace: true });
+    // If we're stuck in loading for too long, force show the auth form
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log("Auth loading timeout - forcing auth form display");
+        setForceShowAuth(true);
       }
+    }, 2000); // 2 second safety timeout
+    
+    // If already authenticated, redirect to intended location or home
+    if (!loading && user && !redirectAttempted) {
+      setRedirectAttempted(true);
+      const from = location.state?.from?.pathname || "/";
+      console.log("User authenticated, redirecting to:", from);
+      navigate(from, { replace: true });
     }
+    
+    return () => clearTimeout(timer);
   }, [loading, user, navigate, location.state, redirectAttempted]);
 
   const handleGoogleSignIn = async () => {
@@ -53,8 +60,8 @@ const Auth = () => {
     }
   };
 
-  // Show loading while checking authentication status, but only for initial check
-  if (loading && !initialCheckDone) {
+  // Show loading only if not forcing auth display
+  if (loading && !forceShowAuth) {
     return (
       <div className="min-h-screen bg-campus-bg flex flex-col items-center justify-center p-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
