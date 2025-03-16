@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -43,6 +44,7 @@ const Admin = () => {
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
   const [loadingVisitors, setLoadingVisitors] = useState<boolean>(true);
   const [onlineUsers, setOnlineUsers] = useState<number>(0);
+  const [clearingRecords, setClearingRecords] = useState<boolean>(false);
 
   useEffect(() => {
     // Check if user has admin role
@@ -553,10 +555,15 @@ const Admin = () => {
   };
 
   const handleClearVisitorRecords = async () => {
-    const success = await clearVisitorRecords();
-    if (success) {
-      // Refresh the visitor data if records were cleared successfully
-      fetchRecentVisitors();
+    setClearingRecords(true);
+    try {
+      const success = await clearVisitorRecords();
+      if (success) {
+        // Refresh the visitor data if records were cleared successfully
+        setRecentVisitors([]);
+      }
+    } finally {
+      setClearingRecords(false);
     }
   };
 
@@ -642,101 +649,70 @@ const Admin = () => {
             </Card>
           </motion.div>
 
-          {/* Recent Activity Card with Popover */}
+          {/* Recent Activity Card with Clear Records Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <Popover>
-              <PopoverTrigger asChild>
-                <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg font-medium flex items-center">
-                        <Clock className="h-5 w-5 text-purple-500 mr-2" />
-                        Recent Activity
-                      </CardTitle>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent popover from opening
-                                handleClearVisitorRecords();
-                              }}
-                            >
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-medium flex items-center">
+                    <Clock className="h-5 w-5 text-purple-500 mr-2" />
+                    Recent Activity
+                  </CardTitle>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={handleClearVisitorRecords}
+                          disabled={clearingRecords}
+                        >
+                          {clearingRecords ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                          ) : (
+                            <>
                               <Trash2 className="h-4 w-4 mr-1" />
                               Clear Records
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Delete all visitor records</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <CardDescription>Latest user visits</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loadingVisitors ? (
-                      <div className="h-16 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                      </div>
-                    ) : recentVisitors.length === 0 ? (
-                      <p className="text-sm text-gray-500">No recent activity available</p>
-                    ) : (
-                      <div className="text-sm">
-                        <p className="text-xs text-gray-500 mb-2">{recentVisitors.length} recent visitors</p>
-                        <div className="text-xs text-gray-600">
-                          {recentVisitors.slice(0, 3).map((visitor, index) => (
-                            <div key={index} className="flex justify-between items-center py-1">
-                              <span className="font-medium truncate max-w-[120px]">{visitor.name || 'Unknown user'}</span>
-                              <span className="text-gray-400">
-                                {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
-                <div className="p-4 border-b">
-                  <h3 className="font-medium">Recent Visitors</h3>
-                  <p className="text-xs text-muted-foreground">All user visit activity</p>
+                            </>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Delete all visitor records</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
+                <CardDescription>Latest user visits</CardDescription>
+              </CardHeader>
+              <CardContent>
                 {loadingVisitors ? (
-                  <div className="p-4 flex items-center justify-center">
+                  <div className="h-16 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                   </div>
                 ) : recentVisitors.length === 0 ? (
-                  <div className="p-4">
-                    <p className="text-sm text-gray-500">No recent activity available</p>
-                  </div>
+                  <p className="text-sm text-gray-500">No recent activity available</p>
                 ) : (
-                  <ScrollArea className="h-72">
-                    <div className="p-4">
-                      {recentVisitors.map((visitor, index) => (
-                        <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                          <div>
-                            <div className="font-medium">{visitor.name || 'Unknown user'}</div>
-                            <div className="text-xs text-gray-500">{visitor.email || 'No email'}</div>
-                          </div>
-                          <span className="text-xs text-gray-400 whitespace-nowrap">
+                  <div className="text-sm">
+                    <p className="text-xs text-gray-500 mb-2">{recentVisitors.length} recent visitors</p>
+                    <div className="text-xs text-gray-600">
+                      {recentVisitors.slice(0, 3).map((visitor, index) => (
+                        <div key={index} className="flex justify-between items-center py-1">
+                          <span className="font-medium truncate max-w-[120px]">{visitor.name || 'Unknown user'}</span>
+                          <span className="text-gray-400">
                             {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
                           </span>
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 )}
-              </PopoverContent>
-            </Popover>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
         
@@ -866,4 +842,82 @@ const Admin = () => {
                       <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                     </div>
                   ) : students.length === 0 ? (
-                    <p className="text-sm text
+                    <p className="text-sm text-gray-500 py-4 text-center">No students found</p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {students.map((student) => (
+                        <div key={student.user_id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-sm">{student.profiles?.name || 'Unknown'}</p>
+                            <p className="text-xs text-gray-500">{student.profiles?.email || 'No email'}</p>
+                            <p className="text-xs text-gray-400">{student.profiles?.events_attended || 0} events attended</p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handlePromoteStudent(student.user_id)}
+                            disabled={actionLoading[`student-${student.user_id}`]}
+                          >
+                            {actionLoading[`student-${student.user_id}`] ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-campus-accent"></div>
+                            ) : (
+                              <>
+                                <UserPlus className="h-4 w-4 mr-1" />
+                                Promote
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                {/* Events Tab */}
+                <TabsContent value="events" className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">Manage Events</h3>
+                  
+                  {loading ? (
+                    <div className="h-16 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                    </div>
+                  ) : events.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-4 text-center">No events found</p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {events.map((event) => (
+                        <div key={event.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-sm">{event.title}</p>
+                            <p className="text-xs text-gray-500">{new Date(event.date).toLocaleDateString()} at {event.time}</p>
+                          </div>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteEvent(event.id)}
+                            disabled={actionLoading[`event-${event.id}`]}
+                          >
+                            {actionLoading[`event-${event.id}`] ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                            ) : (
+                              <>
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </main>
+    </div>
+  );
+};
+
+export default Admin;
