@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/auth";
 import { useNavigate } from "react-router-dom";
-import { Users, CalendarDays, Activity, User, Shield, Trash2, UserMinus, UserPlus, Clock } from "lucide-react";
+import { Users, CalendarDays, Activity, User, Shield, Trash2, UserMinus, UserPlus, Clock, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { 
   getTotalUsers, 
@@ -29,8 +28,7 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
-import { clearVisitorRecords } from "@/utils/adminUtils";
-import { VisitorRecordsPopover } from "@/components/VisitorRecordsControl";
+import { clearVisitorRecords, deleteVisitorRecord } from "@/utils/adminUtils";
 
 const Admin = () => {
   const { hasRole } = useAuth();
@@ -614,6 +612,18 @@ const Admin = () => {
     fetchRecentVisitors();
   };
 
+  const handleDeleteVisitorRecord = async (userId: string) => {
+    setActionLoading(prev => ({ ...prev, [`visitor-${userId}`]: true }));
+    try {
+      const success = await deleteVisitorRecord(userId);
+      if (success) {
+        handleVisitorDeleted();
+      }
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`visitor-${userId}`]: false }));
+    }
+  };
+
   // Alternative method to fetch visitor data directly
   const fetchVisitorsDirectly = async () => {
     try {
@@ -750,7 +760,7 @@ const Admin = () => {
             </Card>
           </motion.div>
 
-          {/* Recent Activity Card with Popover */}
+          {/* Recent Activity Card with ScrollArea */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -800,32 +810,43 @@ const Admin = () => {
                 ) : (
                   <div className="text-sm">
                     <p className="text-xs text-gray-500 mb-2">{recentVisitors.length} recent visitors</p>
-                    <div className="text-xs text-gray-600">
-                      {recentVisitors.slice(0, 3).map((visitor, index) => (
-                        <div key={index} className="flex justify-between items-center py-1">
-                          <span className="font-medium truncate max-w-[120px]">{visitor.name || 'Unknown user'}</span>
-                          <span className="text-gray-400">
-                            {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
-                          </span>
-                        </div>
-                      ))}
-                      
-                      {recentVisitors.length > 3 && (
-                        <div className="mt-2 flex justify-end">
-                          <VisitorRecordsPopover 
-                            recentVisitors={recentVisitors} 
-                            loadingVisitors={loadingVisitors}
-                            onVisitorDeleted={handleVisitorDeleted}
-                          />
-                        </div>
-                      )}
-                    </div>
+                    <ScrollArea className={recentVisitors.length > 5 ? "h-48" : ""}>
+                      <div className="space-y-2">
+                        {recentVisitors.map((visitor, index) => (
+                          <div key={index} className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                            <div>
+                              <p className="font-medium text-sm">{visitor.name || 'Unknown user'}</p>
+                              <p className="text-xs text-muted-foreground">{visitor.email || 'No email'}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
+                              </span>
+                              {hasRole('admin') && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleDeleteVisitorRecord(visitor.user_id)}
+                                  disabled={actionLoading[`visitor-${visitor.user_id}`]}
+                                >
+                                  {actionLoading[`visitor-${visitor.user_id}`] ? (
+                                    <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-red-500"></div>
+                                  ) : (
+                                    <X className="h-3 w-3 text-red-500" />
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   </div>
                 )}
               </CardContent>
             </Card>
           </motion.div>
-        </div>
         
         {/* System Status Card */}
         <motion.div
@@ -881,201 +902,4 @@ const Admin = () => {
           className="mb-6"
         >
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium flex items-center">
-                <Shield className="h-5 w-5 text-red-500 mr-2" />
-                Admin Tools
-              </CardTitle>
-              <CardDescription>Manage users and events</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="users">
-                    <User className="h-4 w-4 mr-2" />
-                    Officers
-                  </TabsTrigger>
-                  <TabsTrigger value="students">
-                    <Users className="h-4 w-4 mr-2" />
-                    Students
-                  </TabsTrigger>
-                  <TabsTrigger value="events">
-                    <CalendarDays className="h-4 w-4 mr-2" />
-                    Events
-                  </TabsTrigger>
-                </TabsList>
-                
-                {/* Officers Tab */}
-                <TabsContent value="users" className="mt-4">
-                  <h3 className="text-sm font-medium mb-2">Information Officers</h3>
-                  <div className="rounded-md border overflow-hidden">
-                    {loading ? (
-                      <div className="h-24 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                      </div>
-                    ) : infoOfficers.length === 0 ? (
-                      <div className="p-4 text-sm text-center text-gray-500">
-                        No information officers found
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Year</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {infoOfficers.map((officer, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium">{officer.profiles?.name || 'Unknown'}</TableCell>
-                              <TableCell>{officer.profiles?.email || 'No email'}</TableCell>
-                              <TableCell>{officer.profiles?.year || 'N/A'}</TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDemoteUser(officer.user_id)}
-                                  disabled={actionLoading[`user-${officer.user_id}`]}
-                                  className="h-8"
-                                >
-                                  {actionLoading[`user-${officer.user_id}`] ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                                  ) : (
-                                    <>
-                                      <UserMinus className="h-3.5 w-3.5 mr-1" />
-                                      Demote
-                                    </>
-                                  )}
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                {/* Students Tab */}
-                <TabsContent value="students" className="mt-4">
-                  <h3 className="text-sm font-medium mb-2">Students</h3>
-                  <div className="rounded-md border overflow-hidden">
-                    {loading ? (
-                      <div className="h-24 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                      </div>
-                    ) : students.length === 0 ? (
-                      <div className="p-4 text-sm text-center text-gray-500">
-                        No students found
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Year</TableHead>
-                            <TableHead>Events Attended</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {students.map((student, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium">{student.profiles?.name || 'Unknown'}</TableCell>
-                              <TableCell>{student.profiles?.email || 'No email'}</TableCell>
-                              <TableCell>{student.profiles?.year || 'N/A'}</TableCell>
-                              <TableCell>{student.profiles?.events_attended || 0}</TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handlePromoteStudent(student.user_id)}
-                                  disabled={actionLoading[`student-${student.user_id}`]}
-                                  className="h-8"
-                                >
-                                  {actionLoading[`student-${student.user_id}`] ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-campus-accent"></div>
-                                  ) : (
-                                    <>
-                                      <UserPlus className="h-3.5 w-3.5 mr-1" />
-                                      Promote
-                                    </>
-                                  )}
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                {/* Events Tab */}
-                <TabsContent value="events" className="mt-4">
-                  <h3 className="text-sm font-medium mb-2">Events</h3>
-                  <div className="rounded-md border overflow-hidden">
-                    {loading ? (
-                      <div className="h-24 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                      </div>
-                    ) : events.length === 0 ? (
-                      <div className="p-4 text-sm text-center text-gray-500">
-                        No events found
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Title</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Location</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {events.map((event, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium">{event.title || 'Unknown'}</TableCell>
-                              <TableCell>{event.event_date ? new Date(event.event_date).toLocaleDateString() : 'No date'}</TableCell>
-                              <TableCell>{event.location || 'No location'}</TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDeleteEvent(event.id)}
-                                  disabled={actionLoading[`event-${event.id}`]}
-                                  className="h-8"
-                                >
-                                  {actionLoading[`event-${event.id}`] ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                                  ) : (
-                                    <>
-                                      <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                      Delete
-                                    </>
-                                  )}
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </main>
-      <Navigation />
-    </div>
-  );
-};
-
-export default Admin;
+            <CardHeader className="
