@@ -7,12 +7,23 @@ import {
   PopoverTrigger 
 } from "@/components/ui/popover";
 import { useAuth } from "@/context/auth";
-import { Users, Clock } from "lucide-react";
+import { Users, Clock, Trash2, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { clearVisitorRecords } from "@/utils/adminUtils";
+import { clearVisitorRecords, deleteVisitorRecord } from "@/utils/adminUtils";
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const VisitorRecordsControl = () => {
   const { hasRole } = useAuth();
@@ -30,13 +41,16 @@ const VisitorRecordsControl = () => {
   );
 };
 
-export const VisitorRecordsPopover = ({ recentVisitors, loadingVisitors }: { 
+export const VisitorRecordsPopover = ({ recentVisitors, loadingVisitors, onVisitorDeleted }: { 
   recentVisitors: any[]; 
   loadingVisitors: boolean;
+  onVisitorDeleted?: () => void;
 }) => {
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const [clearingRecords, setClearingRecords] = useState<boolean>(false);
+  const [deletingRecord, setDeletingRecord] = useState<{[key: string]: boolean}>({});
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   
   const handleClearVisitorRecords = async () => {
     setClearingRecords(true);
@@ -47,14 +61,30 @@ export const VisitorRecordsPopover = ({ recentVisitors, loadingVisitors }: {
           title: "Success",
           description: "All visitor records have been cleared"
         });
+        setIsOpen(false);
+        if (onVisitorDeleted) {
+          onVisitorDeleted();
+        }
       }
     } finally {
       setClearingRecords(false);
     }
   };
   
+  const handleDeleteVisitorRecord = async (userId: string) => {
+    setDeletingRecord(prev => ({ ...prev, [userId]: true }));
+    try {
+      const success = await deleteVisitorRecord(userId);
+      if (success && onVisitorDeleted) {
+        onVisitorDeleted();
+      }
+    } finally {
+      setDeletingRecord(prev => ({ ...prev, [userId]: false }));
+    }
+  };
+  
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <VisitorRecordsControl />
       </PopoverTrigger>
@@ -62,19 +92,38 @@ export const VisitorRecordsPopover = ({ recentVisitors, loadingVisitors }: {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm">Recent Visitor Activity</h4>
-            <Button 
-              variant="destructive" 
-              size="sm"
-              onClick={handleClearVisitorRecords}
-              disabled={clearingRecords}
-              className="h-7 text-xs"
-            >
-              {clearingRecords ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-              ) : (
-                "Clear Records"
-              )}
-            </Button>
+            {isAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    disabled={clearingRecords}
+                    className="h-7 text-xs"
+                  >
+                    {clearingRecords ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    ) : (
+                      "Clear All Records"
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action will permanently delete all visitor records and cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearVisitorRecords}>
+                      {clearingRecords ? "Deleting..." : "Delete All"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
           
           {loadingVisitors ? (
@@ -94,9 +143,26 @@ export const VisitorRecordsPopover = ({ recentVisitors, loadingVisitors }: {
                       <p className="font-medium text-sm">{visitor.name || 'Unknown user'}</p>
                       <p className="text-xs text-muted-foreground">{visitor.email || 'No email'}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
+                      </span>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleDeleteVisitorRecord(visitor.user_id)}
+                          disabled={deletingRecord[visitor.user_id]}
+                        >
+                          {deletingRecord[visitor.user_id] ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-red-500"></div>
+                          ) : (
+                            <X className="h-3 w-3 text-red-500" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

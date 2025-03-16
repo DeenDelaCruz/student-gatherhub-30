@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -568,6 +567,106 @@ const Admin = () => {
     }
   };
 
+  // Refresh visitor records after deletion
+  const handleVisitorDeleted = () => {
+    // Refresh the visitor data
+    setLoadingVisitors(true);
+    const fetchRecentVisitors = async () => {
+      try {
+        // First check if the user_visits table exists
+        const { count, error: tableCheckError } = await supabase
+          .from('user_visits')
+          .select('*', { count: 'exact', head: true })
+          .limit(1);
+          
+        if (tableCheckError) {
+          console.error("Error checking user_visits table:", tableCheckError);
+          setRecentVisitors([]);
+          setLoadingVisitors(false);
+          return;
+        }
+        
+        // Try to use get_recent_visitors function first
+        try {
+          const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
+          
+          if (error) {
+            console.error("Error calling get_recent_visitors function:", error);
+            // If function fails, fallback to direct query
+            fetchVisitorsDirectly();
+          } else {
+            setRecentVisitors(data || []);
+            setLoadingVisitors(false);
+          }
+        } catch (functionError) {
+          console.error("RPC function error:", functionError);
+          // Fallback to direct query
+          fetchVisitorsDirectly();
+        }
+      } catch (error) {
+        console.error("Error in fetchRecentVisitors:", error);
+        setRecentVisitors([]);
+        setLoadingVisitors(false);
+      }
+    };
+    
+    fetchRecentVisitors();
+  };
+
+  // Alternative method to fetch visitor data directly
+  const fetchVisitorsDirectly = async () => {
+    try {
+      // Get distinct user_id with most recent visit_time
+      const { data: visitData, error: visitError } = await supabase
+        .from('user_visits')
+        .select('user_id, visit_time')
+        .order('visit_time', { ascending: false })
+        .limit(10);
+      
+      if (visitError) {
+        console.error("Error fetching visits directly:", visitError);
+        setRecentVisitors([]);
+        setLoadingVisitors(false);
+        return;
+      }
+      
+      // Get user profiles for these visits
+      if (visitData && visitData.length > 0) {
+        const userIds = visitData.map(visit => visit.user_id);
+        
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .in('id', userIds);
+          
+        if (profileError) {
+          console.error("Error fetching visitor profiles:", profileError);
+          setRecentVisitors([]);
+        } else {
+          // Merge visit data with profile data
+          const visitors = visitData.map(visit => {
+            const profile = profileData?.find(p => p.id === visit.user_id);
+            return {
+              user_id: visit.user_id,
+              visit_time: visit.visit_time,
+              name: profile?.name || 'Unknown',
+              email: profile?.email || 'No email'
+            };
+          });
+          setRecentVisitors(visitors);
+        }
+      } else {
+        setRecentVisitors([]);
+      }
+      
+      setLoadingVisitors(false);
+    } catch (error) {
+      console.error("Error fetching visitors directly:", error);
+      setRecentVisitors([]);
+      setLoadingVisitors(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
       <Header />
@@ -714,7 +813,8 @@ const Admin = () => {
                         <div className="mt-2 flex justify-end">
                           <VisitorRecordsPopover 
                             recentVisitors={recentVisitors} 
-                            loadingVisitors={loadingVisitors} 
+                            loadingVisitors={loadingVisitors}
+                            onVisitorDeleted={handleVisitorDeleted}
                           />
                         </div>
                       )}
@@ -806,131 +906,4 @@ const Admin = () => {
                 
                 {/* Officers Tab */}
                 <TabsContent value="users" className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Information Officers</h3>
-                  
-                  {loading ? (
-                    <div className="h-16 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                    </div>
-                  ) : infoOfficers.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-4 text-center">No information officers found</p>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {infoOfficers.map((officer) => (
-                        <div key={officer.user_id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-sm">{officer.profiles?.name || 'Unknown'}</p>
-                            <p className="text-xs text-gray-500">{officer.profiles?.email || 'No email'}</p>
-                          </div>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleDemoteUser(officer.user_id)}
-                            disabled={actionLoading[`user-${officer.user_id}`]}
-                          >
-                            {actionLoading[`user-${officer.user_id}`] ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                            ) : (
-                              <>
-                                <UserMinus className="h-4 w-4 mr-1" />
-                                Demote
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-                
-                {/* Students Tab */}
-                <TabsContent value="students" className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Students</h3>
-                  
-                  {loading ? (
-                    <div className="h-16 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                    </div>
-                  ) : students.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-4 text-center">No students found</p>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {students.map((student) => (
-                        <div key={student.user_id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-sm">{student.profiles?.name || 'Unknown'}</p>
-                            <p className="text-xs text-gray-500">{student.profiles?.email || 'No email'}</p>
-                            <p className="text-xs text-gray-400">{student.profiles?.events_attended || 0} events attended</p>
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handlePromoteStudent(student.user_id)}
-                            disabled={actionLoading[`student-${student.user_id}`]}
-                          >
-                            {actionLoading[`student-${student.user_id}`] ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-campus-accent"></div>
-                            ) : (
-                              <>
-                                <UserPlus className="h-4 w-4 mr-1" />
-                                Promote
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-                
-                {/* Events Tab */}
-                <TabsContent value="events" className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">All Events</h3>
-                  
-                  {loading ? (
-                    <div className="h-16 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                    </div>
-                  ) : events.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-4 text-center">No events found</p>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {events.map((event) => (
-                        <div key={event.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-sm">{event.title || 'Untitled Event'}</p>
-                            <p className="text-xs text-gray-500">{event.location || 'No location'}</p>
-                            <p className="text-xs text-gray-400">{event.attendees?.length || 0} attendees</p>
-                          </div>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleDeleteEvent(event.id)}
-                            disabled={actionLoading[`event-${event.id}`]}
-                          >
-                            {actionLoading[`event-${event.id}`] ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                            ) : (
-                              <>
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </main>
-      
-      <Navigation />
-    </div>
-  );
-};
-
-export default Admin;
+                  <h3 className="text-sm font

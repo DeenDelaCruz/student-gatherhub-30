@@ -52,3 +52,36 @@ export const clearVisitorRecords = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// New function to delete a specific visitor record by user ID
+export const deleteVisitorRecord = async (userId: string): Promise<boolean> => {
+  try {
+    // Attempt to delete using the secure database function
+    const { data, error } = await supabase
+      .rpc('delete_visitor_record_by_user_id', { user_id_param: userId });
+    
+    if (error) {
+      console.error("Error deleting visitor record:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete visitor record: " + error.message
+      });
+      return false;
+    }
+    
+    toast({
+      title: "Success",
+      description: "Visitor record has been deleted"
+    });
+    return true;
+  } catch (error) {
+    console.error("Exception deleting visitor record:", error);
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: "An unexpected error occurred while deleting visitor record"
+    });
+    return false;
+  }
+};

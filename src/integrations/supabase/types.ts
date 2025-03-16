@@ -275,6 +275,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_visitor_record_by_user_id: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: boolean
+      }
       get_recent_visitors: {
         Args: {
           limit_param: number
