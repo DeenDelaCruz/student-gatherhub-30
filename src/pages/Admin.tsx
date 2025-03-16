@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -840,3 +841,66 @@ const Admin = () => {
                             ) : (
                               <>
                                 <UserPlus className="h-4 w-4 mr-1" />
+                                Promote
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+                
+                {/* Events Tab */}
+                <TabsContent value="events" className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-600 mb-2">All Events</h3>
+                  
+                  {loading ? (
+                    <div className="h-16 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                    </div>
+                  ) : events.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-4 text-center">No events found</p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {events.map((event) => (
+                        <div key={event.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-sm">{event.title}</p>
+                            <p className="text-xs text-gray-500">{event.location}</p>
+                            <p className="text-xs text-gray-400">
+                              {event.start_time ? formatDistanceToNow(new Date(event.start_time), { addSuffix: true }) : 'Unknown date'}
+                            </p>
+                          </div>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteEvent(event.id)}
+                            disabled={actionLoading[`event-${event.id}`]}
+                          >
+                            {actionLoading[`event-${event.id}`] ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                            ) : (
+                              <>
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </main>
+      
+      <Navigation />
+    </div>
+  );
+};
+
+export default Admin;
