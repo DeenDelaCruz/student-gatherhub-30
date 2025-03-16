@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/auth";
 import { useNavigate } from "react-router-dom";
-import { Users, CalendarDays, Activity, User, Shield, Trash2, UserMinus, UserPlus } from "lucide-react";
+import { Users, CalendarDays, Activity, User, Shield, Trash2, UserMinus, UserPlus, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { 
   getTotalUsers, 
@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatDistanceToNow } from "date-fns";
 
 const Admin = () => {
   const { hasRole } = useAuth();
@@ -29,7 +31,9 @@ const Admin = () => {
   const [infoOfficers, setInfoOfficers] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [recentVisitors, setRecentVisitors] = useState<any[]>([]);
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
+  const [loadingVisitors, setLoadingVisitors] = useState<boolean>(true);
   // For demonstration, we'll simulate this since we can't track actual online users without a real-time backend
   const [onlineUsers, setOnlineUsers] = useState<number>(0);
 
@@ -150,11 +154,37 @@ const Admin = () => {
         setLoading(false);
       }
     };
+
+    const fetchRecentVisitors = async () => {
+      try {
+        setLoadingVisitors(true);
+        
+        // Fetch recent visitors using the existing database function
+        const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
+        
+        if (error) {
+          console.error("Error fetching recent visitors:", error);
+          toast.error("Failed to load recent visitors");
+        } else {
+          setRecentVisitors(data || []);
+        }
+      } catch (error) {
+        console.error("Error in fetchRecentVisitors:", error);
+        toast.error("An error occurred while loading recent visitors");
+      } finally {
+        setLoadingVisitors(false);
+      }
+    };
     
     fetchStats();
+    fetchRecentVisitors();
     
     // Refresh stats every 30 seconds
-    const interval = setInterval(fetchStats, 30000);
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchRecentVisitors();
+    }, 30000);
+    
     return () => clearInterval(interval);
   }, [hasRole, navigate]);
 
@@ -390,7 +420,7 @@ const Admin = () => {
           <p className="text-gray-500">System statistics and management</p>
         </motion.div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -453,6 +483,45 @@ const Admin = () => {
               </CardContent>
             </Card>
           </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-medium flex items-center">
+                  <Clock className="h-5 w-5 text-purple-500 mr-2" />
+                  Recent Activity
+                </CardTitle>
+                <CardDescription>Latest user visits</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingVisitors ? (
+                  <div className="h-16 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                  </div>
+                ) : recentVisitors.length === 0 ? (
+                  <p className="text-sm text-gray-500">No recent activity</p>
+                ) : (
+                  <div className="text-sm">
+                    <p className="text-xs text-gray-500 mb-2">{recentVisitors.length} recent visitors</p>
+                    <div className="text-xs text-gray-600">
+                      {recentVisitors.slice(0, 3).map((visitor, index) => (
+                        <div key={index} className="flex justify-between items-center py-1">
+                          <span className="font-medium truncate max-w-[120px]">{visitor.name || 'Unknown user'}</span>
+                          <span className="text-gray-400">
+                            {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
         
         <motion.div
@@ -504,6 +573,7 @@ const Admin = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
+          className="mb-6"
         >
           <Card>
             <CardHeader className="pb-2">
@@ -650,6 +720,54 @@ const Admin = () => {
                   )}
                 </TabsContent>
               </Tabs>
+            </CardContent>
+          </Card>
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-medium flex items-center">
+                <Clock className="h-5 w-5 text-orange-500 mr-2" />
+                Recent Visitors
+              </CardTitle>
+              <CardDescription>Users who recently accessed the system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingVisitors ? (
+                <div className="h-16 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                </div>
+              ) : recentVisitors.length === 0 ? (
+                <p className="text-sm text-gray-500 py-4 text-center">No recent visitors found</p>
+              ) : (
+                <div className="max-h-80 overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="text-right">Last Visit</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentVisitors.map((visitor, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{visitor.name || 'Unknown'}</TableCell>
+                          <TableCell>{visitor.email || 'No email'}</TableCell>
+                          <TableCell className="text-right text-gray-500 text-sm">
+                            {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
