@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -30,6 +29,7 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip";
 import { clearVisitorRecords } from "@/utils/adminUtils";
+import { VisitorRecordsPopover } from "@/components/VisitorRecordsControl";
 
 const Admin = () => {
   const { hasRole } = useAuth();
@@ -649,7 +649,7 @@ const Admin = () => {
             </Card>
           </motion.div>
 
-          {/* Recent Activity Card with Clear Records Button */}
+          {/* Recent Activity Card with Popover */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -708,6 +708,15 @@ const Admin = () => {
                           </span>
                         </div>
                       ))}
+                      
+                      {recentVisitors.length > 3 && (
+                        <div className="mt-2 flex justify-end">
+                          <VisitorRecordsPopover 
+                            recentVisitors={recentVisitors} 
+                            loadingVisitors={loadingVisitors} 
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -859,65 +868,3 @@ const Admin = () => {
                             disabled={actionLoading[`student-${student.user_id}`]}
                           >
                             {actionLoading[`student-${student.user_id}`] ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-campus-accent"></div>
-                            ) : (
-                              <>
-                                <UserPlus className="h-4 w-4 mr-1" />
-                                Promote
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-                
-                {/* Events Tab */}
-                <TabsContent value="events" className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Manage Events</h3>
-                  
-                  {loading ? (
-                    <div className="h-16 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                    </div>
-                  ) : events.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-4 text-center">No events found</p>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {events.map((event) => (
-                        <div key={event.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-sm">{event.title}</p>
-                            <p className="text-xs text-gray-500">{new Date(event.date).toLocaleDateString()} at {event.time}</p>
-                          </div>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleDeleteEvent(event.id)}
-                            disabled={actionLoading[`event-${event.id}`]}
-                          >
-                            {actionLoading[`event-${event.id}`] ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                            ) : (
-                              <>
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </main>
-    </div>
-  );
-};
-
-export default Admin;
