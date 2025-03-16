@@ -4,7 +4,6 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
-import { Skeleton } from "@/components/ui/skeleton";
 
 type UserRole = Database["public"]["Enums"]["app_role"];
 
@@ -26,8 +25,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname });
 
-  // Special case for auth page to prevent redirect loops
+  // Special case for auth page to prevent redirect loops - always render children
   if (location.pathname === "/auth") {
+    console.log("On auth page, rendering children without protection");
     return <>{children}</>;
   }
 

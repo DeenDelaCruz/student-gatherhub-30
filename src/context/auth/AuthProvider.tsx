@@ -66,11 +66,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const userRoles = await fetchUserRoles(userId);
             setRoles(userRoles);
             
-            // Track user visit
-            await trackUserVisit(userId);
+            // Try to track user visit but don't block auth flow if it fails
+            try {
+              await trackUserVisit(userId);
+            } catch (visitError) {
+              console.error("Error tracking user visit but continuing auth flow:", visitError);
+              // Continue auth flow even if tracking fails
+            }
           } catch (error) {
             console.error("Error loading user data:", error);
+            // Still complete auth flow with user but without profile/roles data
+          } finally {
+            // Always complete the auth flow
+            setLoading(false);
+            setAuthInitialized(true);
           }
+        } else {
+          // No user, complete auth flow
+          setLoading(false);
+          setAuthInitialized(true);
         }
         
         // Set up auth state change listener
@@ -84,29 +98,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               const userId = session.user.id;
               
               try {
-                // Track user visit
-                await trackUserVisit(userId);
-                
-                // Load user profile and roles
+                // Load user profile and roles first to ensure UI shows correctly
                 const profileData = await fetchProfileData(userId);
                 setProfile(profileData);
                 
                 const userRoles = await fetchUserRoles(userId);
                 setRoles(userRoles);
+                
+                // Then try to track the visit in the background
+                // Safely track user visit without blocking auth flow
+                trackUserVisit(userId).catch(error => {
+                  console.error("Failed to track user visit after sign in:", error);
+                  // Don't reject the promise, let auth continue
+                });
               } catch (error) {
                 console.error("Error loading data after sign in:", error);
+              } finally {
+                // Ensure we're not in loading state
+                setLoading(false);
               }
             } else if (event === 'SIGNED_OUT') {
               // Clear user data on sign out
               setProfile(null);
               setRoles([]);
+              setLoading(false);
             }
           }
         );
-        
-        // Always set loading to false and authInitialized to true when done
-        setLoading(false);
-        setAuthInitialized(true);
         
         // Cleanup function
         return () => {

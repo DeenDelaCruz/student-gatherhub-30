@@ -13,22 +13,24 @@ const Auth = () => {
   const { loading, user } = useAuth();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const [redirectAttempted, setRedirectAttempted] = useState(false);
 
   useEffect(() => {
-    console.log("Auth page - Auth state:", { loading, isAuthenticated: !!user });
+    console.log("Auth page - Auth state:", { loading, isAuthenticated: !!user, redirectAttempted });
     
     // Only redirect after initial loading is complete
     if (!loading) {
       setInitialCheckDone(true);
       
       // If already authenticated, redirect to intended location or home
-      if (user) {
+      if (user && !redirectAttempted) {
+        setRedirectAttempted(true);
         const from = location.state?.from?.pathname || "/";
         console.log("User authenticated, redirecting to:", from);
         navigate(from, { replace: true });
       }
     }
-  }, [loading, user, navigate, location.state]);
+  }, [loading, user, navigate, location.state, redirectAttempted]);
 
   const handleGoogleSignIn = async () => {
     try {
