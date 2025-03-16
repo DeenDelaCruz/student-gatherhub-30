@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -23,6 +22,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatDistanceToNow, subMinutes } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
+import { clearVisitorRecords } from "@/utils/adminUtils";
 
 const Admin = () => {
   const { hasRole } = useAuth();
@@ -546,6 +552,14 @@ const Admin = () => {
     }
   };
 
+  const handleClearVisitorRecords = async () => {
+    const success = await clearVisitorRecords();
+    if (success) {
+      // Refresh the visitor data if records were cleared successfully
+      fetchRecentVisitors();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
       <Header />
@@ -638,10 +652,32 @@ const Admin = () => {
               <PopoverTrigger asChild>
                 <Card className="cursor-pointer hover:shadow-md transition-shadow">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg font-medium flex items-center">
-                      <Clock className="h-5 w-5 text-purple-500 mr-2" />
-                      Recent Activity
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg font-medium flex items-center">
+                        <Clock className="h-5 w-5 text-purple-500 mr-2" />
+                        Recent Activity
+                      </CardTitle>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent popover from opening
+                                handleClearVisitorRecords();
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Clear Records
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Delete all visitor records</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <CardDescription>Latest user visits</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -830,90 +866,4 @@ const Admin = () => {
                       <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                     </div>
                   ) : students.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-4 text-center">No students found</p>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {students.map((student) => (
-                        <div key={student.user_id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-sm">{student.profiles?.name || 'Unknown'}</p>
-                            <p className="text-xs text-gray-500">{student.profiles?.email || 'No email'}</p>
-                            <p className="text-xs text-gray-400">
-                              {student.profiles?.events_attended || 0} events attended
-                            </p>
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="border-green-500 text-green-600 hover:bg-green-50"
-                            onClick={() => handlePromoteStudent(student.user_id)}
-                            disabled={actionLoading[`student-${student.user_id}`]}
-                          >
-                            {actionLoading[`student-${student.user_id}`] ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-green-600"></div>
-                            ) : (
-                              <>
-                                <UserPlus className="h-4 w-4 mr-1" />
-                                Promote
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-                
-                {/* Events Tab */}
-                <TabsContent value="events" className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">All Events</h3>
-                  
-                  {loading ? (
-                    <div className="h-16 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                    </div>
-                  ) : events.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-4 text-center">No events found</p>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {events.map((event) => (
-                        <div key={event.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-sm">{event.title}</p>
-                            <p className="text-xs text-gray-500">{event.location}</p>
-                            <p className="text-xs text-gray-400">
-                              {event.start_time ? formatDistanceToNow(new Date(event.start_time), { addSuffix: true }) : 'Unknown date'}
-                            </p>
-                          </div>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleDeleteEvent(event.id)}
-                            disabled={actionLoading[`event-${event.id}`]}
-                          >
-                            {actionLoading[`event-${event.id}`] ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                            ) : (
-                              <>
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </main>
-      
-      <Navigation />
-    </div>
-  );
-};
-
-export default Admin;
+                    <p className="text-sm text

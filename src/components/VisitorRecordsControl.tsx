@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -6,14 +5,7 @@ import {
   PopoverContent, 
   PopoverTrigger 
 } from "@/components/ui/popover";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
 import { useAuth } from "@/context/auth";
-import { clearVisitorRecords } from "@/utils/adminUtils";
 import { Users } from "lucide-react";
 
 const VisitorRecordsControl = () => {
@@ -38,10 +30,6 @@ export const VisitorRecordsPopover = () => {
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   
-  const handleClearRecords = async () => {
-    await clearVisitorRecords();
-  };
-  
   return (
     <Popover>
       <VisitorRecordsControl />
@@ -49,24 +37,6 @@ export const VisitorRecordsPopover = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm">Recent Visitor Activity</h4>
-            {isAdmin && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="danger" 
-                      size="sm"
-                      onClick={handleClearRecords}
-                    >
-                      Clear Records
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Delete all visitor records</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
           </div>
           
           <div className="text-sm text-muted-foreground">
