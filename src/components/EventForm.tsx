@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarIcon, MapPin } from "lucide-react";
@@ -50,15 +51,15 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
 
   const createNotificationsForNewEvent = async (eventId: string, eventTitle: string) => {
     try {
+      // Get all profiles, not just ones with notifications enabled
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, notifications")
-        .eq("notifications", true);
+        .select("id");
         
       if (profilesError) throw profilesError;
       
       if (!profiles || profiles.length === 0) {
-        console.log("No users with notifications enabled found");
+        console.log("No users found");
         return;
       }
       
