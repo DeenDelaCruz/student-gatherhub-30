@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
-  // Track user visit when authenticated - with improved duplicate prevention
+  // Track user visit when authenticated - updated to track sign-ins specifically
   useEffect(() => {
     if (user && !loading) {
       const trackUserVisit = async () => {
@@ -35,26 +35,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // Call the custom function to get recent visits
-          const { data: recentVisits, error: fetchError } = await supabase
-            .rpc('get_recent_user_visits', { 
-              user_id_param: user.id,
-              minutes_ago: 15
-            });
-            
-          if (fetchError) {
-            console.log("Error checking recent visits:", fetchError.message);
-            return;
-          }
-          
-          // Check if we got any recent visits in the response
-          if (recentVisits && Array.isArray(recentVisits) && recentVisits.length > 0) {
-            console.log(`Skipping visit record - user ${user.id} has visited within the last 15 minutes`);
-            return;
-          }
-          
-          // No recent visits found, insert a new visit record
-          console.log(`No recent visits found for user ${user.id}, creating new visit record`);
+          // Always create a new visit record when the component mounts with an authenticated user
+          // This ensures a record is created on each sign-in
+          console.log(`Creating/updating visit record for user ${user.id}`);
           const { error: insertError } = await supabase
             .from('user_visits')
             .insert({ 
@@ -65,7 +48,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           if (insertError) {
             console.log("Error creating user visit:", insertError.message);
           } else {
-            console.log("Created new visit record for:", user.id);
+            console.log("Created new visit record for:", user.id, "at", now);
           }
         } catch (error) {
           console.log("Exception in tracking user visit:", error);
@@ -75,11 +58,11 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
       // Add a small delay to avoid race conditions when loading or navigating quickly
       const timeoutId = setTimeout(() => {
         trackUserVisit();
-      }, 500); // Increased to 500ms for more reliability
+      }, 500); // 500ms for reliability
       
       return () => clearTimeout(timeoutId);
     }
-  }, [user, loading, location.pathname]); // Added location.pathname to help with different pages
+  }, [user, loading]); // Removed location.pathname to only track on auth changes
 
   useEffect(() => {
     // Check for role-based access when component mounts and authentication is complete
