@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -545,7 +546,9 @@ const Admin = () => {
           <p className="text-gray-500">System statistics and management</p>
         </motion.div>
         
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Users Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -582,6 +585,7 @@ const Admin = () => {
             </Card>
           </motion.div>
           
+          {/* Events Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -609,6 +613,7 @@ const Admin = () => {
             </Card>
           </motion.div>
 
+          {/* Recent Activity Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -649,6 +654,7 @@ const Admin = () => {
           </motion.div>
         </div>
         
+        {/* System Status Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -694,6 +700,7 @@ const Admin = () => {
           </Card>
         </motion.div>
         
+        {/* Admin Tools Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -725,6 +732,7 @@ const Admin = () => {
                   </TabsTrigger>
                 </TabsList>
                 
+                {/* Officers Tab */}
                 <TabsContent value="users" className="mt-4">
                   <h3 className="text-sm font-medium text-gray-600 mb-2">Information Officers</h3>
                   
@@ -763,6 +771,7 @@ const Admin = () => {
                   )}
                 </TabsContent>
                 
+                {/* Students Tab */}
                 <TabsContent value="students" className="mt-4">
                   <h3 className="text-sm font-medium text-gray-600 mb-2">Students</h3>
                   
@@ -805,6 +814,7 @@ const Admin = () => {
                   )}
                 </TabsContent>
                 
+                {/* Events Tab */}
                 <TabsContent value="events" className="mt-4">
                   <h3 className="text-sm font-medium text-gray-600 mb-2">All Events</h3>
                   
@@ -848,7 +858,11 @@ const Admin = () => {
             </CardContent>
           </Card>
         </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+      </main>
+      
+      <Navigation />
+    </div>
+  );
+};
+
+export default Admin;
