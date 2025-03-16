@@ -33,14 +33,39 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
             return;
           }
           
-          // If no error, try to insert a visit record
-          const now = new Date().toISOString();
-          const { error: insertError } = await supabase
+          // First check if there's an existing record for this user
+          const { data: existingVisit, error: fetchError } = await supabase
             .from('user_visits')
-            .insert({ user_id: user.id, visit_time: now });
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
             
-          if (insertError) {
-            console.log("Error recording user visit:", insertError.message);
+          if (fetchError) {
+            console.log("Error checking for existing visit:", fetchError.message);
+            return;
+          }
+          
+          const now = new Date().toISOString();
+          
+          if (existingVisit) {
+            // Update the existing record
+            const { error: updateError } = await supabase
+              .from('user_visits')
+              .update({ visit_time: now })
+              .eq('id', existingVisit.id);
+              
+            if (updateError) {
+              console.log("Error updating user visit:", updateError.message);
+            }
+          } else {
+            // Insert a new record if none exists
+            const { error: insertError } = await supabase
+              .from('user_visits')
+              .insert({ user_id: user.id, visit_time: now });
+              
+            if (insertError) {
+              console.log("Error recording user visit:", insertError.message);
+            }
           }
         } catch (error) {
           console.log("Exception in tracking user visit:", error);
