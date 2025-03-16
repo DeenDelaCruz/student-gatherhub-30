@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import {
   getTotalUsers,
@@ -17,8 +19,10 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { useAuth } from "@/context/auth";
 import { format } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft } from "lucide-react";
 
 const AdminPage = () => {
+  const navigate = useNavigate();
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [totalEvents, setTotalEvents] = useState<number>(0);
   const [infoOfficers, setInfoOfficers] = useState<any[]>([]);
@@ -121,9 +125,20 @@ const AdminPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <p className="text-gray-500">Manage users, events, and system settings</p>
+      <div className="flex items-center mb-8">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="mr-2" 
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="mr-1" size={18} />
+          Back
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <p className="text-gray-500">Manage users, events, and system settings</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
