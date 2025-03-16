@@ -1,17 +1,17 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/auth";
 import { useNavigate } from "react-router-dom";
-import { Users, CalendarDays, Activity, User, Shield, Trash2, UserMinus, UserPlus } from "lucide-react";
+import { Users, CalendarDays, Activity, User, Shield, Trash2, UserMinus, UserPlus, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { 
   getTotalUsers, 
   getTotalEvents,
   getAllEvents, 
   deleteEvent,
-  promoteStudentToInfoOfficer
+  promoteStudentToInfoOfficer,
+  getRecentVisitors
 } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -19,6 +19,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const Admin = () => {
   const { hasRole } = useAuth();
@@ -32,7 +40,8 @@ const Admin = () => {
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
   // For demonstration, we'll simulate this since we can't track actual online users without a real-time backend
   const [onlineUsers, setOnlineUsers] = useState<number>(0);
-
+  const [recentVisitors, setRecentVisitors] = useState<any[]>([]);
+  
   useEffect(() => {
     // Check if user has admin role
     if (!hasRole('admin')) {
@@ -139,6 +148,10 @@ const Admin = () => {
         // Fetch all events
         const allEvents = await getAllEvents();
         setEvents(allEvents);
+        
+        // Fetch recent visitors
+        const visitors = await getRecentVisitors(10);
+        setRecentVisitors(visitors);
         
         // Simulate online users - approximately 10-30% of total users
         const simulatedOnlineUsers = Math.max(1, Math.floor(users * (Math.random() * 0.2 + 0.1)));
@@ -375,6 +388,32 @@ const Admin = () => {
     }
   };
 
+  const formatVisitTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    
+    // Less than a minute
+    if (diffMs < 60000) {
+      return 'Just now';
+    }
+    
+    // Less than an hour
+    if (diffMs < 3600000) {
+      const minutes = Math.floor(diffMs / 60000);
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    }
+    
+    // Less than a day
+    if (diffMs < 86400000) {
+      const hours = Math.floor(diffMs / 3600000);
+      return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    }
+    
+    // Format as date
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
       <Header />
@@ -390,6 +429,7 @@ const Admin = () => {
           <p className="text-gray-500">System statistics and management</p>
         </motion.div>
         
+        {/* First row of cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -455,6 +495,62 @@ const Admin = () => {
           </motion.div>
         </div>
         
+        {/* Recent Visitors Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
+          className="mb-6"
+        >
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-medium flex items-center">
+                <Clock className="h-5 w-5 text-teal-500 mr-2" />
+                Recent Visitors
+              </CardTitle>
+              <CardDescription>Users who recently accessed the application</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="h-16 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                </div>
+              ) : recentVisitors.length === 0 ? (
+                <p className="text-sm text-gray-500 py-4 text-center">No recent visitors found</p>
+              ) : (
+                <div className="max-h-60 overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Last Visit</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentVisitors.map((visitor, index) => (
+                        <TableRow key={`${visitor.user_id}-${index}`}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-sm">{visitor.profiles?.name || 'Unknown'}</p>
+                              <p className="text-xs text-gray-500">{visitor.profiles?.email || 'No email'}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">
+                              {formatVisitTime(visitor.visit_time)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+        
+        {/* System Status Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -500,6 +596,7 @@ const Admin = () => {
           </Card>
         </motion.div>
         
+        {/* Admin Tools Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
