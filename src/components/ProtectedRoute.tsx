@@ -2,7 +2,7 @@
 import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database["public"]["Enums"]["app_role"];
@@ -19,7 +19,11 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   useEffect(() => {
     // Check for role-based access when component mounts and authentication is complete
     if (!loading && user && allowedRoles && !allowedRoles.some(role => hasRole(role))) {
-      toast.error("You don't have permission to access this page");
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to access this page"
+      });
     }
   }, [loading, user, allowedRoles, hasRole]);
 

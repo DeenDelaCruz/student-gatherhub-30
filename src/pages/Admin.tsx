@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -17,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
@@ -64,7 +63,11 @@ const Admin = () => {
           
         if (roleError) {
           console.error("Error fetching officer roles:", roleError);
-          toast.error("Failed to load information officers");
+          toast({
+            variant: "destructive",
+            title: "Failed to load",
+            description: "Failed to load information officers"
+          });
         } else {
           if (roleData && roleData.length > 0) {
             const officerIds = roleData.map(item => item.user_id);
@@ -76,7 +79,11 @@ const Admin = () => {
               
             if (profileError) {
               console.error("Error fetching officer profiles:", profileError);
-              toast.error("Failed to load officer profiles");
+              toast({
+                variant: "destructive",
+                title: "Failed to load",
+                description: "Failed to load officer profiles"
+              });
             } else {
               setInfoOfficers(profileData ? profileData.map(profile => ({
                 user_id: profile.id,
@@ -96,7 +103,11 @@ const Admin = () => {
           
         if (studentRoleError) {
           console.error("Error fetching student roles:", studentRoleError);
-          toast.error("Failed to load students");
+          toast({
+            variant: "destructive",
+            title: "Failed to load",
+            description: "Failed to load students"
+          });
         } else {
           if (studentRoleData && studentRoleData.length > 0) {
             const studentIds = studentRoleData.map(item => item.user_id);
@@ -110,7 +121,11 @@ const Admin = () => {
               
             if (officerCheckError) {
               console.error("Error checking officer roles:", officerCheckError);
-              toast.error("Failed to filter students");
+              toast({
+                variant: "destructive",
+                title: "Failed to load",
+                description: "Failed to filter students"
+              });
             } else {
               // Filter out users who have both roles
               const officerUserIds = officerRoleData ? officerRoleData.map(item => item.user_id) : [];
@@ -124,7 +139,11 @@ const Admin = () => {
                   
                 if (studentProfileError) {
                   console.error("Error fetching student profiles:", studentProfileError);
-                  toast.error("Failed to load student profiles");
+                  toast({
+                    variant: "destructive",
+                    title: "Failed to load",
+                    description: "Failed to load student profiles"
+                  });
                 } else {
                   setStudents(studentProfileData ? studentProfileData.map(profile => ({
                     user_id: profile.id,
@@ -149,28 +168,52 @@ const Admin = () => {
         setOnlineUsers(simulatedOnlineUsers);
       } catch (error) {
         console.error("Error fetching statistics:", error);
-        toast.error("Failed to load admin data");
+        toast({
+          variant: "destructive",
+          title: "Failed to load",
+          description: "Failed to load admin data"
+        });
       } finally {
         setLoading(false);
       }
     };
-
+    
     const fetchRecentVisitors = async () => {
       try {
         setLoadingVisitors(true);
         
-        // Fetch recent visitors using the existing database function
-        const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
+        // Check if the user_visits table and get_recent_visitors function exist
+        // This is a safer approach to prevent errors if the table doesn't exist yet
+        const { data: tableExists, error: tableCheckError } = await supabase
+          .from('user_visits')
+          .select('id', { count: 'exact', head: true })
+          .limit(1);
         
-        if (error) {
-          console.error("Error fetching recent visitors:", error);
-          toast.error("Failed to load recent visitors");
-        } else {
-          setRecentVisitors(data || []);
+        if (tableCheckError) {
+          console.error("Error checking user_visits table:", tableCheckError);
+          // Table might not exist yet, so we'll just set empty data
+          setRecentVisitors([]);
+          return;
+        }
+        
+        // If the table exists, try to fetch recent visitors
+        try {
+          const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
+          
+          if (error) {
+            console.error("Error fetching recent visitors:", error);
+            // Function might not exist yet, set empty data
+            setRecentVisitors([]);
+          } else {
+            setRecentVisitors(data || []);
+          }
+        } catch (functionError) {
+          console.error("RPC function error:", functionError);
+          // Function might not exist yet, set empty data
+          setRecentVisitors([]);
         }
       } catch (error) {
         console.error("Error in fetchRecentVisitors:", error);
-        toast.error("An error occurred while loading recent visitors");
       } finally {
         setLoadingVisitors(false);
       }
@@ -225,7 +268,10 @@ const Admin = () => {
         if (insertError) throw insertError;
       }
       
-      toast.success("User demoted to student successfully");
+      toast({
+        title: "Success",
+        description: "User demoted to student successfully"
+      });
       
       // Refresh the information officers list
       const { data: roleData, error: roleError } = await supabase
@@ -280,7 +326,11 @@ const Admin = () => {
       }
     } catch (error) {
       console.error("Error demoting user:", error);
-      toast.error("An error occurred while demoting user");
+      toast({
+        variant: "destructive",
+        title: "Failed",
+        description: "An error occurred while demoting user"
+      });
     } finally {
       // Clear loading state for this specific user
       setActionLoading(prev => ({ ...prev, [`user-${userId}`]: false }));
@@ -295,7 +345,10 @@ const Admin = () => {
       const success = await promoteStudentToInfoOfficer(userId);
       
       if (success) {
-        toast.success("Student promoted to information officer successfully");
+        toast({
+          title: "Success",
+          description: "Student promoted to information officer successfully"
+        });
         
         // Refresh the information officers list
         const { data: roleData, error: roleError } = await supabase
@@ -367,11 +420,19 @@ const Admin = () => {
           setStudents([]);
         }
       } else {
-        toast.error("Failed to promote student");
+        toast({
+          variant: "destructive",
+          title: "Failed",
+          description: "Failed to promote student"
+        });
       }
     } catch (error) {
       console.error("Error promoting student:", error);
-      toast.error("An error occurred while promoting student");
+      toast({
+        variant: "destructive",
+        title: "Failed",
+        description: "An error occurred while promoting student"
+      });
     } finally {
       // Clear loading state for this specific student
       setActionLoading(prev => ({ ...prev, [`student-${userId}`]: false }));
@@ -386,7 +447,10 @@ const Admin = () => {
       const success = await deleteEvent(eventId);
       
       if (success) {
-        toast.success("Event deleted successfully");
+        toast({
+          title: "Success",
+          description: "Event deleted successfully"
+        });
         // Refresh the events list
         const allEvents = await getAllEvents();
         setEvents(allEvents);
@@ -394,11 +458,19 @@ const Admin = () => {
         const totalEvents = await getTotalEvents();
         setTotalEvents(totalEvents);
       } else {
-        toast.error("Failed to delete event");
+        toast({
+          variant: "destructive",
+          title: "Failed",
+          description: "Failed to delete event"
+        });
       }
     } catch (error) {
       console.error("Error deleting event:", error);
-      toast.error("An error occurred while deleting event");
+      toast({
+        variant: "destructive",
+        title: "Failed",
+        description: "An error occurred while deleting event"
+      });
     } finally {
       // Clear loading state for this specific event
       setActionLoading(prev => ({ ...prev, [`event-${eventId}`]: false }));
@@ -503,7 +575,7 @@ const Admin = () => {
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                   </div>
                 ) : recentVisitors.length === 0 ? (
-                  <p className="text-sm text-gray-500">No recent activity</p>
+                  <p className="text-sm text-gray-500">No recent activity available</p>
                 ) : (
                   <div className="text-sm">
                     <p className="text-xs text-gray-500 mb-2">{recentVisitors.length} recent visitors</p>
@@ -743,7 +815,7 @@ const Admin = () => {
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                 </div>
               ) : recentVisitors.length === 0 ? (
-                <p className="text-sm text-gray-500 py-4 text-center">No recent visitors found</p>
+                <p className="text-sm text-gray-500 py-4 text-center">No recent visitors data available</p>
               ) : (
                 <div className="max-h-80 overflow-y-auto">
                   <Table>
@@ -760,22 +832,4 @@ const Admin = () => {
                           <TableCell className="font-medium">{visitor.name || 'Unknown'}</TableCell>
                           <TableCell>{visitor.email || 'No email'}</TableCell>
                           <TableCell className="text-right text-gray-500 text-sm">
-                            {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </main>
-      
-      <Navigation />
-    </div>
-  );
-};
-
-export default Admin;
+                            {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { add
