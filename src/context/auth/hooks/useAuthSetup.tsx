@@ -15,8 +15,7 @@ export const useAuthSetup = (authState: any) => {
     setRoles,
     setLoading,
     setAuthInitialized,
-    loading,
-    authInitialized
+    loading
   } = authState;
 
   useEffect(() => {
@@ -26,9 +25,7 @@ export const useAuthSetup = (authState: any) => {
         console.log("Setting up auth...");
         
         // Always set loading to true at the start
-        if (!authInitialized) {
-          setLoading(true);
-        }
+        setLoading(true);
         
         // Get initial session
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
@@ -135,20 +132,9 @@ export const useAuthSetup = (authState: any) => {
           }
         );
         
-        // Add visibility change event listener to avoid unnecessary rechecks
-        const handleVisibilityChange = () => {
-          // Only recheck session when returning to the page if needed
-          if (document.visibilityState === 'visible' && !authInitialized) {
-            console.log("Tab is visible again, but skipping auth recheck as already initialized");
-          }
-        };
-        
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        
         // Cleanup function
         return () => {
           subscription.unsubscribe();
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
       } catch (error) {
         console.error("Error in auth setup:", error);
@@ -162,7 +148,7 @@ export const useAuthSetup = (authState: any) => {
 
     // Add a safety timeout to ensure loading state doesn't get stuck
     const loadingTimeout = setTimeout(() => {
-      if (loading && !authInitialized) {
+      if (loading) {
         console.warn("Auth loading timed out - forcing completion");
         setLoading(false);
         setAuthInitialized(true);
@@ -170,5 +156,5 @@ export const useAuthSetup = (authState: any) => {
     }, 5000); // 5 second timeout
 
     return () => clearTimeout(loadingTimeout);
-  }, [setSession, setUser, setProfile, setRoles, setLoading, setAuthInitialized, loading, authInitialized]);
+  }, [setSession, setUser, setProfile, setRoles, setLoading, setAuthInitialized, loading]);
 };
