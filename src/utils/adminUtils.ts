@@ -1,7 +1,6 @@
 
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/context/auth";
 
 // This function will be called from the VisitorRecordsPopover component
 export const clearVisitorRecords = async (): Promise<boolean> => {
@@ -22,10 +21,11 @@ export const clearVisitorRecords = async (): Promise<boolean> => {
       return false;
     }
     
+    // This is the corrected approach - delete all records using true condition
     const { error } = await supabase
       .from('user_visits')
       .delete()
-      .neq('id', 'placeholder'); // This will delete all records
+      .not('id', 'is', null); // This will delete all records
       
     if (error) {
       console.error("Error clearing visitor records:", error);
@@ -53,7 +53,7 @@ export const clearVisitorRecords = async (): Promise<boolean> => {
   }
 };
 
-// New function to delete a specific visitor record by user ID
+// Function to delete a specific visitor record by user ID
 export const deleteVisitorRecord = async (userId: string): Promise<boolean> => {
   try {
     // Attempt to delete using the secure database function
@@ -79,8 +79,8 @@ export const deleteVisitorRecord = async (userId: string): Promise<boolean> => {
     console.error("Exception deleting visitor record:", error);
     toast({
       variant: "destructive",
-      title: "Error",
-      description: "An unexpected error occurred while deleting visitor record"
+        title: "Error",
+        description: "An unexpected error occurred while deleting visitor record"
     });
     return false;
   }

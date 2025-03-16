@@ -26,9 +26,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const VisitorRecordsControl = () => {
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole("admin");
-  
   return (
     <Button
       variant="ghost"
@@ -57,10 +54,6 @@ export const VisitorRecordsPopover = ({ recentVisitors, loadingVisitors, onVisit
     try {
       const success = await clearVisitorRecords();
       if (success) {
-        toast({
-          title: "Success",
-          description: "All visitor records have been cleared"
-        });
         setIsOpen(false);
         if (onVisitorDeleted) {
           onVisitorDeleted();
@@ -86,7 +79,14 @@ export const VisitorRecordsPopover = ({ recentVisitors, loadingVisitors, onVisit
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <VisitorRecordsControl />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex items-center gap-2 text-xs"
+        >
+          <Clock className="h-4 w-4" />
+          <span>View All Visitors</span>
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80">
         <div className="space-y-4">
