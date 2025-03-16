@@ -13,7 +13,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  const { user, loading, hasRole } = useAuth();
+  const { user, loading, hasRole, authInitialized } = useAuth();
   const location = useLocation();
 
   // Show permission error only when authentication is complete and user lacks necessary role
@@ -23,15 +23,16 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     }
   }, [loading, user, allowedRoles, hasRole]);
 
-  console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname });
+  console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname, authInitialized });
 
   // Special case for /auth paths - allow direct access without protection
   if (location.pathname === "/auth" || location.pathname.startsWith("/auth/")) {
     return <>{children}</>;
   }
 
-  // Show loading indicator only during initial authentication
-  if (loading) {
+  // Only show loading indicator if auth hasn't been initialized yet
+  // This prevents the loading indicator from showing when returning to the tab
+  if (loading && !authInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-campus-bg">
         <div className="flex flex-col items-center">

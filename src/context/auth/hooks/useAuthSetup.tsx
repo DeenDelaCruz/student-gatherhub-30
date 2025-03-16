@@ -14,22 +14,29 @@ export const useAuthSetup = (authState: any) => {
     setProfile,
     setRoles,
     setLoading,
-    loading
+    setAuthInitialized,
+    loading,
+    authInitialized
   } = authState;
 
   useEffect(() => {
-    let isMounted = true;
     // Set up authentication listener
     const setupAuth = async () => {
       try {
         console.log("Setting up auth...");
+        
+        // Always set loading to true at the start
+        if (!authInitialized) {
+          setLoading(true);
+        }
         
         // Get initial session
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error("Error getting session:", sessionError);
-          if (isMounted) setLoading(false);
+          setLoading(false);
+          setAuthInitialized(true);
           return;
         }
 
@@ -40,10 +47,8 @@ export const useAuthSetup = (authState: any) => {
           const userId = initialSession.user.id;
           
           // Set session and user immediately to prevent auth state flashing
-          if (isMounted) {
-            setSession(initialSession);
-            setUser(initialSession.user);
-          }
+          setSession(initialSession);
+          setUser(initialSession.user);
           
           try {
             // Load user profile and roles in parallel
@@ -52,11 +57,8 @@ export const useAuthSetup = (authState: any) => {
               fetchUserRoles(userId)
             ]);
             
-            if (isMounted) {
-              setProfile(profileData);
-              setRoles(userRoles);
-              setLoading(false);
-            }
+            setProfile(profileData);
+            setRoles(userRoles);
             
             // Track user visit in the background (don't await)
             safeTrackUserVisit(userId).catch(err => {
@@ -64,15 +66,17 @@ export const useAuthSetup = (authState: any) => {
             });
           } catch (error) {
             console.error("Error loading user data:", error);
-            if (isMounted) setLoading(false);
+          } finally {
+            // Always complete the auth flow
+            setLoading(false);
+            setAuthInitialized(true);
           }
         } else {
           // No user, complete auth flow
-          if (isMounted) {
-            setSession(null);
-            setUser(null);
-            setLoading(false);
-          }
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          setAuthInitialized(true);
         }
         
         // Set up auth state change listener
@@ -82,11 +86,9 @@ export const useAuthSetup = (authState: any) => {
             
             if (event === 'SIGNED_IN' && session?.user) {
               // Immediately update session and user to prevent redirection loops
-              if (isMounted) {
-                setSession(session);
-                setUser(session.user);
-                setLoading(true); // Set loading while fetching profile data
-              }
+              setSession(session);
+              setUser(session.user);
+              setLoading(true); // Set loading while fetching profile data
               
               const userId = session.user.id;
               
@@ -97,11 +99,8 @@ export const useAuthSetup = (authState: any) => {
                   fetchUserRoles(userId)
                 ]);
                 
-                if (isMounted) {
-                  setProfile(profileData);
-                  setRoles(userRoles);
-                  setLoading(false);
-                }
+                setProfile(profileData);
+                setRoles(userRoles);
                 
                 // Track the visit in the background without blocking auth flow
                 safeTrackUserVisit(userId).catch(err => {
@@ -109,39 +108,53 @@ export const useAuthSetup = (authState: any) => {
                 });
               } catch (error) {
                 console.error("Error loading data after sign in:", error);
-                if (isMounted) setLoading(false);
+              } finally {
+                // Ensure we're not in loading state
+                setLoading(false);
+                setAuthInitialized(true);
               }
             } else if (event === 'SIGNED_OUT') {
               // Clear user data on sign out
-              if (isMounted) {
-                setSession(null);
-                setUser(null);
-                setProfile(null);
-                setRoles([]);
-                setLoading(false);
-              }
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setRoles([]);
+              setLoading(false);
+              setAuthInitialized(true);
             } else if (event === 'TOKEN_REFRESHED') {
               // Just update the session
-              if (isMounted) setSession(session);
+              setSession(session);
             } else if (event === 'USER_UPDATED') {
               // Update user data
-              if (isMounted) {
-                setSession(session);
-                setUser(session?.user || null);
-              }
+              setSession(session);
+              setUser(session?.user || null);
+            } else if (event === 'INITIAL_SESSION') {
+              // This is handled by the initial getSession call
+              console.log("Initial session event");
             }
           }
         );
         
+        // Add visibility change event listener to avoid unnecessary rechecks
+        const handleVisibilityChange = () => {
+          // Only recheck session when returning to the page if needed
+          if (document.visibilityState === 'visible' && !authInitialized) {
+            console.log("Tab is visible again, but skipping auth recheck as already initialized");
+          }
+        };
+        
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
         // Cleanup function
         return () => {
-          isMounted = false;
           subscription.unsubscribe();
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
       } catch (error) {
         console.error("Error in auth setup:", error);
         // Ensure loading is set to false even on errors
-        if (isMounted) setLoading(false);
+        setLoading(false);
+        setAuthInitialized(true);
       }
     };
 
@@ -149,15 +162,13 @@ export const useAuthSetup = (authState: any) => {
 
     // Add a safety timeout to ensure loading state doesn't get stuck
     const loadingTimeout = setTimeout(() => {
-      if (loading && isMounted) {
+      if (loading && !authInitialized) {
         console.warn("Auth loading timed out - forcing completion");
         setLoading(false);
+        setAuthInitialized(true);
       }
     }, 5000); // 5 second timeout
 
-    return () => {
-      isMounted = false;
-      clearTimeout(loadingTimeout);
-    };
-  }, [setSession, setUser, setProfile, setRoles, setLoading, loading]);
+    return () => clearTimeout(loadingTimeout);
+  }, [setSession, setUser, setProfile, setRoles, setLoading, setAuthInitialized, loading, authInitialized]);
 };

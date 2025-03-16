@@ -1,8 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchProfileData } from '../utils';
+import { fetchProfileData, fetchUserRoles } from '../utils';
 import { UserRole } from '../types';
 
 /**
@@ -14,6 +14,7 @@ export const useAuthState = () => {
   const [profile, setProfile] = useState<any | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [authInitialized, setAuthInitialized] = useState<boolean>(false);
 
   // Load profile data for a user
   const refreshProfileData = async (userId: string) => {
@@ -34,16 +35,8 @@ export const useAuthState = () => {
         console.error('Error signing out:', error);
         throw error;
       }
-      
-      // Clear all auth state
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setRoles([]);
-      
     } catch (error: any) {
       console.error('Error signing out:', error.message);
-      throw error; // Re-throw to let component handle the error
     } finally {
       setLoading(false);
     }
@@ -65,6 +58,8 @@ export const useAuthState = () => {
     setRoles,
     loading,
     setLoading,
+    authInitialized,
+    setAuthInitialized,
     refreshProfileData,
     signOut,
     hasRole,
