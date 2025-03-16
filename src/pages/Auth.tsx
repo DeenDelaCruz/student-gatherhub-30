@@ -42,16 +42,23 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     try {
       setIsAuthenticating(true);
+      
+      // Log before sign-in attempt
+      console.log("Starting Google sign-in process");
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`, // Use a dedicated callback route
+          redirectTo: `${window.location.origin}/auth/callback`, // Use the dedicated callback route
         },
       });
       
       if (error) {
+        console.error("Google sign in error:", error);
         toast.error(`Error signing in: ${error.message}`);
         setIsAuthenticating(false);
+      } else {
+        console.log("Google sign-in initiated, redirecting to provider...");
       }
     } catch (error: any) {
       console.error("Google sign in error:", error);
