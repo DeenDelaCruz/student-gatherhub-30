@@ -24,6 +24,12 @@ export const useAuthSetup = (authState: any) => {
     const setupAuth = async () => {
       try {
         console.log("Setting up auth...");
+        
+        // Always set loading to true at the start
+        if (!authInitialized) {
+          setLoading(true);
+        }
+        
         // Get initial session
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
@@ -105,6 +111,7 @@ export const useAuthSetup = (authState: any) => {
               } finally {
                 // Ensure we're not in loading state
                 setLoading(false);
+                setAuthInitialized(true);
               }
             } else if (event === 'SIGNED_OUT') {
               // Clear user data on sign out
@@ -113,6 +120,7 @@ export const useAuthSetup = (authState: any) => {
               setProfile(null);
               setRoles([]);
               setLoading(false);
+              setAuthInitialized(true);
             } else if (event === 'TOKEN_REFRESHED') {
               // Just update the session
               setSession(session);
@@ -127,9 +135,20 @@ export const useAuthSetup = (authState: any) => {
           }
         );
         
+        // Add visibility change event listener to avoid unnecessary rechecks
+        const handleVisibilityChange = () => {
+          // Only recheck session when returning to the page if needed
+          if (document.visibilityState === 'visible' && !authInitialized) {
+            console.log("Tab is visible again, but skipping auth recheck as already initialized");
+          }
+        };
+        
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
         // Cleanup function
         return () => {
           subscription.unsubscribe();
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
       } catch (error) {
         console.error("Error in auth setup:", error);
