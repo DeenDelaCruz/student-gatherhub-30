@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Check for role-based access when component mounts and authentication is complete
+    // Only show permission error when authentication is complete and the user lacks the necessary role
     if (!loading && user && allowedRoles && !allowedRoles.some(role => hasRole(role))) {
       toast.error("You don't have permission to access this page");
     }
@@ -30,18 +30,18 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
           <p className="mt-4 text-gray-600">Verifying access...</p>
-          {/* Add a timeout message if loading takes too long */}
           <p className="mt-2 text-sm text-gray-500">
-            If this takes too long, try <a href="/auth" className="text-blue-500 hover:underline">logging in again</a>
+            If this takes too long, try refreshing the page
           </p>
         </div>
       </div>
     );
   }
 
-  // If not authenticated, redirect to login
+  // If not authenticated and on a protected route, redirect to login
   if (!user) {
     console.log("User not authenticated, redirecting to auth page");
+    // Store the current location to redirect back after login
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 

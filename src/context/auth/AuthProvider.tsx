@@ -30,57 +30,95 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    const authenticationSetup = async () => {
-      // Load the initial session
-      const initialSession = await supabase.auth.getSession();
-      setSession(initialSession.data.session);
-      setUser(initialSession.data.session?.user || null);
-      
-      if (initialSession.data.session?.user) {
-        // Load the user's profile and roles
-        const userId = initialSession.data.session.user.id;
-        const profileData = await fetchProfileData(userId);
-        setProfile(profileData);
+    // Set up authentication listener
+    const setupAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
-        const userRoles = await fetchUserRoles(userId);
-        setRoles(userRoles);
-        
-        // Track the user visit when they sign in
-        await trackUserVisit(userId);
-      }
-      
-      // Set auth state listener
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        setSession(session);
-        setUser(session?.user || null);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Track the user visit when they sign in
-          await trackUserVisit(session.user.id);
-          
-          // Load user profile and roles
-          const userId = session.user.id;
-          const profileData = await fetchProfileData(userId);
-          setProfile(profileData);
-          
-          const userRoles = await fetchUserRoles(userId);
-          setRoles(userRoles);
-        } else if (event === 'SIGNED_OUT') {
-          setProfile(null);
-          setRoles([]);
+        if (sessionError) {
+          console.error("Error getting session:", sessionError);
+          setLoading(false);
+          return;
         }
-      });
 
-      setLoading(false);
+        setSession(initialSession);
+        setUser(initialSession?.user || null);
+        
+        // If we have a user, load profile and roles
+        if (initialSession?.user) {
+          const userId = initialSession.user.id;
+          
+          try {
+            // Load user profile
+            const profileData = await fetchProfileData(userId);
+            setProfile(profileData);
+            
+            // Load user roles
+            const userRoles = await fetchUserRoles(userId);
+            setRoles(userRoles);
+            
+            // Track user visit
+            await trackUserVisit(userId);
+          } catch (error) {
+            console.error("Error loading user data:", error);
+          }
+        }
+        
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log("Auth state changed:", event);
+            setSession(session);
+            setUser(session?.user || null);
+            
+            if (event === 'SIGNED_IN' && session?.user) {
+              const userId = session.user.id;
+              
+              try {
+                // Track user visit
+                await trackUserVisit(userId);
+                
+                // Load user profile and roles
+                const profileData = await fetchProfileData(userId);
+                setProfile(profileData);
+                
+                const userRoles = await fetchUserRoles(userId);
+                setRoles(userRoles);
+              } catch (error) {
+                console.error("Error loading data after sign in:", error);
+              }
+            } else if (event === 'SIGNED_OUT') {
+              // Clear user data on sign out
+              setProfile(null);
+              setRoles([]);
+            }
+          }
+        );
+        
+        // Always set loading to false when done
+        setLoading(false);
+        
+        // Cleanup function
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("Error in auth setup:", error);
+        setLoading(false);
+      }
     };
 
-    authenticationSetup();
+    setupAuth();
   }, []);
 
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error('Error signing out:', error);
+        throw error;
+      }
     } catch (error: any) {
       console.error('Error signing out:', error.message);
     }
@@ -103,7 +141,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
