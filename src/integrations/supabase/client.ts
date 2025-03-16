@@ -643,12 +643,14 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // We need to check if the user has already visited today
+    // Using a raw SQL query to work around the type issue
     const { data: existingVisit, error: checkError } = await supabase
-      .from('user_visits')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('visit_time', today.toISOString())
-      .maybeSingle();
+      .rpc('get_user_visit', { 
+        user_id_param: userId,
+        date_param: today.toISOString()
+      })
+      .single();
       
     if (checkError) {
       console.error('Error checking existing visit:', checkError);
@@ -656,21 +658,24 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
     }
     
     // If already visited today, update the timestamp
-    if (existingVisit) {
+    if (existingVisit && existingVisit.id) {
       const { error: updateError } = await supabase
-        .from('user_visits')
-        .update({ visit_time: new Date().toISOString() })
-        .eq('id', existingVisit.id);
+        .rpc('update_user_visit', {
+          visit_id_param: existingVisit.id,
+          time_param: new Date().toISOString()
+        });
         
       if (updateError) {
         console.error('Error updating visit record:', updateError);
         return false;
       }
     } else {
-      // Create a new visit record
+      // Create a new visit record using raw SQL query to work around type issues
       const { error: insertError } = await supabase
-        .from('user_visits')
-        .insert({ user_id: userId, visit_time: new Date().toISOString() });
+        .rpc('create_user_visit', { 
+          user_id_param: userId,
+          time_param: new Date().toISOString()
+        });
         
       if (insertError) {
         console.error('Error creating visit record:', insertError);
@@ -687,12 +692,9 @@ export const trackUserVisit = async (userId: string): Promise<boolean> => {
 
 export const getRecentVisitors = async (limit = 10): Promise<any[]> => {
   try {
-    // Get the most recent visits, join with profiles to get user details
+    // Using a raw SQL function to get around the type issue
     const { data, error } = await supabase
-      .from('user_visits')
-      .select('user_id, visit_time, profiles:user_id(id, name, email)')
-      .order('visit_time', { ascending: false })
-      .limit(limit);
+      .rpc('get_recent_visitors', { limit_param: limit });
       
     if (error) {
       console.error('Error getting recent visitors:', error);

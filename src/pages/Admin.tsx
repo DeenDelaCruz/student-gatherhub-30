@@ -531,8 +531,8 @@ const Admin = () => {
                         <TableRow key={`${visitor.user_id}-${index}`}>
                           <TableCell>
                             <div>
-                              <p className="font-medium text-sm">{visitor.profiles?.name || 'Unknown'}</p>
-                              <p className="text-xs text-gray-500">{visitor.profiles?.email || 'No email'}</p>
+                              <p className="font-medium text-sm">{visitor.name || 'Unknown'}</p>
+                              <p className="text-xs text-gray-500">{visitor.email || 'No email'}</p>
                             </div>
                           </TableCell>
                           <TableCell>
