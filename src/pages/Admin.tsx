@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -21,6 +20,8 @@ import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Admin = () => {
   const { hasRole } = useAuth();
@@ -613,44 +614,79 @@ const Admin = () => {
             </Card>
           </motion.div>
 
-          {/* Recent Activity Card */}
+          {/* Recent Activity Card with Popover */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-medium flex items-center">
-                  <Clock className="h-5 w-5 text-purple-500 mr-2" />
-                  Recent Activity
-                </CardTitle>
-                <CardDescription>Latest user visits</CardDescription>
-              </CardHeader>
-              <CardContent>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-medium flex items-center">
+                      <Clock className="h-5 w-5 text-purple-500 mr-2" />
+                      Recent Activity
+                    </CardTitle>
+                    <CardDescription>Latest user visits</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingVisitors ? (
+                      <div className="h-16 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                      </div>
+                    ) : recentVisitors.length === 0 ? (
+                      <p className="text-sm text-gray-500">No recent activity available</p>
+                    ) : (
+                      <div className="text-sm">
+                        <p className="text-xs text-gray-500 mb-2">{recentVisitors.length} recent visitors</p>
+                        <div className="text-xs text-gray-600">
+                          {recentVisitors.slice(0, 3).map((visitor, index) => (
+                            <div key={index} className="flex justify-between items-center py-1">
+                              <span className="font-medium truncate max-w-[120px]">{visitor.name || 'Unknown user'}</span>
+                              <span className="text-gray-400">
+                                {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-4 border-b">
+                  <h3 className="font-medium">Recent Visitors</h3>
+                  <p className="text-xs text-muted-foreground">All user visit activity</p>
+                </div>
                 {loadingVisitors ? (
-                  <div className="h-16 flex items-center justify-center">
+                  <div className="p-4 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                   </div>
                 ) : recentVisitors.length === 0 ? (
-                  <p className="text-sm text-gray-500">No recent activity available</p>
+                  <div className="p-4">
+                    <p className="text-sm text-gray-500">No recent activity available</p>
+                  </div>
                 ) : (
-                  <div className="text-sm">
-                    <p className="text-xs text-gray-500 mb-2">{recentVisitors.length} recent visitors</p>
-                    <div className="text-xs text-gray-600">
-                      {recentVisitors.slice(0, 3).map((visitor, index) => (
-                        <div key={index} className="flex justify-between items-center py-1">
-                          <span className="font-medium truncate max-w-[120px]">{visitor.name || 'Unknown user'}</span>
-                          <span className="text-gray-400">
+                  <ScrollArea className="h-72">
+                    <div className="p-4">
+                      {recentVisitors.map((visitor, index) => (
+                        <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                          <div>
+                            <div className="font-medium">{visitor.name || 'Unknown user'}</div>
+                            <div className="text-xs text-gray-500">{visitor.email || 'No email'}</div>
+                          </div>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">
                             {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { addSuffix: true }) : 'recently'}
                           </span>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </ScrollArea>
                 )}
-              </CardContent>
-            </Card>
+              </PopoverContent>
+            </Popover>
           </motion.div>
         </div>
         
@@ -804,65 +840,3 @@ const Admin = () => {
                             ) : (
                               <>
                                 <UserPlus className="h-4 w-4 mr-1" />
-                                Promote
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-                
-                {/* Events Tab */}
-                <TabsContent value="events" className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">All Events</h3>
-                  
-                  {loading ? (
-                    <div className="h-16 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                    </div>
-                  ) : events.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-4 text-center">No events found</p>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {events.map((event) => (
-                        <div key={event.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-sm">{event.title}</p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(event.event_date).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            onClick={() => handleDeleteEvent(event.id)}
-                            disabled={actionLoading[`event-${event.id}`]}
-                          >
-                            {actionLoading[`event-${event.id}`] ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                            ) : (
-                              <>
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </main>
-      
-      <Navigation />
-    </div>
-  );
-};
-
-export default Admin;
