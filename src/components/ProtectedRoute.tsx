@@ -1,4 +1,3 @@
-
 import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
@@ -17,12 +16,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
-  // Track user visit when authenticated - optimized to prevent duplicate records
+  // Track user visit when authenticated
   useEffect(() => {
-    // Create a flag to track if this effect has already run
-    let isFirstMount = true;
-
-    if (user && !loading && isFirstMount) {
+    if (user && !loading) {
       const trackUserVisit = async () => {
         try {
           // Check if the table exists by trying to select a row
@@ -38,63 +34,50 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // Check if a record already exists for this user
-          const { data: existingRecord, error: fetchError } = await supabase
+          // First check if user already has a visit record
+          const { data: existingVisit, error: fetchError } = await supabase
             .from('user_visits')
             .select('id')
             .eq('user_id', user.id)
             .maybeSingle();
-          
+            
           if (fetchError) {
-            console.log("Error checking existing visit record:", fetchError.message);
+            console.log("Error checking existing visit:", fetchError.message);
             return;
           }
           
-          if (existingRecord) {
-            // Update the existing record
-            console.log(`Updating existing visit record for user ${user.id}`);
+          if (existingVisit) {
+            // Update existing visit record
             const { error: updateError } = await supabase
               .from('user_visits')
               .update({ visit_time: now })
-              .eq('id', existingRecord.id);
+              .eq('id', existingVisit.id);
               
             if (updateError) {
               console.log("Error updating user visit:", updateError.message);
             } else {
-              console.log("Updated visit record for:", user.id, "at", now);
+              console.log("Updated existing visit record for:", user.id);
             }
           } else {
-            // Create a new record
-            console.log(`Creating new visit record for user ${user.id}`);
+            // Insert new visit record
             const { error: insertError } = await supabase
               .from('user_visits')
-              .insert({ 
-                user_id: user.id, 
-                visit_time: now 
-              });
-                
+              .insert({ user_id: user.id, visit_time: now });
+              
             if (insertError) {
               console.log("Error creating user visit:", insertError.message);
             } else {
-              console.log("Created new visit record for:", user.id, "at", now);
+              console.log("Created new visit record for:", user.id);
             }
           }
         } catch (error) {
           console.log("Exception in tracking user visit:", error);
-        } finally {
-          // Set the flag to false so this effect doesn't run again
-          isFirstMount = false;
         }
       };
       
-      // Add a small delay to avoid race conditions when loading or navigating quickly
-      const timeoutId = setTimeout(() => {
-        trackUserVisit();
-      }, 500); // 500ms for reliability
-      
-      return () => clearTimeout(timeoutId);
+      trackUserVisit();
     }
-  }, [user, loading]); // Only depend on auth state changes, not location
+  }, [user, loading]);
 
   useEffect(() => {
     // Check for role-based access when component mounts and authentication is complete
