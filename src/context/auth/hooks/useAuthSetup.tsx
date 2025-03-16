@@ -14,23 +14,11 @@ export const useAuthSetup = (authState: any) => {
     setProfile,
     setRoles,
     setLoading,
-    loading,
-    user
+    loading
   } = authState;
 
   useEffect(() => {
-    // If we already have auth data from sessionStorage, skip initial verification
-    const hasStoredSession = sessionStorage.getItem('auth_session') !== null;
-    const isInitialized = sessionStorage.getItem('auth_initialized') === 'true';
-    
-    if (isInitialized && hasStoredSession && user) {
-      console.log("Auth already initialized from sessionStorage, skipping setup");
-      setLoading(false);
-      return;
-    }
-
     let isMounted = true;
-    
     // Set up authentication listener
     const setupAuth = async () => {
       try {
@@ -41,16 +29,7 @@ export const useAuthSetup = (authState: any) => {
         
         if (sessionError) {
           console.error("Error getting session:", sessionError);
-          if (isMounted) {
-            setLoading(false);
-            
-            // Clear incomplete auth state
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-            setRoles([]);
-            sessionStorage.removeItem('auth_initialized');
-          }
+          if (isMounted) setLoading(false);
           return;
         }
 
@@ -77,9 +56,6 @@ export const useAuthSetup = (authState: any) => {
               setProfile(profileData);
               setRoles(userRoles);
               setLoading(false);
-              
-              // Mark auth as initialized
-              sessionStorage.setItem('auth_initialized', 'true');
             }
             
             // Track user visit in the background (don't await)
@@ -95,12 +71,7 @@ export const useAuthSetup = (authState: any) => {
           if (isMounted) {
             setSession(null);
             setUser(null);
-            setProfile(null);
-            setRoles([]);
             setLoading(false);
-            
-            // Clear initialized flag for non-authenticated state
-            sessionStorage.removeItem('auth_initialized');
           }
         }
         
@@ -130,9 +101,6 @@ export const useAuthSetup = (authState: any) => {
                   setProfile(profileData);
                   setRoles(userRoles);
                   setLoading(false);
-                  
-                  // Mark auth as initialized
-                  sessionStorage.setItem('auth_initialized', 'true');
                 }
                 
                 // Track the visit in the background without blocking auth flow
@@ -151,9 +119,6 @@ export const useAuthSetup = (authState: any) => {
                 setProfile(null);
                 setRoles([]);
                 setLoading(false);
-                
-                // Clear initialized flag
-                sessionStorage.removeItem('auth_initialized');
               }
             } else if (event === 'TOKEN_REFRESHED') {
               // Just update the session
@@ -176,16 +141,7 @@ export const useAuthSetup = (authState: any) => {
       } catch (error) {
         console.error("Error in auth setup:", error);
         // Ensure loading is set to false even on errors
-        if (isMounted) {
-          setLoading(false);
-          
-          // Clear potentially incomplete auth state on error
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setRoles([]);
-          sessionStorage.removeItem('auth_initialized');
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -197,11 +153,11 @@ export const useAuthSetup = (authState: any) => {
         console.warn("Auth loading timed out - forcing completion");
         setLoading(false);
       }
-    }, 3000); // 3 second timeout (reduced from 5s)
+    }, 5000); // 5 second timeout
 
     return () => {
       isMounted = false;
       clearTimeout(loadingTimeout);
     };
-  }, [setSession, setUser, setProfile, setRoles, setLoading, loading, user]);
+  }, [setSession, setUser, setProfile, setRoles, setLoading, loading]);
 };

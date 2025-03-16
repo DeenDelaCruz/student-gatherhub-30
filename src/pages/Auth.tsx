@@ -14,37 +14,19 @@ const Auth = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [redirectAttempted, setRedirectAttempted] = useState(false);
   
-  // Force showing the auth form after a short delay regardless of loading state
+  // Force showing the auth form after a delay regardless of loading state
   const [forceShowAuth, setForceShowAuth] = useState(false);
   
   useEffect(() => {
-    // Clear any stale auth state from sessionStorage when accessing the auth page directly
-    if (location.pathname === "/auth" && !isAuthenticating) {
-      try {
-        if (sessionStorage.getItem('auth_initialized') === 'true' && !user) {
-          console.log("Clearing stale auth state on auth page");
-          sessionStorage.removeItem('auth_initialized');
-        }
-      } catch (error) {
-        console.error("Error clearing sessionStorage:", error);
-      }
-    }
+    console.log("Auth page - Auth state:", { loading, isAuthenticated: !!user, redirectAttempted, forceShowAuth });
     
-    console.log("Auth page - Auth state:", { 
-      loading, 
-      isAuthenticated: !!user, 
-      redirectAttempted, 
-      forceShowAuth,
-      pathname: location.pathname
-    });
-    
-    // Always show auth form quickly even if loading
+    // If we're stuck in loading for too long, force show the auth form
     const timer = setTimeout(() => {
-      if (!forceShowAuth) {
+      if (loading) {
         console.log("Auth loading timeout - forcing auth form display");
         setForceShowAuth(true);
       }
-    }, 1000); // 1 second safety timeout
+    }, 2000); // 2 second safety timeout
     
     // If already authenticated, redirect to home
     if (!loading && user && !redirectAttempted) {
@@ -55,7 +37,7 @@ const Auth = () => {
     }
     
     return () => clearTimeout(timer);
-  }, [loading, user, navigate, location.state, redirectAttempted, location.pathname, isAuthenticating, forceShowAuth]);
+  }, [loading, user, navigate, location.state, redirectAttempted]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -92,7 +74,7 @@ const Auth = () => {
     }
   };
 
-  // Show loading only briefly, then force show auth form
+  // Show loading only if not forcing auth display
   if (loading && !forceShowAuth) {
     return (
       <div className="min-h-screen bg-campus-bg flex flex-col items-center justify-center p-4">
