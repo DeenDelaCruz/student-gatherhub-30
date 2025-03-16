@@ -23,25 +23,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<any | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [authInitialized, setAuthInitialized] = useState<boolean>(false);
 
   const refreshProfileData = async (userId: string) => {
-    const profileData = await fetchProfileData(userId);
-    setProfile(profileData);
+    try {
+      const profileData = await fetchProfileData(userId);
+      setProfile(profileData);
+    } catch (error) {
+      console.error("Error refreshing profile data:", error);
+    }
   };
 
   useEffect(() => {
     // Set up authentication listener
     const setupAuth = async () => {
       try {
+        console.log("Setting up auth...");
         // Get initial session
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error("Error getting session:", sessionError);
           setLoading(false);
+          setAuthInitialized(true);
           return;
         }
 
+        console.log("Initial session:", initialSession ? "exists" : "null");
         setSession(initialSession);
         setUser(initialSession?.user || null);
         
@@ -96,8 +104,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         );
         
-        // Always set loading to false when done
+        // Always set loading to false and authInitialized to true when done
         setLoading(false);
+        setAuthInitialized(true);
         
         // Cleanup function
         return () => {
@@ -105,15 +114,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       } catch (error) {
         console.error("Error in auth setup:", error);
+        // Ensure loading is set to false even on errors
         setLoading(false);
+        setAuthInitialized(true);
       }
     };
 
     setupAuth();
+
+    // Add a safety timeout to ensure loading state doesn't get stuck
+    const loadingTimeout = setTimeout(() => {
+      if (loading && !authInitialized) {
+        console.warn("Auth loading timed out - forcing completion");
+        setLoading(false);
+        setAuthInitialized(true);
+      }
+    }, 5000); // 5 second timeout
+
+    return () => clearTimeout(loadingTimeout);
   }, []);
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
@@ -121,6 +144,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error: any) {
       console.error('Error signing out:', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 

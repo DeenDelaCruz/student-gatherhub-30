@@ -12,12 +12,21 @@ const Auth = () => {
   const location = useLocation();
   const { loading, user } = useAuth();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   useEffect(() => {
-    // If already authenticated, redirect to intended location or home
-    if (!loading && user) {
-      const from = location.state?.from?.pathname || "/";
-      navigate(from, { replace: true });
+    console.log("Auth page - Auth state:", { loading, isAuthenticated: !!user });
+    
+    // Only redirect after initial loading is complete
+    if (!loading) {
+      setInitialCheckDone(true);
+      
+      // If already authenticated, redirect to intended location or home
+      if (user) {
+        const from = location.state?.from?.pathname || "/";
+        console.log("User authenticated, redirecting to:", from);
+        navigate(from, { replace: true });
+      }
     }
   }, [loading, user, navigate, location.state]);
 
@@ -42,8 +51,8 @@ const Auth = () => {
     }
   };
 
-  // Show loading while checking authentication status
-  if (loading) {
+  // Show loading while checking authentication status, but only for initial check
+  if (loading && !initialCheckDone) {
     return (
       <div className="min-h-screen bg-campus-bg flex flex-col items-center justify-center p-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>

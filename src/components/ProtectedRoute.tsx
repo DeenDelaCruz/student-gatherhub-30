@@ -4,6 +4,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type UserRole = Database["public"]["Enums"]["app_role"];
 
@@ -16,12 +17,19 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
+  // Show permission error only when authentication is complete and user lacks necessary role
   useEffect(() => {
-    // Only show permission error when authentication is complete and the user lacks the necessary role
     if (!loading && user && allowedRoles && !allowedRoles.some(role => hasRole(role))) {
       toast.error("You don't have permission to access this page");
     }
   }, [loading, user, allowedRoles, hasRole]);
+
+  console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname });
+
+  // Special case for auth page to prevent redirect loops
+  if (location.pathname === "/auth") {
+    return <>{children}</>;
+  }
 
   // If still loading, show a loading indicator
   if (loading) {
@@ -38,10 +46,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  // If not authenticated and on a protected route, redirect to login
+  // If not authenticated, redirect to login
   if (!user) {
     console.log("User not authenticated, redirecting to auth page");
-    // Store the current location to redirect back after login
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
