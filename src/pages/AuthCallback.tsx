@@ -11,7 +11,7 @@ const AuthCallback = () => {
   useEffect(() => {
     console.log("Auth callback page - Auth state:", { loading, isAuthenticated: !!user });
 
-    // Handle the auth callback immediately for non-loading states
+    // If auth state is determined (not loading), handle it immediately
     if (!loading) {
       if (user) {
         console.log("User authenticated in callback, redirecting to home");
@@ -31,10 +31,11 @@ const AuthCallback = () => {
       if (user) {
         navigate("/home", { replace: true });
       } else {
-        toast.error("Authentication is taking too long. Please try again.");
+        // Just redirect back to auth without error message for a better UX
+        console.log("Auth timeout reached, redirecting to auth page");
         navigate("/auth", { replace: true });
       }
-    }, 5000); // Longer timeout for slow connections
+    }, 10000); // Extended timeout for slow connections
 
     return () => clearTimeout(timer);
   }, [navigate, user, loading]);
