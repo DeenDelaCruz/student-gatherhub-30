@@ -1,8 +1,7 @@
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
-import { trackUserVisit } from "@/integrations/supabase/client";
 import { fetchProfileData, fetchUserRoles } from './utils';
 import { AuthContextType, UserRole } from './types';
 
@@ -31,6 +30,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(profileData);
     } catch (error) {
       console.error("Error refreshing profile data:", error);
+    }
+  };
+
+  // Safe track user visit function that doesn't block auth flow
+  const safeTrackUserVisit = async (userId: string) => {
+    try {
+      // We wrap this in a Promise.race with a timeout to ensure it never hangs
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        setTimeout(() => reject(new Error("Track user visit timeout")), 3000);
+      });
+      
+      await Promise.race([
+        fetch(`${window.location.origin}/api/track-visit?userId=${userId}`, { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        timeoutPromise
+      ]);
+    } catch (error) {
+      console.error("Error tracking user visit (non-blocking):", error);
+      // Don't throw - this is a background operation that shouldn't block auth
     }
   };
 
@@ -66,16 +86,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const userRoles = await fetchUserRoles(userId);
             setRoles(userRoles);
             
-            // Try to track user visit but don't block auth flow if it fails
-            try {
-              await trackUserVisit(userId);
-            } catch (visitError) {
-              console.error("Error tracking user visit but continuing auth flow:", visitError);
-              // Continue auth flow even if tracking fails
-            }
+            // Track user visit in the background (don't await)
+            safeTrackUserVisit(userId).catch(err => {
+              console.error("Background track visit failed:", err);
+            });
           } catch (error) {
             console.error("Error loading user data:", error);
-            // Still complete auth flow with user but without profile/roles data
           } finally {
             // Always complete the auth flow
             setLoading(false);
@@ -105,11 +121,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const userRoles = await fetchUserRoles(userId);
                 setRoles(userRoles);
                 
-                // Then try to track the visit in the background
-                // Safely track user visit without blocking auth flow
-                trackUserVisit(userId).catch(error => {
-                  console.error("Failed to track user visit after sign in:", error);
-                  // Don't reject the promise, let auth continue
+                // Track the visit in the background without blocking auth flow
+                safeTrackUserVisit(userId).catch(err => {
+                  console.error("Background track visit failed:", err);
                 });
               } catch (error) {
                 console.error("Error loading data after sign in:", error);
