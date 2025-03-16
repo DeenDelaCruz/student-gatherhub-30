@@ -1,6 +1,6 @@
 
 import { lazy, Suspense } from "react";
-import { RouteObject, Navigate } from "react-router-dom";
+import { RouteObject } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Database } from "@/integrations/supabase/types";
 
@@ -14,7 +14,6 @@ const Scanner = lazy(() => import("@/pages/Scanner"));
 const People = lazy(() => import("@/pages/People"));
 const Notifications = lazy(() => import("@/pages/Notifications"));
 const Auth = lazy(() => import("@/pages/Auth"));
-const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const CreateEvent = lazy(() => import("@/pages/CreateEvent"));
 const EditEvent = lazy(() => import("@/pages/EditEvent"));
@@ -44,12 +43,7 @@ const routesConfig: RouteConfig[] = [
     requiresAuth: false,
   },
   {
-    path: "/auth/callback",
-    element: <AuthCallback />,
-    requiresAuth: false,
-  },
-  {
-    path: "/home",
+    path: "/",
     element: <Index />,
     requiresAuth: true,
   },
@@ -106,16 +100,7 @@ const routesConfig: RouteConfig[] = [
 
 // Create React Router compatible routes
 export const createRoutes = (): RouteObject[] => {
-  // Add a root redirect to auth page
-  const routes: RouteObject[] = [
-    {
-      path: "/",
-      element: <Navigate to="/auth" replace />,
-    }
-  ];
-  
-  // Add the rest of the routes from config
-  routesConfig.forEach(({ path, element, requiresAuth, allowedRoles }) => {
+  return routesConfig.map(({ path, element, requiresAuth, allowedRoles }) => {
     // Wrap element in suspense for lazy loading
     const lazyElement = <Suspense fallback={<PageLoader />}>{element}</Suspense>;
     
@@ -126,11 +111,9 @@ export const createRoutes = (): RouteObject[] => {
       lazyElement
     );
 
-    routes.push({
+    return {
       path,
       element: routeElement,
-    });
+    };
   });
-
-  return routes;
 };

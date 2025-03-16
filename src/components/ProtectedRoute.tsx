@@ -13,33 +13,26 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  const { user, loading, hasRole, authInitialized } = useAuth();
+  const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
-  // Show permission error only when authentication is complete and user lacks necessary role
   useEffect(() => {
+    // Check for role-based access when component mounts and authentication is complete
     if (!loading && user && allowedRoles && !allowedRoles.some(role => hasRole(role))) {
       toast.error("You don't have permission to access this page");
     }
   }, [loading, user, allowedRoles, hasRole]);
 
-  console.log("ProtectedRoute - Auth state:", { loading, isAuthenticated: !!user, path: location.pathname, authInitialized });
-
-  // Special case for /auth paths - allow direct access without protection
-  if (location.pathname === "/auth" || location.pathname.startsWith("/auth/")) {
-    return <>{children}</>;
-  }
-
-  // Only show loading indicator if auth hasn't been initialized yet
-  // This prevents the loading indicator from showing when returning to the tab
-  if (loading && !authInitialized) {
+  // If still loading, show a loading indicator
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-campus-bg">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
           <p className="mt-4 text-gray-600">Verifying access...</p>
+          {/* Add a timeout message if loading takes too long */}
           <p className="mt-2 text-sm text-gray-500">
-            If this takes too long, try refreshing the page
+            If this takes too long, try <a href="/auth" className="text-blue-500 hover:underline">logging in again</a>
           </p>
         </div>
       </div>
@@ -55,7 +48,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   // If roles are specified, check if user has any of the allowed roles
   if (allowedRoles && !allowedRoles.some(role => hasRole(role))) {
     console.log("User doesn't have required role, redirecting to home page");
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // If authenticated and has required role (or no role specified), show the protected content
