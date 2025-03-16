@@ -51,7 +51,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
             const { error: updateError } = await supabase
               .from('user_visits')
               .update({ visit_time: now })
-              .eq('id', existingVisit.id);
+              .eq('user_id', user.id);
               
             if (updateError) {
               console.log("Error updating user visit:", updateError.message);
