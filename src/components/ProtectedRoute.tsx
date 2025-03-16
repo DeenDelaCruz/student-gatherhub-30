@@ -1,3 +1,4 @@
+
 import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
@@ -34,61 +35,62 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // First check if user already has a visit record
-          const { data: existingVisit, error: fetchError } = await supabase
+          // First check if user already has a visit record from ANY page
+          // This query gets ALL recent visits by the user, not just for the current path
+          const { data: existingVisits, error: fetchError } = await supabase
             .from('user_visits')
             .select('id, visit_time')
             .eq('user_id', user.id)
-            .order('visit_time', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .order('visit_time', { ascending: false });
             
           if (fetchError) {
             console.log("Error checking existing visit:", fetchError.message);
             return;
           }
           
-          // If there's an existing visit, check if it's recent (within the last 5 minutes)
-          // to prevent duplicate entries from frequent page refreshes
-          if (existingVisit) {
-            const lastVisitTime = new Date(existingVisit.visit_time).getTime();
+          // If there's an existing visit, check if any are recent (within the last 15 minutes)
+          // This provides stronger duplicate prevention across page navigations
+          if (existingVisits && existingVisits.length > 0) {
             const currentTime = new Date(now).getTime();
-            const fiveMinutesInMs = 5 * 60 * 1000;
+            const fifteenMinutesInMs = 15 * 60 * 1000; // Increased from 5 to 15 minutes
             
-            if (currentTime - lastVisitTime < fiveMinutesInMs) {
-              console.log(`Skipping visit record for user ${user.id} - last visit was less than 5 minutes ago`);
+            const recentVisit = existingVisits.find(visit => {
+              const visitTime = new Date(visit.visit_time).getTime();
+              return (currentTime - visitTime) < fifteenMinutesInMs;
+            });
+            
+            if (recentVisit) {
+              console.log(`Skipping visit record for user ${user.id} - last visit was less than 15 minutes ago`);
               return;
             }
             
-            // Update existing visit record if it's older than 5 minutes
-            const { error: updateError } = await supabase
-              .from('user_visits')
-              .update({ visit_time: now })
-              .eq('id', existingVisit.id);
+            // We'll create a new record if there are no recent visits
+          }
+          
+          // Insert new visit record since there are no recent ones
+          const { error: insertError } = await supabase
+            .from('user_visits')
+            .insert({ 
+              user_id: user.id, 
+              visit_time: now 
+            });
               
-            if (updateError) {
-              console.log("Error updating user visit:", updateError.message);
-            } else {
-              console.log("Updated existing visit record for:", user.id);
-            }
+          if (insertError) {
+            console.log("Error creating user visit:", insertError.message);
           } else {
-            // Insert new visit record
-            const { error: insertError } = await supabase
-              .from('user_visits')
-              .insert({ user_id: user.id, visit_time: now });
-              
-            if (insertError) {
-              console.log("Error creating user visit:", insertError.message);
-            } else {
-              console.log("Created new visit record for:", user.id);
-            }
+            console.log("Created new visit record for:", user.id);
           }
         } catch (error) {
           console.log("Exception in tracking user visit:", error);
         }
       };
       
-      trackUserVisit();
+      // Add a small delay to avoid race conditions when loading or navigating quickly
+      const timeoutId = setTimeout(() => {
+        trackUserVisit();
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [user, loading]);
 
