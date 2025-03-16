@@ -35,7 +35,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // Use a direct SQL query with explicit table references to avoid ambiguous column reference
+          // Call the custom function to get recent visits
           const { data: recentVisits, error: fetchError } = await supabase
             .rpc('get_recent_user_visits', { 
               user_id_param: user.id,
@@ -47,13 +47,14 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
             return;
           }
           
-          // If there are any recent visits in the last 15 minutes, skip creating a new one
-          if (recentVisits && recentVisits.length > 0) {
+          // Check if we got any recent visits in the response
+          if (recentVisits && Array.isArray(recentVisits) && recentVisits.length > 0) {
             console.log(`Skipping visit record - user ${user.id} has visited within the last 15 minutes`);
             return;
           }
           
-          // Insert new visit record since there are no recent ones
+          // No recent visits found, insert a new visit record
+          console.log(`No recent visits found for user ${user.id}, creating new visit record`);
           const { error: insertError } = await supabase
             .from('user_visits')
             .insert({ 
