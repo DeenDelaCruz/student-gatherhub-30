@@ -35,36 +35,22 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // First check if user already has a visit record from ANY page
-          // This query gets ALL recent visits by the user, not just for the current path
-          const { data: existingVisits, error: fetchError } = await supabase
-            .from('user_visits')
-            .select('id, visit_time')
-            .eq('user_id', user.id)
-            .order('visit_time', { ascending: false });
+          // Use a direct SQL query with explicit table references to avoid ambiguous column reference
+          const { data: recentVisits, error: fetchError } = await supabase
+            .rpc('get_recent_user_visits', { 
+              user_id_param: user.id,
+              minutes_ago: 15
+            });
             
           if (fetchError) {
-            console.log("Error checking existing visit:", fetchError.message);
+            console.log("Error checking recent visits:", fetchError.message);
             return;
           }
           
-          // If there's an existing visit, check if any are recent (within the last 15 minutes)
-          // This provides stronger duplicate prevention across page navigations
-          if (existingVisits && existingVisits.length > 0) {
-            const currentTime = new Date(now).getTime();
-            const fifteenMinutesInMs = 15 * 60 * 1000; // Increased from 5 to 15 minutes
-            
-            const recentVisit = existingVisits.find(visit => {
-              const visitTime = new Date(visit.visit_time).getTime();
-              return (currentTime - visitTime) < fifteenMinutesInMs;
-            });
-            
-            if (recentVisit) {
-              console.log(`Skipping visit record for user ${user.id} - last visit was less than 15 minutes ago`);
-              return;
-            }
-            
-            // We'll create a new record if there are no recent visits
+          // If there are any recent visits in the last 15 minutes, skip creating a new one
+          if (recentVisits && recentVisits.length > 0) {
+            console.log(`Skipping visit record - user ${user.id} has visited within the last 15 minutes`);
+            return;
           }
           
           // Insert new visit record since there are no recent ones
@@ -88,11 +74,11 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
       // Add a small delay to avoid race conditions when loading or navigating quickly
       const timeoutId = setTimeout(() => {
         trackUserVisit();
-      }, 300);
+      }, 500); // Increased to 500ms for more reliability
       
       return () => clearTimeout(timeoutId);
     }
-  }, [user, loading]);
+  }, [user, loading, location.pathname]); // Added location.pathname to help with different pages
 
   useEffect(() => {
     // Check for role-based access when component mounts and authentication is complete
