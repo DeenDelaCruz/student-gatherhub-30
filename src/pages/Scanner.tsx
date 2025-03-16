@@ -63,7 +63,7 @@ const Scanner = () => {
   const [scanSuccess, setScanSuccess] = useState<boolean | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const { hasRole, user, refreshProfileData } = useAuth();
-  const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
+  const isInformationOfficer = hasRole && (hasRole('information_officer') || hasRole('admin'));
   
   useEffect(() => {
     const fetchEvents = async () => {
@@ -350,6 +350,7 @@ const Scanner = () => {
           defaultValue="qrcode" 
           className="w-full max-w-md"
           onValueChange={setActiveTab}
+          value={activeTab}
         >
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="qrcode">QR Code</TabsTrigger>

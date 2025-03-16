@@ -281,6 +281,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_recent_user_visits: {
+        Args: {
+          user_id_param: string
+          minutes_ago: number
+        }
+        Returns: {
+          id: string
+          visit_time: string
+        }[]
+      }
       get_recent_visitors: {
         Args: {
           limit_param: number
