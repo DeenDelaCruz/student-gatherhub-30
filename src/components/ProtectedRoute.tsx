@@ -1,4 +1,3 @@
-
 import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
@@ -91,59 +90,6 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     }
   }, [loading, user, allowedRoles, hasRole]);
 
-  // Function to clear all visitor records - for admin use
-  const clearVisitorRecords = async () => {
-    try {
-      if (!user || !hasRole('admin')) {
-        toast({
-          variant: "destructive",
-          title: "Permission Denied",
-          description: "You don't have permission to clear visitor records"
-        });
-        return false;
-      }
-      
-      const { error } = await supabase
-        .from('user_visits')
-        .delete()
-        .neq('id', 'placeholder'); // This will delete all records
-        
-      if (error) {
-        console.error("Error clearing visitor records:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to clear visitor records: " + error.message
-        });
-        return false;
-      }
-      
-      toast({
-        title: "Success",
-        description: "All visitor records have been cleared"
-      });
-      return true;
-    } catch (error) {
-      console.error("Exception clearing visitor records:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred while clearing visitor records"
-      });
-      return false;
-    }
-  };
-
-  // Expose the clearVisitorRecords function to the window for admin components to use
-  if (typeof window !== 'undefined' && user && hasRole('admin')) {
-    // @ts-ignore
-    window.adminUtils = {
-      // @ts-ignore
-      ...(window.adminUtils || {}),
-      clearVisitorRecords
-    };
-  }
-
   // If still loading, show a loading indicator
   if (loading) {
     return (
@@ -151,7 +97,6 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
           <p className="mt-4 text-gray-600">Verifying access...</p>
-          {/* Add a timeout message if loading takes too long */}
           <p className="mt-2 text-sm text-gray-500">
             If this takes too long, try <a href="/auth" className="text-blue-500 hover:underline">logging in again</a>
           </p>

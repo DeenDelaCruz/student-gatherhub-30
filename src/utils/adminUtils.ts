@@ -1,18 +1,27 @@
 
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/auth";
 
-// This function will be called from Admin components to clear visitor records
+// This function will be called from the VisitorRecordsPopover component
 export const clearVisitorRecords = async (): Promise<boolean> => {
-  // First check if it's available from ProtectedRoute
-  // @ts-ignore
-  if (typeof window !== 'undefined' && window.adminUtils?.clearVisitorRecords) {
-    // @ts-ignore
-    return window.adminUtils.clearVisitorRecords();
-  }
-  
-  // Fallback implementation if not available from ProtectedRoute
   try {
+    // First check if the table exists by trying to select a row
+    const { error: checkError } = await supabase
+      .from('user_visits')
+      .select('id', { count: 'exact', head: true })
+      .limit(1);
+    
+    if (checkError) {
+      console.error("User visits tracking is not available:", checkError.message);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Visitor tracking is not available: " + checkError.message
+      });
+      return false;
+    }
+    
     const { error } = await supabase
       .from('user_visits')
       .delete()
