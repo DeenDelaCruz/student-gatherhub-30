@@ -1,4 +1,3 @@
-
 import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
@@ -35,41 +34,22 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // First check if there's an existing record for this user
-          const { data: existingVisit, error: fetchError } = await supabase
+          // Using upsert to either update an existing record or create a new one
+          // This ensures we'll never have duplicate records for the same user
+          const { error: upsertError } = await supabase
             .from('user_visits')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-            
-          if (fetchError) {
-            console.log("Error checking for existing visit:", fetchError.message);
-            return;
-          }
-          
-          if (existingVisit) {
-            // Update the existing record
-            const { error: updateError } = await supabase
-              .from('user_visits')
-              .update({ visit_time: now })
-              .eq('id', existingVisit.id);
+            .upsert(
+              { user_id: user.id, visit_time: now },
+              { 
+                onConflict: 'user_id', // The column that determines a conflict
+                ignoreDuplicates: false // We want to update, not ignore
+              }
+            );
               
-            if (updateError) {
-              console.log("Error updating user visit:", updateError.message);
-            } else {
-              console.log("Updated existing user visit record for:", user.id);
-            }
+          if (upsertError) {
+            console.log("Error tracking user visit:", upsertError.message);
           } else {
-            // Insert a new record if none exists
-            const { error: insertError } = await supabase
-              .from('user_visits')
-              .insert({ user_id: user.id, visit_time: now });
-              
-            if (insertError) {
-              console.log("Error recording user visit:", insertError.message);
-            } else {
-              console.log("Created new user visit record for:", user.id);
-            }
+            console.log("User visit tracked successfully for:", user.id);
           }
         } catch (error) {
           console.log("Exception in tracking user visit:", error);
