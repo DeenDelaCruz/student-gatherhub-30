@@ -4,6 +4,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
 import { toast } from "@/components/ui/use-toast";
 import { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 
 type UserRole = Database["public"]["Enums"]["app_role"];
 
@@ -15,6 +16,40 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, loading, hasRole } = useAuth();
   const location = useLocation();
+
+  // Track user visit when authenticated
+  useEffect(() => {
+    if (user && !loading) {
+      const trackUserVisit = async () => {
+        try {
+          // Check if the table exists by trying to select a row
+          const { error: checkError } = await supabase
+            .from('user_visits')
+            .select('id', { count: 'exact', head: true })
+            .limit(1);
+          
+          if (checkError) {
+            console.log("User visits tracking is not available:", checkError.message);
+            return;
+          }
+          
+          // If no error, try to insert a visit record
+          const now = new Date().toISOString();
+          const { error: insertError } = await supabase
+            .from('user_visits')
+            .insert({ user_id: user.id, visit_time: now });
+            
+          if (insertError) {
+            console.log("Error recording user visit:", insertError.message);
+          }
+        } catch (error) {
+          console.log("Exception in tracking user visit:", error);
+        }
+      };
+      
+      trackUserVisit();
+    }
+  }, [user, loading]);
 
   useEffect(() => {
     // Check for role-based access when component mounts and authentication is complete

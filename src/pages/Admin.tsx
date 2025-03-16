@@ -182,39 +182,93 @@ const Admin = () => {
       try {
         setLoadingVisitors(true);
         
-        // Check if the user_visits table and get_recent_visitors function exist
-        // This is a safer approach to prevent errors if the table doesn't exist yet
-        const { data: tableExists, error: tableCheckError } = await supabase
+        // First check if the user_visits table exists
+        const { count, error: tableCheckError } = await supabase
           .from('user_visits')
-          .select('id', { count: 'exact', head: true })
+          .select('*', { count: 'exact', head: true })
           .limit(1);
-        
+          
         if (tableCheckError) {
           console.error("Error checking user_visits table:", tableCheckError);
-          // Table might not exist yet, so we'll just set empty data
           setRecentVisitors([]);
+          setLoadingVisitors(false);
           return;
         }
         
-        // If the table exists, try to fetch recent visitors
+        // Try to use get_recent_visitors function first
         try {
           const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
           
           if (error) {
-            console.error("Error fetching recent visitors:", error);
-            // Function might not exist yet, set empty data
-            setRecentVisitors([]);
+            console.error("Error calling get_recent_visitors function:", error);
+            // If function fails, fallback to direct query
+            fetchVisitorsDirectly();
           } else {
             setRecentVisitors(data || []);
+            setLoadingVisitors(false);
           }
         } catch (functionError) {
           console.error("RPC function error:", functionError);
-          // Function might not exist yet, set empty data
-          setRecentVisitors([]);
+          // Fallback to direct query
+          fetchVisitorsDirectly();
         }
       } catch (error) {
         console.error("Error in fetchRecentVisitors:", error);
-      } finally {
+        setRecentVisitors([]);
+        setLoadingVisitors(false);
+      }
+    };
+    
+    // Alternative method to fetch visitor data directly
+    const fetchVisitorsDirectly = async () => {
+      try {
+        // Get distinct user_id with most recent visit_time
+        const { data: visitData, error: visitError } = await supabase
+          .from('user_visits')
+          .select('user_id, visit_time')
+          .order('visit_time', { ascending: false })
+          .limit(10);
+        
+        if (visitError) {
+          console.error("Error fetching visits directly:", visitError);
+          setRecentVisitors([]);
+          setLoadingVisitors(false);
+          return;
+        }
+        
+        // Get user profiles for these visits
+        if (visitData && visitData.length > 0) {
+          const userIds = visitData.map(visit => visit.user_id);
+          
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, name, email')
+            .in('id', userIds);
+            
+          if (profileError) {
+            console.error("Error fetching visitor profiles:", profileError);
+            setRecentVisitors([]);
+          } else {
+            // Merge visit data with profile data
+            const visitors = visitData.map(visit => {
+              const profile = profileData?.find(p => p.id === visit.user_id);
+              return {
+                user_id: visit.user_id,
+                visit_time: visit.visit_time,
+                name: profile?.name || 'Unknown',
+                email: profile?.email || 'No email'
+              };
+            });
+            setRecentVisitors(visitors);
+          }
+        } else {
+          setRecentVisitors([]);
+        }
+        
+        setLoadingVisitors(false);
+      } catch (error) {
+        console.error("Error fetching visitors directly:", error);
+        setRecentVisitors([]);
         setLoadingVisitors(false);
       }
     };
@@ -231,7 +285,6 @@ const Admin = () => {
     return () => clearInterval(interval);
   }, [hasRole, navigate]);
 
-  // Calculate the online percentage
   const onlinePercentage = totalUsers > 0 ? Math.round((onlineUsers / totalUsers) * 100) : 0;
 
   const handleDemoteUser = async (userId: string) => {
@@ -799,37 +852,3 @@ const Admin = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium flex items-center">
-                <Clock className="h-5 w-5 text-orange-500 mr-2" />
-                Recent Visitors
-              </CardTitle>
-              <CardDescription>Users who recently accessed the system</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingVisitors ? (
-                <div className="h-16 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
-                </div>
-              ) : recentVisitors.length === 0 ? (
-                <p className="text-sm text-gray-500 py-4 text-center">No recent visitors data available</p>
-              ) : (
-                <div className="max-h-80 overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead className="text-right">Last Visit</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentVisitors.map((visitor, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{visitor.name || 'Unknown'}</TableCell>
-                          <TableCell>{visitor.email || 'No email'}</TableCell>
-                          <TableCell className="text-right text-gray-500 text-sm">
-                            {visitor.visit_time ? formatDistanceToNow(new Date(visitor.visit_time), { add
