@@ -17,9 +17,12 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
-  // Track user visit when authenticated - updated to update timestamp on each sign-in
+  // Track user visit when authenticated - optimized to prevent duplicate records
   useEffect(() => {
-    if (user && !loading) {
+    // Create a flag to track if this effect has already run
+    let isFirstMount = true;
+
+    if (user && !loading && isFirstMount) {
       const trackUserVisit = async () => {
         try {
           // Check if the table exists by trying to select a row
@@ -35,7 +38,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // First check if a record already exists for this user
+          // Check if a record already exists for this user
           const { data: existingRecord, error: fetchError } = await supabase
             .from('user_visits')
             .select('id')
@@ -78,6 +81,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           }
         } catch (error) {
           console.log("Exception in tracking user visit:", error);
+        } finally {
+          // Set the flag to false so this effect doesn't run again
+          isFirstMount = false;
         }
       };
       
@@ -88,7 +94,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [user, loading]); // Dependency on user and loading to update on auth changes
+  }, [user, loading]); // Only depend on auth state changes, not location
 
   useEffect(() => {
     // Check for role-based access when component mounts and authentication is complete
