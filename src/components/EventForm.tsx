@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarIcon, MapPin } from "lucide-react";
@@ -49,6 +48,43 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
     setFormData((prev) => ({ ...prev, is_active: checked }));
   };
 
+  const createNotificationsForNewEvent = async (eventId: string, eventTitle: string) => {
+    try {
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, notifications")
+        .eq("notifications", true);
+        
+      if (profilesError) throw profilesError;
+      
+      if (!profiles || profiles.length === 0) {
+        console.log("No users with notifications enabled found");
+        return;
+      }
+      
+      console.log(`Creating notifications for ${profiles.length} users about new event`);
+      
+      const notifications = profiles.map(profile => ({
+        user_id: profile.id,
+        title: "New Event Available",
+        message: `A new event "${eventTitle}" has been added. Check it out!`,
+        type: "event",
+        related_id: eventId,
+        read: false
+      }));
+      
+      const { error: notificationError } = await supabase
+        .from("notifications")
+        .insert(notifications);
+        
+      if (notificationError) throw notificationError;
+      
+      console.log(`Successfully created ${notifications.length} notifications`);
+    } catch (error) {
+      console.error("Error creating notifications:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -60,7 +96,6 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
       setIsSubmitting(true);
       
       if (isEditing && event) {
-        // Update existing event
         const { error } = await supabase
           .from("events")
           .update({
@@ -77,8 +112,7 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
         if (error) throw error;
         toast.success("Event updated successfully");
       } else {
-        // Create new event
-        const { error } = await supabase
+        const { data: newEvent, error } = await supabase
           .from("events")
           .insert({
             title: formData.title,
@@ -88,13 +122,19 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
             image_url: formData.image_url,
             is_active: formData.is_active,
             created_by: user.id
-          });
+          })
+          .select()
+          .single();
           
         if (error) throw error;
+        
+        if (newEvent) {
+          await createNotificationsForNewEvent(newEvent.id, formData.title);
+        }
+        
         toast.success("Event created successfully");
       }
       
-      // Navigate back to events page
       navigate("/");
     } catch (error: any) {
       console.error("Error saving event:", error);
