@@ -51,8 +51,10 @@ export const useAuthState = () => {
   });
   
   const [loading, setLoading] = useState<boolean>(() => {
-    // We are loading if we don't have session data yet
-    return !(sessionStorage.getItem('auth_initialized') === 'true');
+    // We are loading if we don't have session data yet or if initialized flag not set
+    const hasSession = sessionStorage.getItem('auth_session') !== null;
+    const isInitialized = sessionStorage.getItem('auth_initialized') === 'true';
+    return !(isInitialized && hasSession);
   });
 
   // Update sessionStorage when auth state changes
@@ -127,14 +129,10 @@ export const useAuthState = () => {
   // Sign out the current user
   const signOut = async () => {
     try {
+      console.log("Signing out user");
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        throw error;
-      }
       
-      // Clear all auth state
+      // First clear all local state
       setSession(null);
       setUser(null);
       setProfile(null);
@@ -147,6 +145,14 @@ export const useAuthState = () => {
       sessionStorage.removeItem('auth_roles');
       sessionStorage.removeItem('auth_initialized');
       
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out from Supabase:', error);
+        throw error;
+      }
+      
+      console.log("User signed out successfully");
     } catch (error: any) {
       console.error('Error signing out:', error.message);
       throw error; // Re-throw to let component handle the error

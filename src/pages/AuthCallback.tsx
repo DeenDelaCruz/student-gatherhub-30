@@ -37,7 +37,7 @@ const AuthCallback = () => {
         toast.error("Authentication is taking too long. Please try again.");
         navigate("/auth", { replace: true });
       }
-    }, 10000); // 10 second timeout for slow connections
+    }, 5000); // 5 second timeout for slow connections
 
     return () => clearTimeout(timer);
   }, [navigate, user, loading]);

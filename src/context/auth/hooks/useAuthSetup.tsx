@@ -20,7 +20,10 @@ export const useAuthSetup = (authState: any) => {
 
   useEffect(() => {
     // If we already have auth data from sessionStorage, skip initial verification
-    if (sessionStorage.getItem('auth_initialized') === 'true' && user) {
+    const hasStoredSession = sessionStorage.getItem('auth_session') !== null;
+    const isInitialized = sessionStorage.getItem('auth_initialized') === 'true';
+    
+    if (isInitialized && hasStoredSession && user) {
       console.log("Auth already initialized from sessionStorage, skipping setup");
       setLoading(false);
       return;
@@ -38,7 +41,16 @@ export const useAuthSetup = (authState: any) => {
         
         if (sessionError) {
           console.error("Error getting session:", sessionError);
-          if (isMounted) setLoading(false);
+          if (isMounted) {
+            setLoading(false);
+            
+            // Clear incomplete auth state
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setRoles([]);
+            sessionStorage.removeItem('auth_initialized');
+          }
           return;
         }
 
@@ -65,6 +77,9 @@ export const useAuthSetup = (authState: any) => {
               setProfile(profileData);
               setRoles(userRoles);
               setLoading(false);
+              
+              // Mark auth as initialized
+              sessionStorage.setItem('auth_initialized', 'true');
             }
             
             // Track user visit in the background (don't await)
@@ -80,7 +95,12 @@ export const useAuthSetup = (authState: any) => {
           if (isMounted) {
             setSession(null);
             setUser(null);
+            setProfile(null);
+            setRoles([]);
             setLoading(false);
+            
+            // Clear initialized flag for non-authenticated state
+            sessionStorage.removeItem('auth_initialized');
           }
         }
         
@@ -156,7 +176,16 @@ export const useAuthSetup = (authState: any) => {
       } catch (error) {
         console.error("Error in auth setup:", error);
         // Ensure loading is set to false even on errors
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          
+          // Clear potentially incomplete auth state on error
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setRoles([]);
+          sessionStorage.removeItem('auth_initialized');
+        }
       }
     };
 
@@ -168,7 +197,7 @@ export const useAuthSetup = (authState: any) => {
         console.warn("Auth loading timed out - forcing completion");
         setLoading(false);
       }
-    }, 5000); // 5 second timeout
+    }, 3000); // 3 second timeout (reduced from 5s)
 
     return () => {
       isMounted = false;
