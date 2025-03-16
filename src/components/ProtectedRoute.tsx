@@ -35,41 +35,18 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // First check if there's an existing record for this user
-          const { data: existingVisit, error: fetchError } = await supabase
+          // Use upsert to update if exists or insert if not
+          const { error: upsertError } = await supabase
             .from('user_visits')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
+            .upsert(
+              { user_id: user.id, visit_time: now },
+              { onConflict: 'user_id', ignoreDuplicates: false }
+            );
             
-          if (fetchError) {
-            console.log("Error checking for existing visit:", fetchError.message);
-            return;
-          }
-          
-          if (existingVisit) {
-            // Update the existing record
-            const { error: updateError } = await supabase
-              .from('user_visits')
-              .update({ visit_time: now })
-              .eq('id', existingVisit.id);
-              
-            if (updateError) {
-              console.log("Error updating user visit:", updateError.message);
-            } else {
-              console.log("Updated existing user visit record for:", user.id);
-            }
+          if (upsertError) {
+            console.log("Error tracking user visit:", upsertError.message);
           } else {
-            // Insert a new record if none exists
-            const { error: insertError } = await supabase
-              .from('user_visits')
-              .insert({ user_id: user.id, visit_time: now });
-              
-            if (insertError) {
-              console.log("Error recording user visit:", insertError.message);
-            } else {
-              console.log("Created new user visit record for:", user.id);
-            }
+            console.log("Updated user visit record for:", user.id);
           }
         } catch (error) {
           console.log("Exception in tracking user visit:", error);
@@ -90,6 +67,59 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
       });
     }
   }, [loading, user, allowedRoles, hasRole]);
+
+  // Function to clear all visitor records - for admin use
+  const clearVisitorRecords = async () => {
+    try {
+      if (!user || !hasRole('admin')) {
+        toast({
+          variant: "destructive",
+          title: "Permission Denied",
+          description: "You don't have permission to clear visitor records"
+        });
+        return false;
+      }
+      
+      const { error } = await supabase
+        .from('user_visits')
+        .delete()
+        .neq('id', 'placeholder'); // This will delete all records
+        
+      if (error) {
+        console.error("Error clearing visitor records:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to clear visitor records: " + error.message
+        });
+        return false;
+      }
+      
+      toast({
+        title: "Success",
+        description: "All visitor records have been cleared"
+      });
+      return true;
+    } catch (error) {
+      console.error("Exception clearing visitor records:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred while clearing visitor records"
+      });
+      return false;
+    }
+  };
+
+  // Expose the clearVisitorRecords function to the window for admin components to use
+  if (typeof window !== 'undefined' && user && hasRole('admin')) {
+    // @ts-ignore
+    window.adminUtils = {
+      // @ts-ignore
+      ...(window.adminUtils || {}),
+      clearVisitorRecords
+    };
+  }
 
   // If still loading, show a loading indicator
   if (loading) {
