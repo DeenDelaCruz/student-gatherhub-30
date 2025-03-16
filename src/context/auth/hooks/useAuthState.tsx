@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchProfileData, fetchUserRoles } from '../utils';
+import { fetchProfileData } from '../utils';
 import { UserRole } from '../types';
 
 /**
@@ -14,7 +14,6 @@ export const useAuthState = () => {
   const [profile, setProfile] = useState<any | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [authInitialized, setAuthInitialized] = useState<boolean>(false);
 
   // Load profile data for a user
   const refreshProfileData = async (userId: string) => {
@@ -58,8 +57,6 @@ export const useAuthState = () => {
     setRoles,
     loading,
     setLoading,
-    authInitialized,
-    setAuthInitialized,
     refreshProfileData,
     signOut,
     hasRole,
