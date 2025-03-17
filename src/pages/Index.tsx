@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -26,6 +27,7 @@ const Index = () => {
     isActive: event.is_active
   }));
 
+  // Fetch events from Supabase
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -46,7 +48,13 @@ const Index = () => {
         if (data) {
           const formattedEvents = convertSupabaseEventsToEvents(data);
           setEvents(formattedEvents);
-          setFilteredEvents(formattedEvents);
+          
+          // Initial filtering based on activeFilter
+          const initialFiltered = formattedEvents.filter(event => 
+            activeFilter === "active" ? event.is_active : !event.is_active
+          );
+          console.log(`Initial filtered events: ${initialFiltered.length} (activeFilter: ${activeFilter})`);
+          setFilteredEvents(initialFiltered);
         }
       } catch (error: any) {
         console.error("Error fetching events:", error);
@@ -60,6 +68,7 @@ const Index = () => {
 
     fetchEvents();
 
+    // Subscribe to real-time updates for events
     const channel = supabase
       .channel('events-changes')
       .on(
@@ -77,8 +86,9 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [activeFilter]); // Add activeFilter as dependency to refetch when it changes
 
+  // Check event reminders
   useEffect(() => {
     if (user) {
       const checkEventReminders = async () => {
@@ -107,6 +117,7 @@ const Index = () => {
     }
   }, [user]);
 
+  // Filter events when search term or active filter changes
   useEffect(() => {
     let filtered = [...events];
     
@@ -135,16 +146,24 @@ const Index = () => {
     const nextDay = new Date(selectedDate);
     nextDay.setDate(nextDay.getDate() + 1);
     
+    // Filter events by the selected date, but also respect the active/inactive filter
     const filtered = events.filter(event => {
       const eventDate = new Date(event.event_date);
-      return eventDate >= selectedDate && eventDate < nextDay;
+      const dateMatches = eventDate >= selectedDate && eventDate < nextDay;
+      const statusMatches = activeFilter === "active" ? event.is_active : !event.is_active;
+      return dateMatches && statusMatches;
     });
     
     if (filtered.length) {
       setFilteredEvents(filtered);
-      toast(`${filtered.length} event(s) found on ${date.toLocaleDateString()}`);
+      toast(`${filtered.length} ${activeFilter} event(s) found on ${date.toLocaleDateString()}`);
     } else {
-      toast(`No events on ${date.toLocaleDateString()}`);
+      toast(`No ${activeFilter} events on ${date.toLocaleDateString()}`);
+      // Reset to show all events that match the active filter
+      const resetFiltered = events.filter(event => 
+        activeFilter === "active" ? event.is_active : !event.is_active
+      );
+      setFilteredEvents(resetFiltered);
     }
   };
 
