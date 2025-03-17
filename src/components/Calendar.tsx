@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 
 interface CalendarProps {
   onDateSelect?: (date: Date) => void;
+  events?: Array<{date: Date; isActive: boolean}>;
 }
 
-const Calendar = ({ onDateSelect }: CalendarProps) => {
+const Calendar = ({ onDateSelect, events = [] }: CalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filterType, setFilterType] = useState<"active" | "inactive">("active");
   
@@ -20,6 +21,45 @@ const Calendar = ({ onDateSelect }: CalendarProps) => {
     if (onDateSelect) {
       onDateSelect(date);
     }
+  };
+
+  // Function to check if a day has events and if they match the current filter
+  const getDayEventStatus = (day: Date) => {
+    // For demo purposes, if no real events are provided, we'll simulate some
+    if (!events || events.length === 0) {
+      // Simulate events (only for demo purposes when no real events are provided)
+      const hasEvent = day.getDate() % 3 === 0;
+      if (!hasEvent) return { hasEvent: false, matchesFilter: false };
+      
+      // For simulated events, we'll consider odd days as active and even days as inactive
+      const isActiveEvent = day.getDate() % 2 !== 0;
+      return { 
+        hasEvent: true, 
+        matchesFilter: filterType === "active" ? isActiveEvent : !isActiveEvent
+      };
+    }
+
+    // With real events
+    const dayEvents = events.filter(event => {
+      const eventDate = new Date(event.date);
+      return (
+        eventDate.getDate() === day.getDate() &&
+        eventDate.getMonth() === day.getMonth() &&
+        eventDate.getFullYear() === day.getFullYear()
+      );
+    });
+
+    if (dayEvents.length === 0) return { hasEvent: false, matchesFilter: false };
+
+    // Check if any events match the current filter
+    const matchingEvents = dayEvents.filter(event => 
+      filterType === "active" ? event.isActive : !event.isActive
+    );
+
+    return { 
+      hasEvent: true, 
+      matchesFilter: matchingEvents.length > 0
+    };
   };
   
   return (
@@ -72,13 +112,7 @@ const Calendar = ({ onDateSelect }: CalendarProps) => {
           ))}
         
         {days.map((day, i) => {
-          // Simulate events (in a real app, this would come from your data)
-          const hasEvent = (day.getDate() % 3 === 0); // Just for demo purposes
-          const isActive = hasEvent && filterType === "active";
-          const isInactive = hasEvent && filterType === "inactive";
-          
-          // Only show days with events based on the current filter
-          const shouldHighlight = filterType === "active" ? isActive : isInactive;
+          const { hasEvent, matchesFilter } = getDayEventStatus(day);
           
           return (
             <button
@@ -87,7 +121,7 @@ const Calendar = ({ onDateSelect }: CalendarProps) => {
               className={cn(
                 "h-9 w-9 flex items-center justify-center rounded-full text-sm transition-all mx-auto",
                 isToday(day) && "border border-campus-accent text-campus-accent",
-                shouldHighlight 
+                hasEvent && matchesFilter 
                   ? "font-medium text-black" 
                   : hasEvent 
                     ? "text-gray-300" // Dimmed text for non-matching event days

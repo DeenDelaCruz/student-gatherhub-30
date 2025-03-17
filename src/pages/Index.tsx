@@ -20,6 +20,12 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
 
+  // Transform events to calendar format
+  const calendarEvents = events.map(event => ({
+    date: new Date(event.event_date),
+    isActive: event.is_active
+  }));
+
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -152,7 +158,7 @@ const Index = () => {
           <h1 className="text-xl font-medium">Hello, {profile?.name || "User"}!</h1>
         </div>
         
-        <Calendar onDateSelect={handleDateSelect} />
+        <Calendar onDateSelect={handleDateSelect} events={calendarEvents} />
         
         <div className="events-section">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
