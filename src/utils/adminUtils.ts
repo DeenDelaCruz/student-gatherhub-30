@@ -56,31 +56,57 @@ export const clearVisitorRecords = async (): Promise<boolean> => {
 // Function to delete a specific visitor record by user ID
 export const deleteVisitorRecord = async (userId: string): Promise<boolean> => {
   try {
-    // Attempt to delete using the secure database function
-    const { data, error } = await supabase
-      .rpc('delete_visitor_record_by_user_id', { user_id_param: userId });
-    
-    if (error) {
-      console.error("Error deleting visitor record:", error);
+    // Get all records for this user
+    const { data: userVisits, error: fetchError } = await supabase
+      .from('user_visits')
+      .select('id')
+      .eq('user_id', userId);
+      
+    if (fetchError) {
+      console.error("Error fetching user visits:", fetchError);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete visitor record: " + error.message
+        description: "Failed to fetch user visits: " + fetchError.message
+      });
+      return false;
+    }
+    
+    if (!userVisits || userVisits.length === 0) {
+      toast({
+        title: "Info",
+        description: "No visitor records found for this user"
+      });
+      return true;
+    }
+    
+    // Delete all visits for this user
+    const { error: deleteError } = await supabase
+      .from('user_visits')
+      .delete()
+      .eq('user_id', userId);
+      
+    if (deleteError) {
+      console.error("Error deleting visitor records:", deleteError);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete visitor records: " + deleteError.message
       });
       return false;
     }
     
     toast({
       title: "Success",
-      description: "Visitor record has been deleted"
+      description: "All visitor records for this user have been deleted"
     });
     return true;
   } catch (error) {
-    console.error("Exception deleting visitor record:", error);
+    console.error("Exception deleting visitor records:", error);
     toast({
       variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred while deleting visitor record"
+      title: "Error",
+      description: "An unexpected error occurred while deleting visitor records"
     });
     return false;
   }

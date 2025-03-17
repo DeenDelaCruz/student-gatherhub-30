@@ -1,3 +1,4 @@
+
 import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/auth";
@@ -34,40 +35,109 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
           
           const now = new Date().toISOString();
           
-          // First check if user already has a visit record
-          const { data: existingVisit, error: fetchError } = await supabase
-            .from('user_visits')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
+          // First check if user already has a visit record within the last hour
+          // This is to prevent creating new records on page refreshes or navigation
+          const { data: recentVisits, error: recentVisitsError } = await supabase
+            .rpc('get_recent_user_visits', { 
+              user_id_param: user.id, 
+              minutes_ago: 60 // Check visits within the last hour
+            });
             
-          if (fetchError) {
-            console.log("Error checking existing visit:", fetchError.message);
+          if (recentVisitsError) {
+            console.log("Error checking recent visits:", recentVisitsError.message);
+            
+            // Fallback: direct check if the RPC function fails
+            const { data: existingVisit, error: fetchError } = await supabase
+              .from('user_visits')
+              .select('id')
+              .eq('user_id', user.id)
+              .order('visit_time', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+              
+            if (fetchError) {
+              console.log("Error checking existing visit:", fetchError.message);
+              return;
+            }
+            
+            if (existingVisit) {
+              // Update existing visit record
+              const { error: updateError } = await supabase
+                .from('user_visits')
+                .update({ visit_time: now })
+                .eq('id', existingVisit.id);
+                
+              if (updateError) {
+                console.log("Error updating user visit:", updateError.message);
+              } else {
+                console.log("Updated existing visit record for:", user.id);
+              }
+            } else {
+              // Insert new visit record
+              const { error: insertError } = await supabase
+                .from('user_visits')
+                .insert({ user_id: user.id, visit_time: now });
+                
+              if (insertError) {
+                console.log("Error creating user visit:", insertError.message);
+              } else {
+                console.log("Created new visit record for:", user.id);
+              }
+            }
             return;
           }
           
-          if (existingVisit) {
-            // Update existing visit record
+          // If we have recent visits, update the most recent one
+          if (recentVisits && recentVisits.length > 0) {
+            const mostRecentVisit = recentVisits[0];
+            
+            // Update existing visit record using RPC function for better security
             const { error: updateError } = await supabase
-              .from('user_visits')
-              .update({ visit_time: now })
-              .eq('user_id', user.id);
+              .rpc('update_user_visit', { 
+                visit_id_param: mostRecentVisit.id, 
+                time_param: now 
+              });
               
             if (updateError) {
-              console.log("Error updating user visit:", updateError.message);
+              console.log("Error updating user visit via RPC:", updateError.message);
+              
+              // Fallback: direct update if the RPC function fails
+              const { error: directUpdateError } = await supabase
+                .from('user_visits')
+                .update({ visit_time: now })
+                .eq('id', mostRecentVisit.id);
+                
+              if (directUpdateError) {
+                console.log("Error with direct update of user visit:", directUpdateError.message);
+              } else {
+                console.log("Updated existing visit record via direct update for:", user.id);
+              }
             } else {
-              console.log("Updated existing visit record for:", user.id);
+              console.log("Updated existing visit record via RPC for:", user.id);
             }
           } else {
-            // Insert new visit record
-            const { error: insertError } = await supabase
-              .from('user_visits')
-              .insert({ user_id: user.id, visit_time: now });
+            // No recent visits, create a new record using RPC function
+            const { error: createError } = await supabase
+              .rpc('create_user_visit', { 
+                user_id_param: user.id, 
+                time_param: now 
+              });
               
-            if (insertError) {
-              console.log("Error creating user visit:", insertError.message);
+            if (createError) {
+              console.log("Error creating user visit via RPC:", createError.message);
+              
+              // Fallback: direct insert if the RPC function fails
+              const { error: directInsertError } = await supabase
+                .from('user_visits')
+                .insert({ user_id: user.id, visit_time: now });
+                
+              if (directInsertError) {
+                console.log("Error with direct creation of user visit:", directInsertError.message);
+              } else {
+                console.log("Created new visit record via direct insert for:", user.id);
+              }
             } else {
-              console.log("Created new visit record for:", user.id);
+              console.log("Created new visit record via RPC for:", user.id);
             }
           }
         } catch (error) {
