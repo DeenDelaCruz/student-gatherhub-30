@@ -18,6 +18,7 @@ const Index = () => {
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<"active" | "inactive">("active");
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
 
   // Transform events to calendar format
@@ -107,17 +108,24 @@ const Index = () => {
     }
   }, [user]);
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    if (!term.trim()) {
-      setFilteredEvents(events);
-      return;
+  useEffect(() => {
+    let filtered = [...events];
+    
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(event => 
+        event.title.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
     
-    const filtered = events.filter(event => 
-      event.title.toLowerCase().includes(term.toLowerCase())
+    filtered = filtered.filter(event => 
+      activeFilter === "active" ? event.is_active : !event.is_active
     );
+    
     setFilteredEvents(filtered);
+  }, [events, searchTerm, activeFilter]);
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
   };
 
   const handleDateSelect = (date: Date) => {
@@ -132,13 +140,16 @@ const Index = () => {
       return eventDate >= selectedDate && eventDate < nextDay;
     });
     
-    setFilteredEvents(filtered.length ? filtered : events);
-    
     if (filtered.length) {
+      setFilteredEvents(filtered);
       toast(`${filtered.length} event(s) found on ${date.toLocaleDateString()}`);
     } else {
       toast(`No events on ${date.toLocaleDateString()}`);
     }
+  };
+
+  const handleFilterChange = (filterType: "active" | "inactive") => {
+    setActiveFilter(filterType);
   };
 
   const handleEventClick = (eventId: string | number) => {
@@ -158,12 +169,16 @@ const Index = () => {
           <h1 className="text-xl font-medium">Hello, {profile?.name || "User"}!</h1>
         </div>
         
-        <Calendar onDateSelect={handleDateSelect} events={calendarEvents} />
+        <Calendar 
+          onDateSelect={handleDateSelect} 
+          events={calendarEvents} 
+          onFilterChange={handleFilterChange}
+        />
         
         <div className="events-section">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
             <h2 className="text-lg font-medium">
-              All active events
+              All {activeFilter} events
             </h2>
             
             {isInformationOfficer && (
@@ -201,7 +216,7 @@ const Index = () => {
                 ))
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  {searchTerm ? `No events found for "${searchTerm}"` : "No events available"}
+                  {searchTerm ? `No events found for "${searchTerm}"` : `No ${activeFilter} events available`}
                 </div>
               )}
             </div>

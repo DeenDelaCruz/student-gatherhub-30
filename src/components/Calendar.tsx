@@ -6,9 +6,10 @@ import { cn } from "@/lib/utils";
 interface CalendarProps {
   onDateSelect?: (date: Date) => void;
   events?: Array<{date: Date; isActive: boolean}>;
+  onFilterChange?: (filterType: "active" | "inactive") => void;
 }
 
-const Calendar = ({ onDateSelect, events = [] }: CalendarProps) => {
+const Calendar = ({ onDateSelect, events = [], onFilterChange }: CalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filterType, setFilterType] = useState<"active" | "inactive">("active");
   
@@ -20,6 +21,13 @@ const Calendar = ({ onDateSelect, events = [] }: CalendarProps) => {
   const handleDateClick = (date: Date) => {
     if (onDateSelect) {
       onDateSelect(date);
+    }
+  };
+
+  const handleFilterChange = (type: "active" | "inactive") => {
+    setFilterType(type);
+    if (onFilterChange) {
+      onFilterChange(type);
     }
   };
 
@@ -70,7 +78,7 @@ const Calendar = ({ onDateSelect, events = [] }: CalendarProps) => {
         </h2>
         <div className="flex bg-gray-100 rounded-full">
           <button
-            onClick={() => setFilterType("active")}
+            onClick={() => handleFilterChange("active")}
             className={cn(
               "py-1 px-4 text-sm rounded-full transition-all",
               filterType === "active" 
@@ -81,7 +89,7 @@ const Calendar = ({ onDateSelect, events = [] }: CalendarProps) => {
             Active
           </button>
           <button
-            onClick={() => setFilterType("inactive")}
+            onClick={() => handleFilterChange("inactive")}
             className={cn(
               "py-1 px-4 text-sm rounded-full transition-all",
               filterType === "inactive" 
