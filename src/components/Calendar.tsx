@@ -7,11 +7,15 @@ interface CalendarProps {
   onDateSelect?: (date: Date) => void;
   events?: Array<{date: Date; isActive: boolean}>;
   onFilterChange?: (filterType: "active" | "inactive") => void;
+  filterType?: "active" | "inactive";
 }
 
-const Calendar = ({ onDateSelect, events = [], onFilterChange }: CalendarProps) => {
+const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: externalFilterType }: CalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [filterType, setFilterType] = useState<"active" | "inactive">("active");
+  const [localFilterType, setLocalFilterType] = useState<"active" | "inactive">("active");
+  
+  // Use external filter type if provided, otherwise use local state
+  const activeFilterType = externalFilterType || localFilterType;
   
   // Generate days for the current month
   const monthStart = startOfMonth(currentDate);
@@ -25,7 +29,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange }: CalendarProps) 
   };
 
   const handleFilterChange = (type: "active" | "inactive") => {
-    setFilterType(type);
+    setLocalFilterType(type);
     if (onFilterChange) {
       onFilterChange(type);
     }
@@ -43,7 +47,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange }: CalendarProps) 
       const isActiveEvent = day.getDate() % 2 !== 0;
       return { 
         hasEvent: true, 
-        matchesFilter: filterType === "active" ? isActiveEvent : !isActiveEvent
+        matchesFilter: activeFilterType === "active" ? isActiveEvent : !isActiveEvent
       };
     }
 
@@ -61,7 +65,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange }: CalendarProps) 
 
     // Check if any events match the current filter
     const matchingEvents = dayEvents.filter(event => 
-      filterType === "active" ? event.isActive : !event.isActive
+      activeFilterType === "active" ? event.isActive : !event.isActive
     );
 
     return { 
@@ -81,7 +85,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange }: CalendarProps) 
             onClick={() => handleFilterChange("active")}
             className={cn(
               "py-1 px-4 text-sm rounded-full transition-all",
-              filterType === "active" 
+              activeFilterType === "active" 
                 ? "bg-black text-white" 
                 : "text-gray-500 hover:text-gray-700"
             )}
@@ -92,7 +96,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange }: CalendarProps) 
             onClick={() => handleFilterChange("inactive")}
             className={cn(
               "py-1 px-4 text-sm rounded-full transition-all",
-              filterType === "inactive" 
+              activeFilterType === "inactive" 
                 ? "bg-black text-white" 
                 : "text-gray-500 hover:text-gray-700"
             )}

@@ -21,7 +21,6 @@ const Index = () => {
   const [activeFilter, setActiveFilter] = useState<"active" | "inactive">("active");
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
 
-  // Transform events to calendar format
   const calendarEvents = events.map(event => ({
     date: new Date(event.event_date),
     isActive: event.is_active
@@ -121,6 +120,7 @@ const Index = () => {
       activeFilter === "active" ? event.is_active : !event.is_active
     );
     
+    console.log(`Filtered events: ${filtered.length} (activeFilter: ${activeFilter})`);
     setFilteredEvents(filtered);
   }, [events, searchTerm, activeFilter]);
 
@@ -149,6 +149,7 @@ const Index = () => {
   };
 
   const handleFilterChange = (filterType: "active" | "inactive") => {
+    console.log(`Filter changed to: ${filterType}`);
     setActiveFilter(filterType);
   };
 
@@ -173,6 +174,7 @@ const Index = () => {
           onDateSelect={handleDateSelect} 
           events={calendarEvents} 
           onFilterChange={handleFilterChange}
+          filterType={activeFilter}
         />
         
         <div className="events-section">
