@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarIcon, MapPin, Upload } from "lucide-react";
@@ -55,30 +54,27 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
+    // Check if user is authenticated
+    if (!user) {
+      toast.error("You must be logged in to upload images");
+      return;
+    }
+    
     const file = files[0];
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `event-images/${fileName}`;
+    const filePath = `${fileName}`;
     
     try {
       setIsUploading(true);
       
-      // Check if event-images bucket exists, if not create it
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketExists = buckets?.some(b => b.name === 'event-images');
-      
-      if (!bucketExists) {
-        const { error: bucketError } = await supabase.storage.createBucket('event-images', {
-          public: true
-        });
-        
-        if (bucketError) throw bucketError;
-      }
-      
-      // Upload the file
-      const { error: uploadError } = await supabase.storage
+      // Upload the file with user ID as the owner
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('event-images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type
+        });
         
       if (uploadError) throw uploadError;
       
