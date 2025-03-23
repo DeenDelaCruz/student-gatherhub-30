@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/select";
 import { supabase, checkInUserToEvent, getEventAttendees, getEventInterestedUsers } from "@/integrations/supabase/client";
 import QrScanner from "@/components/QrScanner";
+import { exportUsersToExcel } from "@/utils/exportUtils";
 
-// UUID regex pattern
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Event {
@@ -252,7 +252,6 @@ const Scanner = () => {
       
       console.log("Using event ID for check-in:", eventId);
       
-      // First verify the event exists
       const { data: eventData, error: eventCheckError } = await supabase
         .from("events")
         .select("id, title")
@@ -331,8 +330,29 @@ const Scanner = () => {
     }
     
     const eventTitle = events.find(e => e.id === selectedEvent)?.title || "event";
+    
+    if (activeUserTab === "attendees") {
+      const formattedAttendees = attendees.map(attendee => ({
+        name: attendee.profile?.name || "Unknown",
+        email: attendee.profile?.email || "No email",
+        timestamp: attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : null,
+        status: attendee.check_in_time ? "Checked in" : "Registered only"
+      }));
+      
+      exportUsersToExcel(eventTitle, formattedAttendees, `${eventTitle}_attendees.xlsx`);
+    } else {
+      const formattedUsers = interestedUsers.map(user => ({
+        name: user.profile?.name || "Unknown",
+        email: user.profile?.email || "No email",
+        timestamp: user.created_at ? new Date(user.created_at).toLocaleString() : null,
+        status: "Interested"
+      }));
+      
+      exportUsersToExcel(eventTitle, formattedUsers, `${eventTitle}_interested.xlsx`);
+    }
+    
     toast.success(`User list for "${eventTitle}" exported`, {
-      description: "The list has been downloaded",
+      description: "The Excel file has been downloaded",
     });
   };
   
