@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -892,3 +893,13 @@ const Admin = () => {
                     99.9%
                   </span>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </main>
+    </div>
+  );
+};
+
+export default Admin;
