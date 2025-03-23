@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -45,6 +44,61 @@ const Admin = () => {
   const [loadingVisitors, setLoadingVisitors] = useState<boolean>(true);
   const [onlineUsers, setOnlineUsers] = useState<number>(0);
   const [clearingRecords, setClearingRecords] = useState<boolean>(false);
+
+  // Alternative method to fetch visitor data directly
+  const fetchVisitorsDirectly = async () => {
+    try {
+      // Get distinct user_id with most recent visit_time and now use the user_name column
+      const { data: visitData, error: visitError } = await supabase
+        .from('user_visits')
+        .select('user_id, visit_time, user_name')
+        .order('visit_time', { ascending: false })
+        .limit(10);
+      
+      if (visitError) {
+        console.error("Error fetching visits directly:", visitError);
+        setRecentVisitors([]);
+        setLoadingVisitors(false);
+        return;
+      }
+      
+      // If visit data has user_name, we can use it directly
+      if (visitData && visitData.length > 0) {
+        // We still need to get emails for the visitors
+        const userIds = visitData.map(visit => visit.user_id);
+        
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .in('id', userIds);
+          
+        if (profileError) {
+          console.error("Error fetching visitor profiles:", profileError);
+          setRecentVisitors([]);
+        } else {
+          // Merge visit data with profile data, using the user_name from user_visits
+          const visitors = visitData.map(visit => {
+            const profile = profileData?.find(p => p.id === visit.user_id);
+            return {
+              user_id: visit.user_id,
+              visit_time: visit.visit_time,
+              name: visit.user_name || 'Unknown',
+              email: profile?.email || 'No email'
+            };
+          });
+          setRecentVisitors(visitors);
+        }
+      } else {
+        setRecentVisitors([]);
+      }
+      
+      setLoadingVisitors(false);
+    } catch (error) {
+      console.error("Error fetching visitors directly:", error);
+      setRecentVisitors([]);
+      setLoadingVisitors(false);
+    }
+  };
 
   useEffect(() => {
     // Check if user has admin role
@@ -219,7 +273,7 @@ const Admin = () => {
           return;
         }
         
-        // Try to use get_recent_visitors function first
+        // Try to use get_recent_visitors function first, which should be updated to include user_name
         try {
           const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
           
@@ -238,60 +292,6 @@ const Admin = () => {
         }
       } catch (error) {
         console.error("Error in fetchRecentVisitors:", error);
-        setRecentVisitors([]);
-        setLoadingVisitors(false);
-      }
-    };
-    
-    // Alternative method to fetch visitor data directly
-    const fetchVisitorsDirectly = async () => {
-      try {
-        // Get distinct user_id with most recent visit_time
-        const { data: visitData, error: visitError } = await supabase
-          .from('user_visits')
-          .select('user_id, visit_time')
-          .order('visit_time', { ascending: false })
-          .limit(10);
-        
-        if (visitError) {
-          console.error("Error fetching visits directly:", visitError);
-          setRecentVisitors([]);
-          setLoadingVisitors(false);
-          return;
-        }
-        
-        // Get user profiles for these visits
-        if (visitData && visitData.length > 0) {
-          const userIds = visitData.map(visit => visit.user_id);
-          
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, name, email')
-            .in('id', userIds);
-            
-          if (profileError) {
-            console.error("Error fetching visitor profiles:", profileError);
-            setRecentVisitors([]);
-          } else {
-            // Merge visit data with profile data
-            const visitors = visitData.map(visit => {
-              const profile = profileData?.find(p => p.id === visit.user_id);
-              return {
-                user_id: visit.user_id,
-                visit_time: visit.visit_time,
-                name: profile?.name || 'Unknown',
-                email: profile?.email || 'No email'
-              };
-            });
-            setRecentVisitors(visitors);
-          }
-        } else {
-          setRecentVisitors([]);
-        }
-        
-        setLoadingVisitors(false);
-      } catch (error) {
-        console.error("Error fetching visitors directly:", error);
         setRecentVisitors([]);
         setLoadingVisitors(false);
       }
@@ -586,7 +586,7 @@ const Admin = () => {
           return;
         }
         
-        // Try to use get_recent_visitors function first
+        // Try to use get_recent_visitors function first, which should be updated to include user_name
         try {
           const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
           
@@ -628,10 +628,10 @@ const Admin = () => {
   // Alternative method to fetch visitor data directly
   const fetchVisitorsDirectly = async () => {
     try {
-      // Get distinct user_id with most recent visit_time
+      // Get distinct user_id with most recent visit_time and now use the user_name column
       const { data: visitData, error: visitError } = await supabase
         .from('user_visits')
-        .select('user_id, visit_time')
+        .select('user_id, visit_time, user_name')
         .order('visit_time', { ascending: false })
         .limit(10);
       
@@ -642,26 +642,27 @@ const Admin = () => {
         return;
       }
       
-      // Get user profiles for these visits
+      // If visit data has user_name, we can use it directly
       if (visitData && visitData.length > 0) {
+        // We still need to get emails for the visitors
         const userIds = visitData.map(visit => visit.user_id);
         
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, name, email')
+          .select('id, email')
           .in('id', userIds);
           
         if (profileError) {
           console.error("Error fetching visitor profiles:", profileError);
           setRecentVisitors([]);
         } else {
-          // Merge visit data with profile data
+          // Merge visit data with profile data, using the user_name from user_visits
           const visitors = visitData.map(visit => {
             const profile = profileData?.find(p => p.id === visit.user_id);
             return {
               user_id: visit.user_id,
               visit_time: visit.visit_time,
-              name: profile?.name || 'Unknown',
+              name: visit.user_name || 'Unknown',
               email: profile?.email || 'No email'
             };
           });
@@ -892,194 +893,3 @@ const Admin = () => {
                   </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
-        {/* Admin Tools Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mb-6"
-        >
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium flex items-center">
-                <Shield className="h-5 w-5 text-red-500 mr-2" />
-                Admin Tools
-              </CardTitle>
-              <CardDescription>Manage users and content</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="users">Users</TabsTrigger>
-                  <TabsTrigger value="events">Events</TabsTrigger>
-                  <TabsTrigger value="officers">Info Officers</TabsTrigger>
-                </TabsList>
-                <TabsContent value="users" className="mt-4">
-                  {/* Users management content */}
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Year</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {students.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                              No students found
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          students.map((student) => (
-                            <TableRow key={student.user_id}>
-                              <TableCell className="font-medium">{student.profiles.name}</TableCell>
-                              <TableCell>{student.profiles.email}</TableCell>
-                              <TableCell>{student.profiles.year || 'N/A'}</TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handlePromoteStudent(student.user_id)}
-                                  disabled={actionLoading[`student-${student.user_id}`]}
-                                >
-                                  {actionLoading[`student-${student.user_id}`] ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary"></div>
-                                  ) : (
-                                    <>
-                                      <UserPlus className="h-4 w-4 mr-1" />
-                                      Promote
-                                    </>
-                                  )}
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </TabsContent>
-                <TabsContent value="events" className="mt-4">
-                  {/* Events management content */}
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Event</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Location</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {events.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                              No events found
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          events.map((event) => (
-                            <TableRow key={event.id}>
-                              <TableCell className="font-medium">{event.title}</TableCell>
-                              <TableCell>
-                                {new Date(event.event_date).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                              </TableCell>
-                              <TableCell>{event.location}</TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDeleteEvent(event.id)}
-                                  disabled={actionLoading[`event-${event.id}`]}
-                                >
-                                  {actionLoading[`event-${event.id}`] ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                                  ) : (
-                                    <>
-                                      <Trash2 className="h-4 w-4 mr-1" />
-                                      Delete
-                                    </>
-                                  )}
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </TabsContent>
-                <TabsContent value="officers" className="mt-4">
-                  {/* Information Officers management content */}
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Year</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {infoOfficers.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                              No information officers found
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          infoOfficers.map((officer) => (
-                            <TableRow key={officer.user_id}>
-                              <TableCell className="font-medium">{officer.profiles.name}</TableCell>
-                              <TableCell>{officer.profiles.email}</TableCell>
-                              <TableCell>{officer.profiles.year || 'N/A'}</TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDemoteUser(officer.user_id)}
-                                  disabled={actionLoading[`user-${officer.user_id}`]}
-                                >
-                                  {actionLoading[`user-${officer.user_id}`] ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                                  ) : (
-                                    <>
-                                      <UserMinus className="h-4 w-4 mr-1" />
-                                      Demote
-                                    </>
-                                  )}
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </main>
-      
-      <Navigation />
-    </div>
-  );
-};
-
-export default Admin;
