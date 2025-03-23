@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarIcon, MapPin, Upload } from "lucide-react";
-import { format } from "date-fns";
+import { CalendarIcon, MapPin, Upload, Clock } from "lucide-react";
+import { format, parse, set } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,15 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
     image_url: event?.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
     is_active: event?.is_active ?? true,
   });
+  
+  // Extract time from the event date to initialize time state
+  const [time, setTime] = useState(() => {
+    if (event?.event_date) {
+      const date = new Date(event.event_date);
+      return format(date, "HH:mm");
+    }
+    return format(new Date(), "HH:mm"); // Default to current time
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -42,8 +51,28 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
 
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
-      setFormData((prev) => ({ ...prev, event_date: date }));
+      // Preserve the selected time when changing the date
+      const newDate = preserveTimeWhenChangingDate(date);
+      setFormData((prev) => ({ ...prev, event_date: newDate }));
     }
+  };
+  
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = e.target.value;
+    setTime(newTime);
+    
+    // Update the event_date with the new time while keeping the existing date
+    if (newTime && formData.event_date) {
+      const [hours, minutes] = newTime.split(':').map(Number);
+      const newDate = set(formData.event_date, { hours, minutes });
+      setFormData((prev) => ({ ...prev, event_date: newDate }));
+    }
+  };
+  
+  // Helper function to preserve the selected time when changing the date
+  const preserveTimeWhenChangingDate = (newDate: Date): Date => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return set(newDate, { hours, minutes });
   };
 
   const handleActiveToggle = (checked: boolean) => {
@@ -241,34 +270,52 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
         </div>
       </div>
       
-      <div className="space-y-2">
-        <Label htmlFor="event_date">Event Date *</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !formData.event_date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {formData.event_date ? (
-                format(formData.event_date, "PPP")
-              ) : (
-                <span>Pick a date</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={formData.event_date}
-              onSelect={handleDateChange}
-              initialFocus
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="event_date">Event Date *</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !formData.event_date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formData.event_date ? (
+                  format(formData.event_date, "PPP")
+                ) : (
+                  <span>Pick a date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={formData.event_date}
+                onSelect={handleDateChange}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="event_time">Event Time *</Label>
+          <div className="relative">
+            <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Input
+              id="event_time"
+              type="time"
+              value={time}
+              onChange={handleTimeChange}
+              className="pl-10"
+              required
             />
-          </PopoverContent>
-        </Popover>
+          </div>
+        </div>
       </div>
       
       <div className="space-y-2">
