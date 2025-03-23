@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -97,13 +98,13 @@ const Scanner = () => {
         
         // Get event attendees with profile data
         const attendeesData = await getEventAttendees(selectedEvent, true);
-        // Cast the data to the correct type
-        setAttendees(attendeesData as Attendee[]);
+        // Use type assertion to inform TypeScript about the expected type
+        setAttendees(attendeesData as unknown as Attendee[]);
         
         // Get interested users with profile data
         const interestedData = await getEventInterestedUsers(selectedEvent, true);
-        // Cast the data to the correct type
-        setInterestedUsers(interestedData as InterestedUser[]);
+        // Use type assertion to inform TypeScript about the expected type
+        setInterestedUsers(interestedData as unknown as InterestedUser[]);
       } catch (error: any) {
         console.error("Error fetching users data:", error);
         toast.error(error.message || "Failed to load users data");
@@ -133,7 +134,7 @@ const Scanner = () => {
           console.log("Real-time update received for event attendees");
           
           getEventAttendees(selectedEvent, true)
-            .then(data => setAttendees(data as Attendee[]))
+            .then(data => setAttendees(data as unknown as Attendee[]))
             .catch(error => console.error("Error refreshing attendees:", error));
         }
       )
@@ -152,7 +153,7 @@ const Scanner = () => {
           console.log("Real-time update received for interested users");
           
           getEventInterestedUsers(selectedEvent, true)
-            .then(data => setInterestedUsers(data as InterestedUser[]))
+            .then(data => setInterestedUsers(data as unknown as InterestedUser[]))
             .catch(error => console.error("Error refreshing interested users:", error));
         }
       )
