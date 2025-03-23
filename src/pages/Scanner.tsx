@@ -30,7 +30,7 @@ interface Attendee {
   id: string;
   check_in_time: string | null;
   user_id: string;
-  profile: {
+  profile?: {
     id: string;
     name: string | null;
     email: string | null;
@@ -41,7 +41,7 @@ interface InterestedUser {
   id: string;
   created_at: string;
   user_id: string;
-  profile: {
+  profile?: {
     id: string;
     name: string | null;
     email: string | null;
@@ -95,11 +95,15 @@ const Scanner = () => {
       try {
         setIsLoadingUsers(true);
         
+        // Get event attendees with profile data
         const attendeesData = await getEventAttendees(selectedEvent, true);
-        setAttendees(attendeesData);
+        // Cast the data to the correct type
+        setAttendees(attendeesData as Attendee[]);
         
+        // Get interested users with profile data
         const interestedData = await getEventInterestedUsers(selectedEvent, true);
-        setInterestedUsers(interestedData);
+        // Cast the data to the correct type
+        setInterestedUsers(interestedData as InterestedUser[]);
       } catch (error: any) {
         console.error("Error fetching users data:", error);
         toast.error(error.message || "Failed to load users data");
@@ -129,7 +133,7 @@ const Scanner = () => {
           console.log("Real-time update received for event attendees");
           
           getEventAttendees(selectedEvent, true)
-            .then(data => setAttendees(data))
+            .then(data => setAttendees(data as Attendee[]))
             .catch(error => console.error("Error refreshing attendees:", error));
         }
       )
@@ -148,7 +152,7 @@ const Scanner = () => {
           console.log("Real-time update received for interested users");
           
           getEventInterestedUsers(selectedEvent, true)
-            .then(data => setInterestedUsers(data))
+            .then(data => setInterestedUsers(data as InterestedUser[]))
             .catch(error => console.error("Error refreshing interested users:", error));
         }
       )

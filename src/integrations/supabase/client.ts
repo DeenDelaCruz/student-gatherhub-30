@@ -281,14 +281,24 @@ export const checkInUserToEvent = async (eventId: string, userId: string) => {
       
     if (insertError) throw insertError;
     
-    // Also increment the user's events_attended count
-    const { error: updateError } = await supabase
-      .rpc('increment_events_attended', { user_id_param: userId });
+    // Also increment the user's events_attended count using a manual update
+    // Instead of using RPC function which doesn't exist in the types
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('events_attended')
+      .eq('id', userId)
+      .single();
       
-    if (updateError) {
-      console.error("Error incrementing events attended:", updateError);
-      // Continue anyway since the check-in was successful
-    }
+    if (profileError) throw profileError;
+    
+    const currentCount = profile.events_attended || 0;
+    
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ events_attended: currentCount + 1 })
+      .eq('id', userId);
+      
+    if (updateError) throw updateError;
     
     return true;
   } catch (error) {

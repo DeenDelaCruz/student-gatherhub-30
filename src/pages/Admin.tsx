@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -46,7 +45,7 @@ const Admin = () => {
   const [onlineUsers, setOnlineUsers] = useState<number>(0);
   const [clearingRecords, setClearingRecords] = useState<boolean>(false);
 
-  // Alternative method to fetch visitor data directly
+  // Define fetchVisitorsDirectly function only once
   const fetchVisitorsDirectly = async () => {
     try {
       // Get distinct user_id with most recent visit_time and now use the user_name column
@@ -626,61 +625,6 @@ const Admin = () => {
     }
   };
 
-  // Alternative method to fetch visitor data directly
-  const fetchVisitorsDirectly = async () => {
-    try {
-      // Get distinct user_id with most recent visit_time and now use the user_name column
-      const { data: visitData, error: visitError } = await supabase
-        .from('user_visits')
-        .select('user_id, visit_time, user_name')
-        .order('visit_time', { ascending: false })
-        .limit(10);
-      
-      if (visitError) {
-        console.error("Error fetching visits directly:", visitError);
-        setRecentVisitors([]);
-        setLoadingVisitors(false);
-        return;
-      }
-      
-      // If visit data has user_name, we can use it directly
-      if (visitData && visitData.length > 0) {
-        // We still need to get emails for the visitors
-        const userIds = visitData.map(visit => visit.user_id);
-        
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, email')
-          .in('id', userIds);
-          
-        if (profileError) {
-          console.error("Error fetching visitor profiles:", profileError);
-          setRecentVisitors([]);
-        } else {
-          // Merge visit data with profile data, using the user_name from user_visits
-          const visitors = visitData.map(visit => {
-            const profile = profileData?.find(p => p.id === visit.user_id);
-            return {
-              user_id: visit.user_id,
-              visit_time: visit.visit_time,
-              name: visit.user_name || 'Unknown',
-              email: profile?.email || 'No email'
-            };
-          });
-          setRecentVisitors(visitors);
-        }
-      } else {
-        setRecentVisitors([]);
-      }
-      
-      setLoadingVisitors(false);
-    } catch (error) {
-      console.error("Error fetching visitors directly:", error);
-      setRecentVisitors([]);
-      setLoadingVisitors(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
       <Header />
@@ -898,6 +842,8 @@ const Admin = () => {
           </Card>
         </motion.div>
       </main>
+      
+      <Navigation />
     </div>
   );
 };
