@@ -892,4 +892,3 @@ const Admin = () => {
                     99.9%
                   </span>
                 </div>
-              </div>
