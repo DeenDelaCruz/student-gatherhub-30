@@ -193,6 +193,13 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
     }
   };
 
+  // Function to trigger file input click
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
@@ -281,14 +288,25 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
           <div className="space-y-2">
             <Label htmlFor="image_upload">Or upload an image</Label>
             <div className="flex items-center gap-2">
-              <Input
+              {/* Hidden file input */}
+              <input
                 id="image_upload"
                 type="file"
                 accept="image/*"
                 ref={fileInputRef}
                 onChange={handleImageUpload}
-                className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
+                className="hidden" // Hide the native file input
               />
+              {/* Custom styled button */}
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={triggerFileInput}
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Choose File
+              </Button>
               {isUploading && (
                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary"></div>
               )}
