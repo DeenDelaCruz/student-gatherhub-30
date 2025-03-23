@@ -1,15 +1,14 @@
-
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { User, Calendar, LogOut, BarChart, MapPin, Clock } from "lucide-react";
+import { User, Calendar, LogOut, BarChart, MapPin, Clock, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/context/auth/types";
 import { useEffect, useState } from "react";
-import { getUserAttendedEvents } from "@/integrations/supabase/client";
+import { getUserAttendedEvents, getUserInterestedEvents } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -17,13 +16,14 @@ const Profile = () => {
   const { profile, signOut, roles, hasRole } = useAuth();
   const navigate = useNavigate();
   const [attendedEvents, setAttendedEvents] = useState<any[]>([]);
+  const [interestedEvents, setInterestedEvents] = useState<any[]>([]);
   const [showEvents, setShowEvents] = useState(false);
+  const [showInterested, setShowInterested] = useState(false);
 
   const handleLogout = async () => {
     try {
       await signOut();
       toast.success("Logged out successfully");
-      // Ensure immediate navigation to auth page
       setTimeout(() => {
         navigate("/auth", { replace: true });
       }, 100);
@@ -33,25 +33,38 @@ const Profile = () => {
     }
   };
 
-  // Load user's attended events
   useEffect(() => {
-    const fetchAttendedEvents = async () => {
+    const fetchUserEvents = async () => {
       if (profile?.id) {
         const events = await getUserAttendedEvents(profile.id);
         setAttendedEvents(events);
+        
+        const interested = await getUserInterestedEvents(profile.id);
+        setInterestedEvents(interested);
       }
     };
     
-    fetchAttendedEvents();
+    fetchUserEvents();
   }, [profile?.id]);
 
-  // My Events menu item for all users
   const menuItems = [
     { 
       icon: Calendar, 
       label: "My Events", 
       count: profile?.events_attended || 0,
-      onClick: () => setShowEvents(!showEvents)
+      onClick: () => {
+        setShowEvents(!showEvents);
+        if (showInterested) setShowInterested(false);
+      }
+    },
+    { 
+      icon: Heart, 
+      label: "Interested Events", 
+      count: profile?.events_upcoming || 0,
+      onClick: () => {
+        setShowInterested(!showInterested);
+        if (showEvents) setShowEvents(false);
+      }
     }
   ];
 
@@ -145,7 +158,6 @@ const Profile = () => {
             </div>
           ))}
           
-          {/* Attended Events List - only visible when clicked */}
           {showEvents && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -159,7 +171,7 @@ const Profile = () => {
                   {attendedEvents.map((event) => (
                     <Card 
                       key={event.id}
-                      className="overflow-hidden hover:shadow-md transition-shadow"
+                      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                       onClick={() => navigate(`/events/${event.id}`)}
                     >
                       <div className="flex p-3">
@@ -204,7 +216,64 @@ const Profile = () => {
             </motion.div>
           )}
           
-          {/* Admin Panel link - only visible to admins */}
+          {showInterested && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              transition={{ duration: 0.3 }}
+              className="mb-4"
+            >
+              <h3 className="text-md font-medium mb-2 mt-1 px-1">Events I'm Interested In</h3>
+              {interestedEvents.length > 0 ? (
+                <div className="space-y-3">
+                  {interestedEvents.map((event) => (
+                    <Card 
+                      key={event.id}
+                      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => navigate(`/events/${event.id}`)}
+                    >
+                      <div className="flex p-3">
+                        {event.image_url ? (
+                          <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0">
+                            <img 
+                              src={event.image_url} 
+                              alt={event.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
+                            <Heart size={24} className="text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm line-clamp-1">{event.title}</h4>
+                          <div className="flex items-center mt-1 text-xs text-gray-500">
+                            <Clock size={12} className="mr-1" />
+                            <span>
+                              {format(new Date(event.event_date), 'MMM d, yyyy')}
+                            </span>
+                          </div>
+                          {event.location && (
+                            <div className="flex items-center mt-1 text-xs text-gray-500">
+                              <MapPin size={12} className="mr-1" />
+                              <span className="truncate">{event.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <Heart className="mx-auto text-gray-400 mb-2" size={24} />
+                  <p className="text-gray-500 text-sm">You're not interested in any upcoming events</p>
+                </div>
+              )}
+            </motion.div>
+          )}
+          
           {hasRole('admin') && (
             <div 
               onClick={() => navigate('/admin')}
@@ -220,7 +289,6 @@ const Profile = () => {
             </div>
           )}
           
-          {/* Logout Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
