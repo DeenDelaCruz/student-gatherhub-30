@@ -1,3 +1,4 @@
+
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -17,8 +18,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const [attendedEvents, setAttendedEvents] = useState<any[]>([]);
   const [interestedEvents, setInterestedEvents] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'attended' | 'interested'>('attended');
   const [showEvents, setShowEvents] = useState(false);
-  const [showInterested, setShowInterested] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -47,24 +48,16 @@ const Profile = () => {
     fetchUserEvents();
   }, [profile?.id]);
 
+  const toggleEventDisplay = () => {
+    setShowEvents(!showEvents);
+  };
+
   const menuItems = [
     { 
       icon: Calendar, 
       label: "My Events", 
-      count: profile?.events_attended || 0,
-      onClick: () => {
-        setShowEvents(!showEvents);
-        if (showInterested) setShowInterested(false);
-      }
-    },
-    { 
-      icon: Heart, 
-      label: "Interested Events", 
-      count: profile?.events_upcoming || 0,
-      onClick: () => {
-        setShowInterested(!showInterested);
-        if (showEvents) setShowEvents(false);
-      }
+      count: (activeTab === 'attended' ? profile?.events_attended : profile?.events_upcoming) || 0,
+      onClick: toggleEventDisplay
     }
   ];
 
@@ -165,110 +158,119 @@ const Profile = () => {
               transition={{ duration: 0.3 }}
               className="mb-4"
             >
-              <h3 className="text-md font-medium mb-2 mt-1 px-1">Events Attended</h3>
-              {attendedEvents.length > 0 ? (
+              <div className="flex justify-between mb-2 mt-1 px-1">
+                <h3 className="text-md font-medium">My Events</h3>
+                <div className="flex bg-gray-100 rounded-full overflow-hidden">
+                  <button 
+                    className={`text-xs px-3 py-1 ${activeTab === 'attended' ? 'bg-campus-accent text-white' : 'text-gray-600'}`}
+                    onClick={() => setActiveTab('attended')}
+                  >
+                    Attended
+                  </button>
+                  <button 
+                    className={`text-xs px-3 py-1 ${activeTab === 'interested' ? 'bg-campus-accent text-white' : 'text-gray-600'}`}
+                    onClick={() => setActiveTab('interested')}
+                  >
+                    Interested
+                  </button>
+                </div>
+              </div>
+              
+              {activeTab === 'attended' ? (
                 <div className="space-y-3">
-                  {attendedEvents.map((event) => (
-                    <Card 
-                      key={event.id}
-                      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => navigate(`/events/${event.id}`)}
-                    >
-                      <div className="flex p-3">
-                        {event.image_url ? (
-                          <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0">
-                            <img 
-                              src={event.image_url} 
-                              alt={event.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
-                            <Calendar size={24} className="text-gray-400" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm line-clamp-1">{event.title}</h4>
-                          <div className="flex items-center mt-1 text-xs text-gray-500">
-                            <Clock size={12} className="mr-1" />
-                            <span>
-                              {format(new Date(event.event_date), 'MMM d, yyyy')}
-                            </span>
-                          </div>
-                          {event.location && (
-                            <div className="flex items-center mt-1 text-xs text-gray-500">
-                              <MapPin size={12} className="mr-1" />
-                              <span className="truncate">{event.location}</span>
+                  {attendedEvents.length > 0 ? (
+                    attendedEvents.map((event) => (
+                      <Card 
+                        key={event.id}
+                        className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => navigate(`/events/${event.id}`)}
+                      >
+                        <div className="flex p-3">
+                          {event.image_url ? (
+                            <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0">
+                              <img 
+                                src={event.image_url} 
+                                alt={event.title} 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
+                              <Calendar size={24} className="text-gray-400" />
                             </div>
                           )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm line-clamp-1">{event.title}</h4>
+                            <div className="flex items-center mt-1 text-xs text-gray-500">
+                              <Clock size={12} className="mr-1" />
+                              <span>
+                                {format(new Date(event.event_date), 'MMM d, yyyy')}
+                              </span>
+                            </div>
+                            {event.location && (
+                              <div className="flex items-center mt-1 text-xs text-gray-500">
+                                <MapPin size={12} className="mr-1" />
+                                <span className="truncate">{event.location}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <Calendar className="mx-auto text-gray-400 mb-2" size={24} />
+                      <p className="text-gray-500 text-sm">You haven't attended any events yet</p>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <Calendar className="mx-auto text-gray-400 mb-2" size={24} />
-                  <p className="text-gray-500 text-sm">You haven't attended any events yet</p>
-                </div>
-              )}
-            </motion.div>
-          )}
-          
-          {showInterested && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              transition={{ duration: 0.3 }}
-              className="mb-4"
-            >
-              <h3 className="text-md font-medium mb-2 mt-1 px-1">Events I'm Interested In</h3>
-              {interestedEvents.length > 0 ? (
                 <div className="space-y-3">
-                  {interestedEvents.map((event) => (
-                    <Card 
-                      key={event.id}
-                      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => navigate(`/events/${event.id}`)}
-                    >
-                      <div className="flex p-3">
-                        {event.image_url ? (
-                          <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0">
-                            <img 
-                              src={event.image_url} 
-                              alt={event.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
-                            <Heart size={24} className="text-gray-400" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm line-clamp-1">{event.title}</h4>
-                          <div className="flex items-center mt-1 text-xs text-gray-500">
-                            <Clock size={12} className="mr-1" />
-                            <span>
-                              {format(new Date(event.event_date), 'MMM d, yyyy')}
-                            </span>
-                          </div>
-                          {event.location && (
-                            <div className="flex items-center mt-1 text-xs text-gray-500">
-                              <MapPin size={12} className="mr-1" />
-                              <span className="truncate">{event.location}</span>
+                  {interestedEvents.length > 0 ? (
+                    interestedEvents.map((event) => (
+                      <Card 
+                        key={event.id}
+                        className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => navigate(`/events/${event.id}`)}
+                      >
+                        <div className="flex p-3">
+                          {event.image_url ? (
+                            <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0">
+                              <img 
+                                src={event.image_url} 
+                                alt={event.title} 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
+                              <Heart size={24} className="text-gray-400" />
                             </div>
                           )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm line-clamp-1">{event.title}</h4>
+                            <div className="flex items-center mt-1 text-xs text-gray-500">
+                              <Clock size={12} className="mr-1" />
+                              <span>
+                                {format(new Date(event.event_date), 'MMM d, yyyy')}
+                              </span>
+                            </div>
+                            {event.location && (
+                              <div className="flex items-center mt-1 text-xs text-gray-500">
+                                <MapPin size={12} className="mr-1" />
+                                <span className="truncate">{event.location}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <Heart className="mx-auto text-gray-400 mb-2" size={24} />
-                  <p className="text-gray-500 text-sm">You're not interested in any upcoming events</p>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <Heart className="mx-auto text-gray-400 mb-2" size={24} />
+                      <p className="text-gray-500 text-sm">You're not interested in any upcoming events</p>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
