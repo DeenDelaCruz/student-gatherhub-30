@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarIcon, MapPin } from "lucide-react";
+import { CalendarIcon, MapPin, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<EventFormData>({
     title: event?.title || "",
     description: event?.description || "",
@@ -47,6 +49,56 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
 
   const handleActiveToggle = (checked: boolean) => {
     setFormData((prev) => ({ ...prev, is_active: checked }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `event-images/${fileName}`;
+    
+    try {
+      setIsUploading(true);
+      
+      // Check if event-images bucket exists, if not create it
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(b => b.name === 'event-images');
+      
+      if (!bucketExists) {
+        const { error: bucketError } = await supabase.storage.createBucket('event-images', {
+          public: true
+        });
+        
+        if (bucketError) throw bucketError;
+      }
+      
+      // Upload the file
+      const { error: uploadError } = await supabase.storage
+        .from('event-images')
+        .upload(filePath, file);
+        
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data } = supabase.storage.from('event-images').getPublicUrl(filePath);
+      
+      if (data) {
+        setFormData((prev) => ({ ...prev, image_url: data.publicUrl }));
+        toast.success("Image uploaded successfully");
+      }
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setIsUploading(false);
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const createNotificationsForNewEvent = async (eventId: string, eventTitle: string) => {
@@ -217,14 +269,37 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="image_url">Image URL</Label>
-        <Input
-          id="image_url"
-          name="image_url"
-          value={formData.image_url}
-          onChange={handleInputChange}
-          placeholder="Enter image URL"
-        />
+        <Label>Event Image</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="image_url">Image URL</Label>
+            <Input
+              id="image_url"
+              name="image_url"
+              value={formData.image_url}
+              onChange={handleInputChange}
+              placeholder="Enter image URL"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="image_upload">Or upload an image</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="image_upload"
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
+              />
+              {isUploading && (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary"></div>
+              )}
+            </div>
+          </div>
+        </div>
+        
         {formData.image_url && (
           <div className="mt-2 rounded-md overflow-hidden aspect-video">
             <img 
@@ -260,7 +335,7 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
         <Button 
           type="submit" 
           className="flex-1"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isUploading}
         >
           {isSubmitting ? "Saving..." : isEditing ? "Update Event" : "Create Event"}
         </Button>
