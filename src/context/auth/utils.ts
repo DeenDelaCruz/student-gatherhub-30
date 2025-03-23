@@ -6,7 +6,7 @@ export const fetchUserRoles = async (userId: string): Promise<UserRole[]> => {
   try {
     const { data, error } = await supabase
       .from("user_roles")
-      .select("role")
+      .select("role, user_name")
       .eq("user_id", userId);
       
     if (error) {
@@ -38,5 +38,24 @@ export const fetchProfileData = async (userId: string) => {
   } catch (error) {
     console.error("Error fetching profile data:", error);
     return null;
+  }
+};
+
+export const fetchRolesWithNames = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role, user_name")
+      .eq("user_id", userId);
+      
+    if (error) {
+      console.error("Error fetching user roles with names:", error);
+      return [];
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in fetchRolesWithNames:", error);
+    return [];
   }
 };

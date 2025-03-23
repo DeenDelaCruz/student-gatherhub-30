@@ -7,6 +7,7 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   roles: [],
+  rolesWithNames: [],
   loading: true,
   signOut: async () => {},
   hasRole: () => false,

@@ -1,18 +1,18 @@
-
 import { useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { AuthContext } from "./AuthContext";
-import { UserRole } from "./types";
-import { fetchUserRoles, fetchProfileData } from "./utils";
+import { UserRole, RoleWithName } from "./types";
+import { fetchUserRoles, fetchProfileData, fetchRolesWithNames } from "./utils";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
+  const [rolesWithNames, setRolesWithNames] = useState<RoleWithName[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
@@ -28,6 +28,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Fetch user roles
       const userRoles = await fetchUserRoles(userId);
       setRoles(userRoles);
+      
+      // Fetch roles with names
+      const rolesWithNamesData = await fetchRolesWithNames(userId);
+      setRolesWithNames(rolesWithNamesData);
     } catch (error) {
       console.error("Error fetching user data:", error);
       toast.error("Failed to load user data");
@@ -105,6 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
           setProfile(null);
           setRoles([]);
+          setRolesWithNames([]);
           navigate("/auth");
         }
         
@@ -157,6 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user, 
       profile, 
       roles, 
+      rolesWithNames,
       loading: loading || !initialized, 
       signOut, 
       hasRole,
