@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -840,6 +841,223 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* Management Tabs */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mb-6"
+        >
+          <Tabs defaultValue="events">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="events">
+                <CalendarDays className="h-4 w-4 mr-2" />
+                Events
+              </TabsTrigger>
+              <TabsTrigger value="officers">
+                <Shield className="h-4 w-4 mr-2" />
+                Officers
+              </TabsTrigger>
+              <TabsTrigger value="students">
+                <User className="h-4 w-4 mr-2" />
+                Students
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Events Tab */}
+            <TabsContent value="events">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Events Management</CardTitle>
+                  <CardDescription>Manage all system events</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="h-48 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                    </div>
+                  ) : events.length === 0 ? (
+                    <p className="text-sm text-gray-500">No events found</p>
+                  ) : (
+                    <ScrollArea className="h-96">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {events.map((event) => (
+                            <TableRow key={event.id}>
+                              <TableCell className="font-medium">{event.title}</TableCell>
+                              <TableCell>
+                                {event.event_date 
+                                  ? format(new Date(event.event_date), 'MMM d, yyyy h:mm a') 
+                                  : 'No date'}
+                              </TableCell>
+                              <TableCell>{event.location || 'No location'}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                  disabled={actionLoading[`event-${event.id}`]}
+                                >
+                                  {actionLoading[`event-${event.id}`] ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Officers Tab */}
+            <TabsContent value="officers">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Information Officers</CardTitle>
+                  <CardDescription>Manage information officers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="h-48 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                    </div>
+                  ) : infoOfficers.length === 0 ? (
+                    <p className="text-sm text-gray-500">No information officers found</p>
+                  ) : (
+                    <ScrollArea className="h-96">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Year</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {infoOfficers.map((officer) => (
+                            <TableRow key={officer.user_id}>
+                              <TableCell className="font-medium">{officer.profiles.name}</TableCell>
+                              <TableCell>{officer.profiles.email}</TableCell>
+                              <TableCell>{officer.profiles.year || 'N/A'}</TableCell>
+                              <TableCell className="text-right">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleDemoteUser(officer.user_id)}
+                                        disabled={actionLoading[`user-${officer.user_id}`]}
+                                      >
+                                        {actionLoading[`user-${officer.user_id}`] ? (
+                                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                        ) : (
+                                          <UserMinus className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Demote to student</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Students Tab */}
+            <TabsContent value="students">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Students</CardTitle>
+                  <CardDescription>Manage student accounts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="h-48 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                    </div>
+                  ) : students.length === 0 ? (
+                    <p className="text-sm text-gray-500">No students found</p>
+                  ) : (
+                    <ScrollArea className="h-96">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Year</TableHead>
+                            <TableHead>Events Attended</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {students.map((student) => (
+                            <TableRow key={student.user_id}>
+                              <TableCell className="font-medium">{student.profiles.name}</TableCell>
+                              <TableCell>{student.profiles.email}</TableCell>
+                              <TableCell>{student.profiles.year || 'N/A'}</TableCell>
+                              <TableCell>{student.profiles.events_attended || 0}</TableCell>
+                              <TableCell className="text-right">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8 bg-blue-50 hover:bg-blue-100 border-blue-200"
+                                        onClick={() => handlePromoteStudent(student.user_id)}
+                                        disabled={actionLoading[`student-${student.user_id}`]}
+                                      >
+                                        {actionLoading[`student-${student.user_id}`] ? (
+                                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+                                        ) : (
+                                          <UserPlus className="h-4 w-4 text-blue-600" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Promote to information officer</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </motion.div>
       </main>
       
