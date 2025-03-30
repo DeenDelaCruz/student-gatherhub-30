@@ -15,6 +15,7 @@ const EditEvent = () => {
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [originalEvent, setOriginalEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     const checkPermissionAndFetchEvent = async () => {
@@ -58,6 +59,7 @@ const EditEvent = () => {
         }
 
         setEvent(eventData);
+        setOriginalEvent(eventData);
       } catch (error: any) {
         console.error("Error fetching event:", error);
         toast.error(error.message || "Failed to fetch event");
@@ -80,23 +82,23 @@ const EditEvent = () => {
       
       if (interestedError) {
         console.error("Error fetching interested users:", interestedError);
-      } else if (interestedUsers && interestedUsers.length > 0) {
+      } else if (interestedUsers && interestedUsers.length > 0 && originalEvent) {
         // Compare the original event with the updated one to determine what changed
         const changes: string[] = [];
         
-        if (event?.title !== updatedEvent.title) {
+        if (originalEvent?.title !== updatedEvent.title) {
           changes.push("title");
         }
         
-        if (event?.event_date !== updatedEvent.event_date) {
+        if (originalEvent?.event_date !== updatedEvent.event_date) {
           changes.push("time");
         }
         
-        if (event?.location !== updatedEvent.location) {
+        if (originalEvent?.location !== updatedEvent.location) {
           changes.push("location");
         }
         
-        if (event?.description !== updatedEvent.description) {
+        if (originalEvent?.description !== updatedEvent.description) {
           changes.push("description");
         }
         
@@ -105,7 +107,7 @@ const EditEvent = () => {
           const changesText = changes.join(", ");
           const notifications = interestedUsers.map(user => ({
             user_id: user.user_id,
-            title: "Event Updated",
+            title: "Event Update",
             message: `The ${changesText} for "${updatedEvent.title}" has been updated. Check the details!`,
             type: "event",
             related_id: eventId,

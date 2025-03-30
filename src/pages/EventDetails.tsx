@@ -5,11 +5,12 @@ import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInte
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth";
 import { Event, convertSupabaseEventToEvent } from "@/types/event";
-import { CalendarClock, MapPin, Users, Heart, AlertTriangle, Edit, ToggleLeft, ToggleRight } from "lucide-react";
+import { CalendarClock, MapPin, Users, Heart, AlertTriangle, Edit, ToggleLeft, ToggleRight, Bell } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import Header from "@/components/Header";
 import { format } from "date-fns";
+import { Notification } from "@/types/notification";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -21,6 +22,7 @@ const EventDetails = () => {
   const [interestedCount, setInterestedCount] = useState(0);
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastToggleTime, setLastToggleTime] = useState<number | null>(null);
+  const [eventUpdates, setEventUpdates] = useState<Notification[]>([]);
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   const canEdit = isInformationOfficer && event?.created_by === user?.id;
 
@@ -34,6 +36,28 @@ const EventDetails = () => {
     if (!eventId || !user) return;
     const interested = await isUserInterestedInEvent(eventId, user.id);
     setIsInterested(interested);
+  };
+
+  const fetchEventUpdates = async () => {
+    if (!eventId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("related_id", eventId)
+        .eq("type", "event")
+        .order("created_at", { ascending: false })
+        .limit(5);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setEventUpdates(data);
+      }
+    } catch (error) {
+      console.error("Error fetching event updates:", error);
+    }
   };
 
   useEffect(() => {
@@ -56,6 +80,7 @@ const EventDetails = () => {
         }
         
         await fetchInterestCount();
+        await fetchEventUpdates();
         if (user) {
           await fetchUserInterest();
         }
@@ -109,6 +134,34 @@ const EventDetails = () => {
       supabase.removeChannel(channel);
     };
   }, [eventId, isLoading, isUpdating, user, lastToggleTime]);
+
+  // Subscribe to notifications table changes for this event
+  useEffect(() => {
+    if (!eventId) return;
+    
+    const channelName = `event-updates-${eventId}-${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'notifications',
+          filter: `related_id=eq.${eventId}` 
+        }, 
+        async () => {
+          await fetchEventUpdates();
+        }
+      )
+      .subscribe();
+
+    console.log(`Subscribed to notifications channel: ${channelName}`);
+    
+    return () => {
+      console.log(`Unsubscribing from notifications channel: ${channelName}`);
+      supabase.removeChannel(channel);
+    };
+  }, [eventId]);
 
   const handleToggleInterest = async () => {
     if (!user) {
@@ -276,6 +329,23 @@ const EventDetails = () => {
           </div>
           
           <div className="p-4">
+            {eventUpdates.length > 0 && (
+              <div className="mb-4 space-y-2">
+                {eventUpdates.map((update) => (
+                  <div 
+                    key={update.id} 
+                    className="bg-gray-100 p-3 rounded-lg flex items-start gap-2"
+                  >
+                    <Bell className="h-5 w-5 text-gray-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm text-gray-800">{update.title}</p>
+                      <p className="text-sm text-gray-600">{update.message}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          
             <div className="flex justify-between items-start mb-2">
               <h1 className="text-2xl font-bold">{event?.title}</h1>
               
