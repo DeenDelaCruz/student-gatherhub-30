@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -34,6 +33,7 @@ const EditEvent = () => {
 
       try {
         setIsLoading(true);
+        
         const { data, error } = await supabase
           .from("events")
           .select("*")
@@ -103,28 +103,59 @@ const EditEvent = () => {
         }
         
         if (changes.length > 0) {
-          // Create notifications for all interested users
+          // Create a unique message for this update to avoid duplications
           const changesText = changes.join(", ");
-          const notifications = interestedUsers.map(user => ({
-            user_id: user.user_id,
-            title: "Event Update",
-            message: `The ${changesText} for "${updatedEvent.title}" has been updated. Check the details!`,
-            type: "event",
-            related_id: eventId,
-            read: false
-          }));
+          const messageContent = `The ${changesText} for "${updatedEvent.title}" has been updated. Check the details!`;
           
-          // Insert notifications into the database
-          const { error: notificationError } = await supabase
+          // Check if there are existing notifications with the same message to avoid duplicates
+          const { data: existingNotifications, error: checkError } = await supabase
             .from("notifications")
-            .insert(notifications);
-          
-          if (notificationError) {
-            console.error("Error creating notifications:", notificationError);
+            .select("*")
+            .eq("related_id", eventId)
+            .eq("type", "event");
+            
+          if (checkError) {
+            console.error("Error checking existing notifications:", checkError);
           } else {
-            console.log(`Created ${notifications.length} notifications for event update`);
-            toast.success("Event updated and interested users notified");
+            // Create notifications for all interested users if no duplicates exist
+            const userNotifications = [];
+            
+            for (const user of interestedUsers) {
+              // Check if this user already has a notification with same message
+              const hasExistingNotification = existingNotifications?.some(notification => 
+                notification.user_id === user.user_id && notification.message === messageContent
+              );
+              
+              if (!hasExistingNotification) {
+                userNotifications.push({
+                  user_id: user.user_id,
+                  title: "Event Update",
+                  message: messageContent,
+                  type: "event",
+                  related_id: eventId,
+                  read: false
+                });
+              }
+            }
+            
+            if (userNotifications.length > 0) {
+              // Insert notifications into the database
+              const { error: notificationError } = await supabase
+                .from("notifications")
+                .insert(userNotifications);
+              
+              if (notificationError) {
+                console.error("Error creating notifications:", notificationError);
+              } else {
+                console.log(`Created ${userNotifications.length} notifications for event update`);
+                toast.success("Event updated and interested users notified");
+              }
+            } else {
+              toast.success("Event updated successfully");
+            }
           }
+        } else {
+          toast.success("Event updated successfully");
         }
       }
       

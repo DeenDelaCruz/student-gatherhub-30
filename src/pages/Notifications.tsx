@@ -34,13 +34,31 @@ const Notifications = () => {
           throw error;
         }
         
-        // Explicitly cast the data to match our Notification type
-        const typedNotifications = data?.map(item => ({
-          ...item,
-          type: item.type as 'event' | 'info' | 'reminder'
-        })) || [];
-        
-        setNotifications(typedNotifications);
+        if (data) {
+          // Deduplicate notifications based on message content and related_id
+          const uniqueNotifications = data.reduce((acc: Notification[], current) => {
+            // Check if this is a valid notification type
+            if (!['event', 'info', 'reminder', 'event_reminder'].includes(current.type)) {
+              return acc;
+            }
+            
+            // For each notification, check if we already have one with the same message and related_id
+            const isDuplicate = acc.some(item => 
+              item.message === current.message && 
+              item.related_id === current.related_id &&
+              item.title === current.title
+            );
+            
+            // Only add if it's not a duplicate
+            if (!isDuplicate) {
+              acc.push(current as Notification);
+            }
+            
+            return acc;
+          }, []);
+          
+          setNotifications(uniqueNotifications);
+        }
       } catch (error: any) {
         console.error("Error fetching notifications:", error);
         toast.error("Failed to load notifications");

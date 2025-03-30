@@ -94,21 +94,28 @@ serve(async (req) => {
       // Notify each interested user
       for (const user of interestedUsers) {
         // Check if user already has a reminder notification for this event
-        const { data: existingNotification, error: checkError } = await supabase
+        // We check for both the specific event ID and a matching message to avoid duplicates
+        const messageContent = `Your event "${event.title}" is happening soon at ${formattedTime} on ${formattedDate} ${event.location ? `at ${event.location}` : ''}`;
+        
+        const { data: existingNotifications, error: checkError } = await supabase
           .from("notifications")
           .select("*")
           .eq("user_id", user.user_id)
           .eq("related_id", event.id.toString())
-          .eq("type", "reminder")
-          .maybeSingle();
+          .eq("type", "reminder");
           
         if (checkError) {
           console.error(`Error checking existing notification for user ${user.user_id}:`, checkError);
           continue;
         }
         
-        // Skip if user already has a reminder notification for this event
-        if (existingNotification) {
+        // Check if there's already a notification with the same message
+        const hasDuplicateMessage = existingNotifications?.some(notification => 
+          notification.message === messageContent
+        );
+        
+        // Skip if user already has a reminder notification with the same message for this event
+        if (hasDuplicateMessage) {
           console.log(`User ${user.user_id} already has a reminder notification for event ${event.id}`);
           continue;
         }
@@ -117,7 +124,7 @@ serve(async (req) => {
         const notification: NotificationData = {
           user_id: user.user_id,
           title: "Event Reminder",
-          message: `Your event "${event.title}" is happening soon at ${formattedTime} on ${formattedDate} ${event.location ? `at ${event.location}` : ''}`,
+          message: messageContent,
           type: "reminder",
           related_id: event.id.toString(),
           read: false
@@ -154,22 +161,28 @@ serve(async (req) => {
             continue;
           }
           
-          // Check if officer already has a reminder notification for this event
-          const { data: existingNotification, error: checkError } = await supabase
+          const messageContent = `The event "${event.title}" you're overseeing is happening soon at ${formattedTime} on ${formattedDate} ${event.location ? `at ${event.location}` : ''}`;
+          
+          // Check if officer already has a reminder notification for this event with the same message
+          const { data: existingNotifications, error: checkError } = await supabase
             .from("notifications")
             .select("*")
             .eq("user_id", officer.user_id)
             .eq("related_id", event.id.toString())
-            .eq("type", "reminder")
-            .maybeSingle();
+            .eq("type", "reminder");
             
           if (checkError) {
             console.error(`Error checking existing notification for officer ${officer.user_id}:`, checkError);
             continue;
           }
           
-          // Skip if officer already has a reminder notification for this event
-          if (existingNotification) {
+          // Check if there's already a notification with the same message
+          const hasDuplicateMessage = existingNotifications?.some(notification => 
+            notification.message === messageContent
+          );
+          
+          // Skip if officer already has a reminder notification with the same message for this event
+          if (hasDuplicateMessage) {
             console.log(`Officer ${officer.user_id} already has a reminder notification for event ${event.id}`);
             continue;
           }
@@ -178,7 +191,7 @@ serve(async (req) => {
           const notification: NotificationData = {
             user_id: officer.user_id,
             title: "Event Status Update",
-            message: `The event "${event.title}" you're overseeing is happening soon at ${formattedTime} on ${formattedDate} ${event.location ? `at ${event.location}` : ''}`,
+            message: messageContent,
             type: "reminder",
             related_id: event.id.toString(),
             read: false
