@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInterest, removeEventInterest } from "@/integrations/supabase/client";
@@ -53,7 +52,12 @@ const EventDetails = () => {
       if (error) throw error;
       
       if (data && data.length > 0) {
-        setEventUpdates(data);
+        // Validate that all notifications have a valid type before setting state
+        const validNotifications = data.filter(notification => 
+          ['event', 'info', 'reminder', 'event_reminder'].includes(notification.type)
+        ) as Notification[];
+        
+        setEventUpdates(validNotifications);
       }
     } catch (error) {
       console.error("Error fetching event updates:", error);
