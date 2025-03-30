@@ -70,6 +70,69 @@ const EditEvent = () => {
     checkPermissionAndFetchEvent();
   }, [eventId, hasRole, user, loading, navigate]);
 
+  const handleEventUpdated = async (updatedEvent: Event) => {
+    try {
+      // Check if there are interested users to notify
+      const { data: interestedUsers, error: interestedError } = await supabase
+        .from("event_interested")
+        .select("user_id")
+        .eq("event_id", eventId);
+      
+      if (interestedError) {
+        console.error("Error fetching interested users:", interestedError);
+      } else if (interestedUsers && interestedUsers.length > 0) {
+        // Compare the original event with the updated one to determine what changed
+        const changes: string[] = [];
+        
+        if (event?.title !== updatedEvent.title) {
+          changes.push("title");
+        }
+        
+        if (event?.event_date !== updatedEvent.event_date) {
+          changes.push("time");
+        }
+        
+        if (event?.location !== updatedEvent.location) {
+          changes.push("location");
+        }
+        
+        if (event?.description !== updatedEvent.description) {
+          changes.push("description");
+        }
+        
+        if (changes.length > 0) {
+          // Create notifications for all interested users
+          const changesText = changes.join(", ");
+          const notifications = interestedUsers.map(user => ({
+            user_id: user.user_id,
+            title: "Event Updated",
+            message: `The ${changesText} for "${updatedEvent.title}" has been updated. Check the details!`,
+            type: "event",
+            related_id: eventId,
+            read: false
+          }));
+          
+          // Insert notifications into the database
+          const { error: notificationError } = await supabase
+            .from("notifications")
+            .insert(notifications);
+          
+          if (notificationError) {
+            console.error("Error creating notifications:", notificationError);
+          } else {
+            console.log(`Created ${notifications.length} notifications for event update`);
+            toast.success("Event updated and interested users notified");
+          }
+        }
+      }
+      
+      navigate(`/event/${eventId}`);
+    } catch (error: any) {
+      console.error("Error processing event update:", error);
+      toast.error(error.message || "Failed to process event update");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-campus-bg flex flex-col items-center justify-center">
@@ -85,7 +148,7 @@ const EditEvent = () => {
       <main className="flex-1 p-4">
         <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6">
           <h1 className="text-2xl font-medium mb-6">Edit Event</h1>
-          {event && <EventForm event={event} isEditing={true} />}
+          {event && <EventForm event={event} isEditing={true} onEventUpdated={handleEventUpdated} />}
         </div>
       </main>
       

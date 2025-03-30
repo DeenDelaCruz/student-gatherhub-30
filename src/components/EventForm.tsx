@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarIcon, MapPin, Upload, Clock } from "lucide-react";
@@ -18,9 +19,10 @@ import { useAuth } from "@/context/AuthContext";
 interface EventFormProps {
   event?: Event;
   isEditing?: boolean;
+  onEventUpdated?: (event: Event) => void;
 }
 
-const EventForm = ({ event, isEditing = false }: EventFormProps) => {
+const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -174,21 +176,33 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
       setIsSubmitting(true);
       
       if (isEditing && event) {
+        const updatedEvent = {
+          title: formData.title,
+          description: formData.description,
+          location: formData.location,
+          event_date: formData.event_date.toISOString(),
+          image_url: formData.image_url,
+          is_active: formData.is_active,
+          updated_at: new Date().toISOString()
+        };
+        
         const { error } = await supabase
           .from("events")
-          .update({
-            title: formData.title,
-            description: formData.description,
-            location: formData.location,
-            event_date: formData.event_date.toISOString(),
-            image_url: formData.image_url,
-            is_active: formData.is_active,
-            updated_at: new Date().toISOString()
-          })
+          .update(updatedEvent)
           .eq("id", event.id);
           
         if (error) throw error;
-        toast.success("Event updated successfully");
+        
+        // If an onEventUpdated callback was provided, call it with the updated event
+        if (onEventUpdated) {
+          onEventUpdated({
+            ...event,
+            ...updatedEvent
+          });
+        } else {
+          toast.success("Event updated successfully");
+          navigate("/");
+        }
       } else {
         const { data: newEvent, error } = await supabase
           .from("events")
@@ -211,9 +225,8 @@ const EventForm = ({ event, isEditing = false }: EventFormProps) => {
         }
         
         toast.success("Event created successfully");
+        navigate("/");
       }
-      
-      navigate("/");
     } catch (error: any) {
       console.error("Error saving event:", error);
       toast.error(error.message || "Failed to save event");
