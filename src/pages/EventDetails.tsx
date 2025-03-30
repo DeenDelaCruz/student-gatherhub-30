@@ -45,7 +45,7 @@ const EventDetails = () => {
         .from("notifications")
         .select("*")
         .eq("related_id", eventId)
-        .eq("type", "event")
+        .eq("type", "event") // Only select "event" type notifications (edits to this event)
         .order("created_at", { ascending: false })
         .limit(5);
         
@@ -335,6 +335,7 @@ const EventDetails = () => {
           <div className="p-4">
             {eventUpdates.length > 0 && (
               <div className="mb-4 space-y-2">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Recent Updates</h3>
                 {eventUpdates.map((update) => (
                   <div 
                     key={update.id} 
@@ -349,7 +350,7 @@ const EventDetails = () => {
                 ))}
               </div>
             )}
-          
+            
             <div className="flex justify-between items-start mb-2">
               <h1 className="text-2xl font-bold">{event?.title}</h1>
               
