@@ -1,7 +1,18 @@
 
-import { useState } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday } from "date-fns";
+import { useState, useEffect } from "react";
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  isToday, 
+  addMonths, 
+  subMonths,
+  isSameMonth
+} from "date-fns";
 import { cn } from "@/lib/utils";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface CalendarProps {
   onDateSelect?: (date: Date) => void;
@@ -33,6 +44,21 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
     if (onFilterChange) {
       onFilterChange(type);
     }
+  };
+
+  // Function to navigate to previous month
+  const goToPreviousMonth = () => {
+    setCurrentDate(prevDate => subMonths(prevDate, 1));
+  };
+
+  // Function to navigate to next month
+  const goToNextMonth = () => {
+    setCurrentDate(prevDate => addMonths(prevDate, 1));
+  };
+
+  // Function to go to current month
+  const goToCurrentMonth = () => {
+    setCurrentDate(new Date());
   };
 
   // Function to check if a day has events and if they match the current filter
@@ -74,12 +100,47 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
     };
   };
   
+  // Check if current displayed month is the current month
+  const isCurrentMonth = isSameMonth(currentDate, new Date());
+  
   return (
     <div className="bg-white rounded-3xl p-6 mb-5 shadow-sm animate-slide-in">
       <div className="flex justify-between items-center mb-5">
-        <h2 className="font-semibold text-xl">
-          {format(currentDate, "MMMM yyyy")}
-        </h2>
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={goToPreviousMonth}
+            className="mr-1"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          
+          <h2 className="font-semibold text-xl">
+            {format(currentDate, "MMMM yyyy")}
+          </h2>
+          
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={goToNextMonth}
+            className="ml-1"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+          
+          {!isCurrentMonth && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToCurrentMonth}
+              className="ml-2 text-xs"
+            >
+              Today
+            </Button>
+          )}
+        </div>
+        
         <div className="flex bg-gray-100 rounded-full">
           <button
             onClick={() => handleFilterChange("active")}
