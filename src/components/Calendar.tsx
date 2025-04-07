@@ -195,7 +195,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
                 "h-9 w-9 flex items-center justify-center rounded-full text-sm transition-all mx-auto",
                 isToday(day) && "border border-campus-accent text-campus-accent",
                 hasEvent && matchesFilter 
-                  ? "bg-campus-accent text-white font-medium" // Highlight with blue background
+                  ? "bg-[#9FCBDE] text-white font-medium" // Updated highlight with new color #9FCBDE
                   : hasEvent 
                     ? "bg-gray-200 text-gray-400" // Dimmed background for non-matching event days 
                     : "text-gray-500 hover:bg-gray-100" // Regular days
