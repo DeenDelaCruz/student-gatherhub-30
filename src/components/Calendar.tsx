@@ -195,11 +195,10 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
                 "h-9 w-9 flex items-center justify-center rounded-full text-sm transition-all mx-auto",
                 isToday(day) && "border border-campus-accent text-campus-accent",
                 hasEvent && matchesFilter 
-                  ? "font-medium text-black" 
+                  ? "bg-campus-accent text-white font-medium" // Highlight with blue background
                   : hasEvent 
-                    ? "text-gray-300" // Dimmed text for non-matching event days
-                    : "text-gray-500",
-                "hover:bg-gray-100"
+                    ? "bg-gray-200 text-gray-400" // Dimmed background for non-matching event days 
+                    : "text-gray-500 hover:bg-gray-100" // Regular days
               )}
             >
               {format(day, "d")}
