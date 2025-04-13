@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Download, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
+import { X, Download, ZoomIn, ZoomOut, RotateCw, Maximize } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,12 +15,14 @@ interface LightboxProps {
 const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) => {
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Reset zoom and rotation when opening new images
   useEffect(() => {
     if (isOpen) {
       setScale(1);
       setRotation(0);
+      setIsFullscreen(false);
     }
   }, [isOpen, imageSrc]);
 
@@ -56,15 +58,26 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
     }
   };
 
+  const toggleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsFullscreen((prev) => !prev);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
-        className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent overflow-hidden"
+        className={cn(
+          "max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent overflow-hidden",
+          isFullscreen && "fixed inset-0 max-w-none max-h-none w-screen h-screen rounded-none"
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative flex items-center justify-center w-full h-full">
           <div 
-            className="relative max-w-full max-h-[90vh] overflow-auto bg-black rounded-lg shadow-2xl"
+            className={cn(
+              "relative max-w-full max-h-[90vh] overflow-auto bg-black rounded-lg shadow-2xl",
+              isFullscreen && "max-h-screen w-screen h-screen rounded-none"
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="absolute top-2 right-2 z-50 flex gap-2">
@@ -96,6 +109,14 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
                 variant="secondary" 
                 size="sm" 
                 className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
+                onClick={toggleFullscreen}
+              >
+                <Maximize size={18} />
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
                 onClick={handleDownload}
               >
                 <Download size={18} />
@@ -110,12 +131,16 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
               </Button>
             </div>
             
-            <div className="flex items-center justify-center min-h-[200px]">
+            <div className={cn(
+              "flex items-center justify-center min-h-[200px]",
+              isFullscreen && "h-screen"
+            )}>
               <img 
                 src={imageSrc} 
                 alt={alt} 
                 className={cn(
                   "max-w-full max-h-[90vh] object-contain transition-transform duration-200",
+                  isFullscreen && "max-h-screen"
                 )}
                 style={{ 
                   transform: `scale(${scale}) rotate(${rotation}deg)`,
