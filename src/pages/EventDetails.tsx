@@ -1,16 +1,16 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInterest, removeEventInterest } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth";
 import { Event, convertSupabaseEventToEvent } from "@/types/event";
-import { CalendarClock, MapPin, Users, Heart, AlertTriangle, Edit, ToggleLeft, ToggleRight, Bell } from "lucide-react";
+import { CalendarClock, MapPin, Users, Heart, AlertTriangle, Edit, ToggleLeft, ToggleRight, Bell, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import Header from "@/components/Header";
 import { format } from "date-fns";
 import { Notification } from "@/types/notification";
+import Lightbox from "@/components/Lightbox";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -23,6 +23,7 @@ const EventDetails = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastToggleTime, setLastToggleTime] = useState<number | null>(null);
   const [eventUpdates, setEventUpdates] = useState<Notification[]>([]);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   const canEdit = isInformationOfficer && event?.created_by === user?.id;
 
@@ -46,24 +47,21 @@ const EventDetails = () => {
         .from("notifications")
         .select("*")
         .eq("related_id", eventId)
-        .eq("type", "event") // Only select "event" type notifications (edits to this event)
+        .eq("type", "event")
         .order("created_at", { ascending: false })
         .limit(5);
         
       if (error) throw error;
       
       if (data && data.length > 0) {
-        // Validate that all notifications have a valid type before setting state
         const validNotifications = data.filter(notification => 
           ['event', 'info', 'reminder', 'event_reminder'].includes(notification.type)
         ) as Notification[];
         
-        // Deduplicate notifications based on identical messages
         const uniqueNotifications: Notification[] = [];
         const messageSet = new Set<string>();
         
         validNotifications.forEach(notification => {
-          // Create a unique identifier using message and created_at (in case messages are the same but created at different times)
           const messageIdentifier = `${notification.message}`;
           
           if (!messageSet.has(messageIdentifier)) {
@@ -154,7 +152,6 @@ const EventDetails = () => {
     };
   }, [eventId, isLoading, isUpdating, user, lastToggleTime]);
 
-  // Subscribe to notifications table changes for this event
   useEffect(() => {
     if (!eventId) return;
     
@@ -293,6 +290,10 @@ const EventDetails = () => {
     }
   };
 
+  const handleOpenPoster = () => {
+    setLightboxOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
@@ -338,13 +339,21 @@ const EventDetails = () => {
             <img 
               src={event?.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"} 
               alt={event?.title} 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover cursor-zoom-in"
+              onClick={handleOpenPoster}
             />
             {event && !event.is_active && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-medium">
                 INACTIVE
               </div>
             )}
+            <Button
+              className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white shadow-lg"
+              size="sm"
+              onClick={handleOpenPoster}
+            >
+              <ZoomIn size={16} className="mr-1" /> View Poster
+            </Button>
           </div>
           
           <div className="p-4">
@@ -448,6 +457,13 @@ const EventDetails = () => {
       </main>
       
       <Navigation />
+      
+      <Lightbox 
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        imageSrc={event?.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"}
+        alt={event?.title || "Event poster"}
+      />
     </div>
   );
 };
