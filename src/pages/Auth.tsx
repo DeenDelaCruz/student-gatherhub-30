@@ -54,29 +54,33 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-campus-bg flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white rounded-3xl p-8 shadow-sm max-w-md w-full"
+        className="w-full max-w-md flex flex-col items-center"
       >
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="bg-black p-4 rounded-lg inline-block">
-              <div className="text-white font-bold text-3xl">
-                N<span className="text-campus-accent">:</span>U
-              </div>
-              <div className="text-white text-xs mt-1">EVENTERA</div>
+          <div className="mb-4">
+            <div className="text-white font-bold text-6xl tracking-tighter">
+              N<span className="text-campus-accent">:</span>U
+            </div>
+            <div className="text-white text-xl mt-2 tracking-widest">
+              EVENTERA
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">EventEra</h1>
-          <p className="text-gray-500">Sign in to access events, track attendance, and more</p>
+
+          <div className="w-full max-w-xs h-px bg-white/20 my-8" />
+          
+          <div className="text-white mb-8">
+            Log in with:
+          </div>
         </div>
 
         <Button
           onClick={handleGoogleSignIn}
-          className="w-full py-6 flex items-center justify-center space-x-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300"
+          className="w-full max-w-xs py-6 flex items-center justify-center space-x-2 bg-white hover:bg-gray-100 text-gray-800 rounded-full transition-colors"
         >
           <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
             <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
@@ -88,6 +92,10 @@ const Auth = () => {
           </svg>
           <span>Continue with Google</span>
         </Button>
+
+        <div className="text-white/60 text-sm mt-8">
+          Authenticated by Google
+        </div>
       </motion.div>
     </div>
   );
