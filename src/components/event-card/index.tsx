@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import Lightbox from "@/components/Lightbox";
