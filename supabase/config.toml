@@ -1,1 +1,5 @@
+
 project_id = "nsjyerikykwbitksdurq"
+
+[functions.increment-user-counts]
+verify_jwt = true
