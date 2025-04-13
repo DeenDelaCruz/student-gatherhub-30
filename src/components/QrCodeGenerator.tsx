@@ -15,13 +15,14 @@ const QrCodeGenerator = ({ userId }: QrCodeGeneratorProps) => {
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [existingQrCode, setExistingQrCode] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const { data, error } = await supabase
           .from("events")
-          .select("id, title, created_by")
+          .select("id, title, created_by, qr_code_data")
           .order('created_at', { ascending: false });
           
         if (error) throw error;
@@ -35,6 +36,20 @@ const QrCodeGenerator = ({ userId }: QrCodeGeneratorProps) => {
     fetchEvents();
   }, []);
 
+  useEffect(() => {
+    if (selectedEvent) {
+      // Check if the selected event has an existing QR code
+      const event = events.find(e => e.id.toString() === selectedEvent);
+      if (event && event.qr_code_data) {
+        setExistingQrCode(event.qr_code_data);
+        setQrCodeUrl(event.qr_code_data);
+      } else {
+        setExistingQrCode(null);
+        setQrCodeUrl(null);
+      }
+    }
+  }, [selectedEvent, events]);
+
   const generateQrCode = async () => {
     if (!selectedEvent) return;
     
@@ -47,6 +62,14 @@ const QrCodeGenerator = ({ userId }: QrCodeGeneratorProps) => {
       // Generate QR code URL using a service like QR Server API
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(jsonString)}&size=200x200`;
       setQrCodeUrl(qrApiUrl);
+
+      // Save the QR code URL to the database
+      const { error } = await supabase
+        .from("events")
+        .update({ qr_code_data: qrApiUrl })
+        .eq("id", selectedEvent);
+        
+      if (error) throw error;
     } catch (error) {
       console.error("Error generating QR code:", error);
     } finally {
@@ -93,21 +116,23 @@ const QrCodeGenerator = ({ userId }: QrCodeGeneratorProps) => {
           </Select>
         </div>
         
-        <Button 
-          className="w-full" 
-          onClick={generateQrCode}
-          disabled={!selectedEvent || loading}
-        >
-          {loading ? (
-            <span className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Generating...
-            </span>
-          ) : "Generate QR Code"}
-        </Button>
+        {selectedEvent && !existingQrCode && (
+          <Button 
+            className="w-full" 
+            onClick={generateQrCode}
+            disabled={!selectedEvent || loading}
+          >
+            {loading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+              </span>
+            ) : "Generate QR Code"}
+          </Button>
+        )}
         
         {qrCodeUrl && (
           <div className="mt-4 space-y-4 flex flex-col items-center">

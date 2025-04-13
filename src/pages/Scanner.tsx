@@ -1,27 +1,23 @@
+
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
-import QrScanner from "@/components/QrScanner";
 import QrCodeGenerator from "@/components/QrCodeGenerator";
 import { useNavigate } from "react-router-dom";
 import { 
   supabase, 
-  checkInUserToEvent, 
   getEventAttendees, 
   getEventInterestedUsers 
 } from "@/integrations/supabase/client";
 
 const Scanner = () => {
-  const [scanResult, setScanResult] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [attendees, setAttendees] = useState<any[]>([]);
@@ -33,7 +29,7 @@ const Scanner = () => {
   
   useEffect(() => {
     if (!user) {
-      toast.error("Please log in to use the scanner");
+      toast.error("Please log in to view this page");
       navigate("/auth");
       return;
     }
@@ -57,68 +53,6 @@ const Scanner = () => {
     
     fetchEvents();
   }, []);
-
-  const handleScanData = async (data: string) => {
-    try {
-      setProcessing(true);
-      
-      let eventId: string;
-      try {
-        const jsonData = JSON.parse(data);
-        eventId = jsonData.eventId || jsonData.event_id || jsonData.id;
-        
-        if (!eventId) {
-          toast.error("Invalid QR code format");
-          return;
-        }
-      } catch (e) {
-        eventId = data;
-      }
-      
-      console.log(`Attempting to check in user ${user?.id} to event ${eventId}`);
-      
-      const { data: eventData, error: eventError } = await supabase
-        .from("events")
-        .select("*")
-        .eq("id", eventId)
-        .maybeSingle();
-        
-      if (eventError || !eventData) {
-        toast.error("Event not found");
-        console.error("Event not found error:", eventError);
-        return;
-      }
-      
-      const attendees = await getEventAttendees(eventId);
-      
-      const isAlreadyCheckedIn = attendees.some((attendee: any) => 
-        attendee.id === user?.id
-      );
-      
-      if (isAlreadyCheckedIn) {
-        toast.info("You are already checked in to this event");
-        return;
-      }
-      
-      const success = await checkInUserToEvent(eventId, user?.id as string);
-      
-      if (success) {
-        toast.success(`Checked in to: ${eventData.title}`);
-        fetchAttendees(selectedEvent);
-      } else {
-        toast.error("Failed to check in");
-      }
-    } catch (error) {
-      console.error("Error processing scan:", error);
-      toast.error("Error processing scan");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleCancelScan = () => {
-    setScanResult(null);
-  };
 
   const fetchAttendees = async (eventId: string) => {
     if (!eventId) return;
@@ -150,44 +84,38 @@ const Scanner = () => {
       <Header />
       
       <main className="flex-1 p-4">
-        <Tabs defaultValue="scanner" className="w-full max-w-2xl mx-auto">
-          <TabsList className="grid grid-cols-3">
-            <TabsTrigger value="scanner">Scanner</TabsTrigger>
+        <Tabs defaultValue={isInfoOfficer ? "attendees" : "scanner"} className="w-full max-w-2xl mx-auto">
+          <TabsList className={`grid ${isInfoOfficer ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {!isInfoOfficer && <TabsTrigger value="scanner">Scanner</TabsTrigger>}
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
             {isInfoOfficer && <TabsTrigger value="generate">QR Code</TabsTrigger>}
           </TabsList>
           
-          <TabsContent value="scanner">
-            <Card>
-              <CardHeader>
-                <CardTitle>QR Code Scanner</CardTitle>
-                <CardDescription>Scan QR code to check-in users to events.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {scanResult ? (
-                  <div className="text-green-500 font-bold">
-                    Scan Successful: {scanResult}
-                    <Button onClick={handleCancelScan} className="ml-2">
-                      Cancel
+          {!isInfoOfficer && (
+            <TabsContent value="scanner">
+              <Card>
+                <CardHeader>
+                  <CardTitle>QR Code Scanner</CardTitle>
+                  <CardDescription>Scan QR code to check-in to events.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-center">
+                    <p>Please navigate to the event page to scan the QR code for check-in.</p>
+                    <Button onClick={() => navigate("/")} className="mt-4">
+                      Browse Events
                     </Button>
                   </div>
-                ) : (
-                  <QrScanner 
-                    onScanComplete={handleScanData}
-                    isProcessing={processing}
-                    onCancel={handleCancelScan}
-                  />
-                )}
-              </CardContent>
-              <CardFooter>
-                {user && (
-                  <p className="text-sm text-gray-500">
-                    Logged in as: {user.email}
-                  </p>
-                )}
-              </CardFooter>
-            </Card>
-          </TabsContent>
+                </CardContent>
+                <CardFooter>
+                  {user && (
+                    <p className="text-sm text-gray-500">
+                      Logged in as: {user.email}
+                    </p>
+                  )}
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          )}
           
           <TabsContent value="attendees">
             <Card>
