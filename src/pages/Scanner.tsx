@@ -24,6 +24,7 @@ const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 interface Event {
   id: string;
   title: string;
+  qr_code_data?: string | null;
 }
 
 interface Attendee {
@@ -62,6 +63,7 @@ const Scanner = () => {
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [scanSuccess, setScanSuccess] = useState<boolean | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingQrCode, setIsLoadingQrCode] = useState(false);
   const { hasRole, user, refreshProfileData } = useAuth();
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   
@@ -72,7 +74,7 @@ const Scanner = () => {
       try {
         const { data, error } = await supabase
           .from("events")
-          .select("id, title")
+          .select("id, title, qr_code_data")
           .eq("is_active", true)
           .order("event_date", { ascending: false });
           
@@ -164,15 +166,47 @@ const Scanner = () => {
     };
   }, [selectedEvent, activeTab, isInformationOfficer]);
   
+  useEffect(() => {
+    // Check if the selected event has a QR code and display it
+    if (selectedEvent) {
+      const selectedEventData = events.find(e => e.id === selectedEvent);
+      if (selectedEventData?.qr_code_data) {
+        setIsLoadingQrCode(true);
+        // Create image URL for the existing QR code
+        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selectedEventData.qr_code_data)}`;
+        setQrImageUrl(qrImageUrl);
+        setQrValue(selectedEventData.qr_code_data);
+        
+        setTimeout(() => {
+          setIsLoadingQrCode(false);
+        }, 500); // Small delay for loading state visual feedback
+      } else {
+        // Clear QR code if the selected event doesn't have one
+        setQrImageUrl("");
+        setQrValue("");
+      }
+    }
+  }, [selectedEvent, events]);
+  
   const generateQRCode = () => {
     if (!selectedEvent) {
       toast.error("Please select an event");
       return;
     }
     
+    // Check if the selected event already has a QR code
+    const selectedEventData = events.find(e => e.id === selectedEvent);
+    if (selectedEventData?.qr_code_data) {
+      // If it already has a QR code, display it directly
+      const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selectedEventData.qr_code_data)}`;
+      setQrImageUrl(qrImageUrl);
+      setQrValue(selectedEventData.qr_code_data);
+      return;
+    }
+    
     setIsGenerating(true);
     
-    // Generate a unique QR code identifier
+    // Generate a unique QR code identifier for new QR codes
     const uniqueQrCodeData = JSON.stringify({ 
       eventId: selectedEvent, 
       timestamp: new Date().toISOString(),
@@ -194,6 +228,15 @@ const Scanner = () => {
           .eq("id", selectedEvent);
         
         if (error) throw error;
+        
+        // Update local events array with the new QR code data
+        setEvents(prevEvents => 
+          prevEvents.map(event => 
+            event.id === selectedEvent 
+              ? { ...event, qr_code_data: uniqueQrCodeData } 
+              : event
+          )
+        );
         
         const eventTitle = events.find(e => e.id === selectedEvent)?.title || "Selected event";
         
@@ -344,44 +387,84 @@ const Scanner = () => {
                   <QrCode size={32} className="text-campus-accent" />
                 </div>
                 <h2 className="text-xl font-medium mt-4">
-                  {isInformationOfficer ? "Generate Event QR Code" : "Scan Event QR Code"}
+                  {isInformationOfficer ? "Event QR Code" : "Scan Event QR Code"}
                 </h2>
                 <p className="text-gray-500 text-sm mt-2">
                   {isInformationOfficer 
-                    ? "Create a QR code for event attendance tracking" 
+                    ? "View or create a QR code for event attendance tracking" 
                     : "Scan the event QR code to mark your attendance"}
                 </p>
               </div>
               
               {isInformationOfficer ? (
                 <>
-                  {!qrImageUrl ? (
-                    <div className="space-y-4">
-                      <div className="space-y-2 text-left">
-                        <Label htmlFor="eventSelect">Select an Event</Label>
-                        <Select 
-                          onValueChange={setSelectedEvent} 
-                          value={selectedEvent}
-                        >
-                          <SelectTrigger id="eventSelect">
-                            <SelectValue placeholder="Select an event" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {events.length > 0 ? (
-                              events.map((event) => (
-                                <SelectItem key={event.id} value={event.id}>
-                                  {event.title}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="no-events" disabled>
-                                No active events available
+                  <div className="space-y-4">
+                    <div className="space-y-2 text-left">
+                      <Label htmlFor="eventSelect">Select an Event</Label>
+                      <Select 
+                        onValueChange={setSelectedEvent} 
+                        value={selectedEvent}
+                      >
+                        <SelectTrigger id="eventSelect">
+                          <SelectValue placeholder="Select an event" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {events.length > 0 ? (
+                            events.map((event) => (
+                              <SelectItem key={event.id} value={event.id}>
+                                {event.title}
                               </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
+                            ))
+                          ) : (
+                            <SelectItem value="no-events" disabled>
+                              No active events available
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {isLoadingQrCode ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                       </div>
-                      
+                    ) : qrImageUrl ? (
+                      <div className="space-y-4">
+                        <div className="qr-display bg-white p-4 rounded-xl border flex justify-center">
+                          <img src={qrImageUrl} alt="QR Code" className="w-48 h-48" />
+                        </div>
+                        
+                        <div className="text-sm font-medium text-gray-700 bg-gray-50 p-2 rounded-lg break-all">
+                          Event: {events.find(e => e.id === selectedEvent)?.title}
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 flex items-center justify-center gap-1"
+                            onClick={regenerateQRCode}
+                          >
+                            <RefreshCw size={16} />
+                            New QR
+                          </Button>
+                          
+                          <Button
+                            variant="outline" 
+                            size="sm"
+                            className="flex-1 flex items-center justify-center gap-1"
+                            onClick={() => {
+                              toast.success("QR Code downloaded", {
+                                description: "QR Code image saved to your device"
+                              });
+                            }}
+                          >
+                            <Download size={16} />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
                       <Button
                         onClick={generateQRCode}
                         disabled={isGenerating || !selectedEvent}
@@ -396,44 +479,8 @@ const Scanner = () => {
                           "Generate QR Code"
                         )}
                       </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="qr-display bg-white p-4 rounded-xl border flex justify-center">
-                        <img src={qrImageUrl} alt="QR Code" className="w-48 h-48" />
-                      </div>
-                      
-                      <div className="text-sm font-medium text-gray-700 bg-gray-50 p-2 rounded-lg break-all">
-                        Event: {events.find(e => e.id === selectedEvent)?.title}
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 flex items-center justify-center gap-1"
-                          onClick={regenerateQRCode}
-                        >
-                          <RefreshCw size={16} />
-                          New QR
-                        </Button>
-                        
-                        <Button
-                          variant="outline" 
-                          size="sm"
-                          className="flex-1 flex items-center justify-center gap-1"
-                          onClick={() => {
-                            toast.success("QR Code downloaded", {
-                              description: "QR Code image saved to your device"
-                            });
-                          }}
-                        >
-                          <Download size={16} />
-                          Download
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </>
               ) : (
                 <>
