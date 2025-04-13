@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import QRCode from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 
 interface EventCardMenuProps {
   isInformationOfficer: boolean;
@@ -143,10 +143,9 @@ const EventCardMenu = ({
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-center p-6">
-            <QRCode 
+            <QRCodeSVG 
               value={id.toString()} 
-              size={200} 
-              renderAs="canvas" 
+              size={200}
               includeMargin={true}
             />
           </div>
@@ -154,13 +153,23 @@ const EventCardMenu = ({
             <Button 
               variant="outline" 
               onClick={() => {
-                const canvas = document.querySelector("canvas");
-                if (canvas) {
-                  const dataUrl = canvas.toDataURL("image/png");
-                  const link = document.createElement("a");
-                  link.href = dataUrl;
-                  link.download = `qr-code-event-${id}.png`;
-                  link.click();
+                const svg = document.querySelector("svg");
+                if (svg) {
+                  const svgData = new XMLSerializer().serializeToString(svg);
+                  const canvas = document.createElement("canvas");
+                  const ctx = canvas.getContext("2d");
+                  const img = new Image();
+                  img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx?.drawImage(img, 0, 0);
+                    const dataUrl = canvas.toDataURL("image/png");
+                    const link = document.createElement("a");
+                    link.href = dataUrl;
+                    link.download = `qr-code-event-${id}.png`;
+                    link.click();
+                  };
+                  img.src = "data:image/svg+xml;base64," + btoa(svgData);
                 }
               }}
             >
