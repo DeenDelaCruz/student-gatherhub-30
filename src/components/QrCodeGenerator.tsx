@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,8 @@ const QrCodeGenerator = ({ userId }: QrCodeGeneratorProps) => {
       
       // Generate QR code URL using a service like QR Server API
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(jsonString)}&size=200x200`;
+      
+      // Set QR code URL state
       setQrCodeUrl(qrApiUrl);
 
       // Save the QR code URL to the database
