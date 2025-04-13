@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -44,7 +43,6 @@ const EventCard = ({
   const canEdit = isInformationOfficer && createdBy === user?.id;
   const [lightboxOpen, setLightboxOpen] = useState(false);
   
-  // Use custom hook to manage event data and realtime updates
   const { active, interestedCount, checkedInCount } = useEventCardData(id, attendees, isActive);
 
   const handleViewAttendees = (e: React.MouseEvent) => {

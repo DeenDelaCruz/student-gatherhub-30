@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Download, ZoomIn, ZoomOut } from "lucide-react";
+import { X, Download, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -14,11 +14,13 @@ interface LightboxProps {
 
 const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) => {
   const [scale, setScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
   
-  // Reset zoom when opening new images
+  // Reset zoom and rotation when opening new images
   useEffect(() => {
     if (isOpen) {
       setScale(1);
+      setRotation(0);
     }
   }, [isOpen, imageSrc]);
 
@@ -30,6 +32,11 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
   const handleZoomOut = (e: React.MouseEvent) => {
     e.stopPropagation();
     setScale((prev) => Math.max(prev - 0.2, 0.5));
+  };
+  
+  const handleRotate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRotation((prev) => (prev + 90) % 360);
   };
 
   const handleDownload = async (e: React.MouseEvent) => {
@@ -81,6 +88,14 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
                 variant="secondary" 
                 size="sm" 
                 className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
+                onClick={handleRotate}
+              >
+                <RotateCw size={18} />
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
                 onClick={handleDownload}
               >
                 <Download size={18} />
@@ -102,7 +117,10 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
                 className={cn(
                   "max-w-full max-h-[90vh] object-contain transition-transform duration-200",
                 )}
-                style={{ transform: `scale(${scale})` }}
+                style={{ 
+                  transform: `scale(${scale}) rotate(${rotation}deg)`,
+                  transformOrigin: 'center center'
+                }}
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
