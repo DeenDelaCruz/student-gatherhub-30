@@ -67,8 +67,23 @@ export const markEventInterest = async (eventId: string, userId: string): Promis
       
     if (error) throw error;
     
-    // Update user's upcoming events count
-    await supabase.rpc('increment_user_upcoming_events', { user_id_param: userId });
+    // Update user's upcoming events count - using normal function call instead of rpc
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("events_upcoming")
+        .eq("id", userId)
+        .single();
+      
+      if (!profileError && profile) {
+        await supabase
+          .from("profiles")
+          .update({ events_upcoming: (profile.events_upcoming || 0) + 1 })
+          .eq("id", userId);
+      }
+    } catch (error) {
+      console.error("Error updating user's upcoming events count:", error);
+    }
     
     return true;
   } catch (error) {
@@ -87,8 +102,23 @@ export const removeEventInterest = async (eventId: string, userId: string): Prom
       
     if (error) throw error;
     
-    // Update user's upcoming events count
-    await supabase.rpc('decrement_user_upcoming_events', { user_id_param: userId });
+    // Update user's upcoming events count - using normal function call instead of rpc
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("events_upcoming")
+        .eq("id", userId)
+        .single();
+      
+      if (!profileError && profile && profile.events_upcoming && profile.events_upcoming > 0) {
+        await supabase
+          .from("profiles")
+          .update({ events_upcoming: profile.events_upcoming - 1 })
+          .eq("id", userId);
+      }
+    } catch (error) {
+      console.error("Error updating user's upcoming events count:", error);
+    }
     
     return true;
   } catch (error) {
@@ -118,8 +148,23 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
         
       if (error) throw error;
       
-      // Update user's attended events count
-      await supabase.rpc('increment_user_attended_events', { user_id_param: userId });
+      // Update user's attended events count - using normal function call instead of rpc
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("events_attended")
+          .eq("id", userId)
+          .single();
+        
+        if (!profileError && profile) {
+          await supabase
+            .from("profiles")
+            .update({ events_attended: (profile.events_attended || 0) + 1 })
+            .eq("id", userId);
+        }
+      } catch (error) {
+        console.error("Error updating user's attended events count:", error);
+      }
     }
     
     return true;
