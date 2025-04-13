@@ -13,11 +13,21 @@ export const exportUsersToExcel = (
   attendees: ExportableUser[],
   filename?: string
 ): void => {
+  // Add event name to each record
+  const attendeesWithEvent = attendees.map(attendee => ({
+    event: eventTitle,
+    name: attendee.name,
+    email: attendee.email,
+    timestamp: attendee.timestamp,
+    status: attendee.status
+  }));
+  
   // Create a worksheet for the attendees data
-  const ws = XLSX.utils.json_to_sheet(attendees);
+  const ws = XLSX.utils.json_to_sheet(attendeesWithEvent);
   
   // Set column widths
   const wscols = [
+    { wch: 30 }, // Event
     { wch: 30 }, // Name
     { wch: 40 }, // Email
     { wch: 25 }, // Timestamp
