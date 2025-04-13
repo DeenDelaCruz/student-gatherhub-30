@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Calendar from "@/components/Calendar";
-import EventCard from "@/components/EventCard";
+import EventCard from "@/components/event-card";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
