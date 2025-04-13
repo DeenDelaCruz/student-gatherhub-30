@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInterest, removeEventInterest } from "@/integrations/supabase/client";
@@ -57,7 +58,21 @@ const EventDetails = () => {
           ['event', 'info', 'reminder', 'event_reminder'].includes(notification.type)
         ) as Notification[];
         
-        setEventUpdates(validNotifications);
+        // Deduplicate notifications based on identical messages
+        const uniqueNotifications: Notification[] = [];
+        const messageSet = new Set<string>();
+        
+        validNotifications.forEach(notification => {
+          // Create a unique identifier using message and created_at (in case messages are the same but created at different times)
+          const messageIdentifier = `${notification.message}`;
+          
+          if (!messageSet.has(messageIdentifier)) {
+            messageSet.add(messageIdentifier);
+            uniqueNotifications.push(notification);
+          }
+        });
+        
+        setEventUpdates(uniqueNotifications);
       }
     } catch (error) {
       console.error("Error fetching event updates:", error);
