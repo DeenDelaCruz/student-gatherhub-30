@@ -1,6 +1,6 @@
 
 import { useState, useEffect, ReactNode } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -17,7 +17,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const fetchUserData = async (userId: string) => {
     try {
@@ -101,11 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (newSession?.user) {
             console.log("User signed in:", newSession.user.id);
             await fetchUserData(newSession.user.id);
-            
-            // Only navigate to home if we're on the auth page
-            if (location.pathname === '/auth') {
-              navigate("/", { replace: true });
-            }
+            navigate("/");
           }
         }
         
@@ -116,20 +111,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
           setRoles([]);
           setRolesWithNames([]);
-          
-          // Always navigate to auth page on sign out and replace the history
-          navigate("/auth", { replace: true });
+          navigate("/auth");
         }
         
         if (event === "TOKEN_REFRESHED" && newSession?.user) {
           console.log("Token refreshed successfully");
-          setSession(newSession);
           await fetchUserData(newSession.user.id);
         }
         
         if (event === "USER_UPDATED" && newSession?.user) {
           console.log("User updated");
-          setSession(newSession);
           await fetchUserData(newSession.user.id);
         }
         
@@ -142,7 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, location.pathname, session?.user?.id]);
+  }, [navigate]);
 
   const signOut = async () => {
     try {
@@ -153,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast.error("Error signing out. Please try again.");
       } else {
         toast.success("Successfully signed out");
-        // Let the onAuthStateChange handle the navigation
+        navigate("/auth"); // Explicitly navigate to our custom login page
       }
     } catch (error) {
       console.error("Sign out error:", error);

@@ -1,6 +1,7 @@
+
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
-import { useAuth } from "@/context/auth";
+import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { User, Calendar, LogOut, BarChart, MapPin, Clock, Heart } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,6 +24,10 @@ const Profile = () => {
   const handleLogout = async () => {
     try {
       await signOut();
+      toast.success("Logged out successfully");
+      setTimeout(() => {
+        navigate("/auth", { replace: true });
+      }, 100);
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Failed to log out. Please try again.");
