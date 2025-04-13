@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
           setRoles([]);
           setRolesWithNames([]);
-          navigate("/auth", { replace: true });
+          navigate("/auth");
         }
         
         if (event === "TOKEN_REFRESHED" && newSession?.user) {
