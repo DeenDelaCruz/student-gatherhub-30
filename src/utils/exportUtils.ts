@@ -13,7 +13,7 @@ export const exportUsersToExcel = (
   attendees: ExportableUser[],
   filename?: string
 ): void => {
-  // Create a worksheet
+  // Create a worksheet for the attendees data
   const ws = XLSX.utils.json_to_sheet(attendees);
   
   // Set column widths
@@ -27,6 +27,24 @@ export const exportUsersToExcel = (
   
   // Create a workbook
   const wb = XLSX.utils.book_new();
+  
+  // Add event title information as an additional sheet
+  const titleData = [
+    { A: 'Event Name', B: eventTitle },
+    { A: 'Export Date', B: new Date().toLocaleString() },
+    { A: 'Total Records', B: attendees.length }
+  ];
+  const titleSheet = XLSX.utils.json_to_sheet(titleData, { header: ['A', 'B'] });
+  
+  // Set column widths for the title sheet
+  const titlewscols = [
+    { wch: 20 }, // Label column
+    { wch: 50 }, // Value column
+  ];
+  titleSheet['!cols'] = titlewscols;
+  
+  // Add the sheets to the workbook
+  XLSX.utils.book_append_sheet(wb, titleSheet, 'Event Info');
   XLSX.utils.book_append_sheet(wb, ws, 'Users');
   
   // Generate Excel file name
