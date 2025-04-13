@@ -1,4 +1,3 @@
-
 import { useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
           setRoles([]);
           setRolesWithNames([]);
-          navigate("/auth", { replace: true });
+          window.location.href = "/auth";
         }
         
         if (event === "TOKEN_REFRESHED" && newSession?.user) {
@@ -144,8 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast.error("Error signing out. Please try again.");
       } else {
         toast.success("Successfully signed out");
-        // We don't need to navigate here, as the onAuthStateChange event will handle it
-        // This prevents potential double-navigation
+        window.location.href = "/auth";
       }
     } catch (error) {
       console.error("Sign out error:", error);
