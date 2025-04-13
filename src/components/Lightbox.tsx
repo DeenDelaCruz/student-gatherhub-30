@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Download, ZoomIn, ZoomOut, RotateCw, Maximize, Minimize } from "lucide-react";
+import { X, Download, ZoomIn, ZoomOut, RotateCw, ArrowLeft, ArrowRight, Maximize, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -33,9 +33,7 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
   // Handle fullscreen API
   useEffect(() => {
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        setIsFullscreen(false);
-      }
+      setIsFullscreen(!!document.fullscreenElement);
     };
     
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -65,10 +63,11 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `event-poster-${Date.now()}.jpg`;
+      link.download = `poster-${Date.now()}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to download image:', error);
     }
@@ -78,15 +77,23 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
     e.stopPropagation();
     
     try {
-      if (!isFullscreen) {
-        const element = document.querySelector('.lightbox-container') as HTMLElement;
-        if (element && document.documentElement.requestFullscreen) {
-          await element.requestFullscreen();
+      const container = document.querySelector('.lightbox-container') as HTMLElement;
+      
+      if (!isFullscreen && container) {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          await (container as any).webkitRequestFullscreen();
+        } else if ((container as any).msRequestFullscreen) {
+          await (container as any).msRequestFullscreen();
         }
       } else if (document.exitFullscreen) {
         await document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        await (document as any).webkitExitFullscreen();
+      } else if ((document as any).msExitFullscreen) {
+        await (document as any).msExitFullscreen();
       }
-      setIsFullscreen(!isFullscreen);
     } catch (error) {
       console.error('Fullscreen error:', error);
       // Fallback if fullscreen API fails
@@ -106,6 +113,16 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
     }
   };
   
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (scale > 1 && e.touches.length === 1) {
+      setIsDragging(true);
+      setStartPosition({
+        x: e.touches[0].clientX - position.x,
+        y: e.touches[0].clientY - position.y
+      });
+    }
+  };
+  
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isDragging && scale > 1) {
       setPosition({
@@ -115,7 +132,21 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
     }
   };
   
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging && scale > 1 && e.touches.length === 1) {
+      e.preventDefault();
+      setPosition({
+        x: e.touches[0].clientX - startPosition.x,
+        y: e.touches[0].clientY - startPosition.y
+      });
+    }
+  };
+  
   const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+  
+  const handleTouchEnd = () => {
     setIsDragging(false);
   };
   
@@ -129,7 +160,7 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
   // Close lightbox on escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !isFullscreen) {
         onClose();
       }
     };
@@ -141,13 +172,13 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, isFullscreen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent 
         className={cn(
-          "max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent overflow-hidden",
+          "max-w-[95vw] max-h-[95vh] p-0 border-none bg-black/90 overflow-hidden backdrop-blur-sm",
           isFullscreen && "fixed inset-0 max-w-none max-h-none w-screen h-screen rounded-none"
         )}
         onClick={(e) => e.stopPropagation()}
@@ -155,88 +186,91 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
         <div className="relative flex items-center justify-center w-full h-full lightbox-container">
           <div 
             className={cn(
-              "relative max-w-full max-h-[90vh] overflow-hidden bg-black rounded-lg shadow-2xl",
-              isFullscreen && "max-h-screen w-screen h-screen rounded-none"
+              "relative w-full h-full flex items-center justify-center overflow-hidden",
+              isFullscreen && "w-screen h-screen"
             )}
-            onClick={(e) => e.stopPropagation()}
           >
-            <div className="absolute top-2 right-2 z-50 flex gap-2">
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 flex gap-2 px-4 py-2 rounded-full bg-black/50 backdrop-blur-sm">
               <Button 
-                variant="secondary" 
-                size="sm" 
-                className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/20" 
                 onClick={handleZoomOut}
+                title="Zoom Out"
               >
-                <ZoomOut size={18} />
+                <ZoomOut size={20} />
               </Button>
               <Button 
-                variant="secondary" 
-                size="sm" 
-                className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/20" 
                 onClick={handleZoomIn}
+                title="Zoom In"
               >
-                <ZoomIn size={18} />
+                <ZoomIn size={20} />
               </Button>
               <Button 
-                variant="secondary" 
-                size="sm" 
-                className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/20" 
                 onClick={handleRotate}
+                title="Rotate"
               >
-                <RotateCw size={18} />
+                <RotateCw size={20} />
               </Button>
               <Button 
-                variant="secondary" 
-                size="sm" 
-                className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/20" 
                 onClick={toggleFullscreen}
+                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
               >
-                {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+                {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
               </Button>
               <Button 
-                variant="secondary" 
-                size="sm" 
-                className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/20" 
                 onClick={handleDownload}
+                title="Download"
               >
-                <Download size={18} />
+                <Download size={20} />
               </Button>
               <Button 
-                variant="secondary" 
-                size="sm" 
-                className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/20" 
                 onClick={onClose}
+                title="Close"
               >
-                <X size={18} />
+                <X size={20} />
               </Button>
             </div>
             
-            <div className={cn(
-              "flex items-center justify-center min-h-[200px]",
-              isFullscreen && "h-screen"
-            )}>
-              <div
-                className="cursor-grab active:cursor-grabbing"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-              >
-                <img 
-                  src={imageSrc} 
-                  alt={alt} 
-                  className={cn(
-                    "max-w-full max-h-[90vh] object-contain transition-transform duration-200",
-                    isFullscreen && "max-h-screen"
-                  )}
-                  style={{ 
-                    transform: `scale(${scale}) rotate(${rotation}deg) translate(${position.x/scale}px, ${position.y/scale}px)`,
-                    transformOrigin: 'center center'
-                  }}
-                  draggable="false"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
+            <div 
+              className={cn(
+                "flex items-center justify-center h-full w-full",
+                isDragging ? "cursor-grabbing" : scale > 1 ? "cursor-grab" : "cursor-default"
+              )}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              <img 
+                src={imageSrc} 
+                alt={alt} 
+                className="max-w-full max-h-full object-contain transition-transform duration-200 select-none"
+                style={{ 
+                  transform: `scale(${scale}) rotate(${rotation}deg) translate(${position.x/scale}px, ${position.y/scale}px)`,
+                  transformOrigin: 'center center'
+                }}
+                draggable="false"
+                onClick={(e) => e.stopPropagation()}
+              />
             </div>
           </div>
         </div>
