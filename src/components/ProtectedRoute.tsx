@@ -175,7 +175,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  // If not authenticated, redirect to login
+  // If not authenticated, redirect to login with the current location saved
   if (!user) {
     console.log("User not authenticated, redirecting to auth page");
     return <Navigate to="/auth" replace state={{ from: location }} />;
