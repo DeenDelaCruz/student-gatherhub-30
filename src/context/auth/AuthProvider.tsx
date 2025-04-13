@@ -25,7 +25,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (profileError) throw profileError;
       
-      setProfile(profileData as Profile);
+      // Add the avatar_url field if it doesn't exist
+      const profileWithAvatar = {
+        ...profileData,
+        avatar_url: profileData.avatar_url || null
+      } as Profile;
+      
+      setProfile(profileWithAvatar);
       
       // Get user roles
       const { data: rolesData, error: rolesError } = await supabase
@@ -41,6 +47,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error('Error fetching profile data:', error);
+    }
+  };
+
+  // Sign out user
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      setRoles([]);
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
     }
   };
 
@@ -98,7 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, hasRole, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, roles, loading, hasRole, refreshProfile, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -13,6 +13,10 @@ export type Profile = {
   avatar_url: string | null;
   year: string | null;
   updated_at: string | null;
+  events_attended?: number;
+  events_upcoming?: number;
+  notifications?: boolean;
+  created_at?: string;
 };
 
 // Auth context type
@@ -20,6 +24,8 @@ export interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  roles?: UserRole[];
+  signOut?: () => Promise<void>;
   hasRole: (role: UserRole) => boolean;
   refreshProfile: () => Promise<void>;
 }

@@ -1,4 +1,3 @@
-
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -23,11 +22,13 @@ const Profile = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
-      toast.success("Logged out successfully");
-      setTimeout(() => {
-        navigate("/auth", { replace: true });
-      }, 100);
+      if (signOut) {
+        await signOut();
+        toast.success("Logged out successfully");
+        setTimeout(() => {
+          navigate("/auth", { replace: true });
+        }, 100);
+      }
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Failed to log out. Please try again.");
@@ -80,7 +81,7 @@ const Profile = () => {
               <h2 className="text-xl font-medium">{profile?.name || "Loading..."}</h2>
               <p className="text-gray-500 text-sm">{profile?.email || "Loading..."}</p>
               <div className="flex flex-wrap gap-1 mt-1">
-                {roles.map((role, index) => (
+                {roles && roles.map((role, index) => (
                   <span 
                     key={index} 
                     className={`inline-block text-xs px-2 py-1 rounded-full ${
