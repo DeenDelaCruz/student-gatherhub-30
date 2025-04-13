@@ -159,8 +159,20 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
       
     if (error) throw error;
     
-    // Update the user's attended events count
-    await supabase.rpc('increment_user_events_attended', { user_id_param: userId });
+    // Update the user's attended events count - fixing the previous RPC call
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('events_attended')
+      .eq('id', userId)
+      .single();
+      
+    if (!profileError && profile) {
+      const newCount = (profile.events_attended || 0) + 1;
+      await supabase
+        .from('profiles')
+        .update({ events_attended: newCount })
+        .eq('id', userId);
+    }
     
     return true;
   } catch (error) {
