@@ -40,7 +40,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin + "/auth", // Ensure redirect comes back to our custom auth page
+          redirectTo: window.location.origin,
         },
       });
       
