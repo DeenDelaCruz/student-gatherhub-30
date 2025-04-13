@@ -1,3 +1,4 @@
+
 import { useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,6 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast.error("Error signing out. Please try again.");
       } else {
         toast.success("Successfully signed out");
+        navigate("/auth"); // Explicitly navigate to our custom login page
       }
     } catch (error) {
       console.error("Sign out error:", error);

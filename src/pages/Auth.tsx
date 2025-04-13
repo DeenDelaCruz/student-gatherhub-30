@@ -63,8 +63,8 @@ const Auth = () => {
       >
         <div className="text-center mb-8">
           <div className="mb-4">
-            <div className="text-white font-bold text-6xl tracking-tighter">
-              N<span className="text-campus-accent">:</span>U
+            <div className="text-white font-bold text-6xl tracking-tighter font-inter">
+              NEU
             </div>
             <div className="text-white text-xl mt-2 tracking-widest">
               EVENTERA
