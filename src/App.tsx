@@ -1,7 +1,7 @@
 
 import { BrowserRouter as Router, Routes, Route, useRoutes } from "react-router-dom";
 import { createRoutes } from "@/routes";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider } from "@/context/auth/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 // AppRoutes component to use the useRoutes hook

@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(null);
           setRoles([]);
           setRolesWithNames([]);
-          navigate("/auth");
+          navigate("/auth", { replace: true });
         }
         
         if (event === "TOKEN_REFRESHED" && newSession?.user) {
@@ -144,7 +144,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast.error("Error signing out. Please try again.");
       } else {
         toast.success("Successfully signed out");
-        navigate("/auth"); // Explicitly navigate to our custom login page
+        // We don't need to navigate here, as the onAuthStateChange event will handle it
+        // This prevents potential double-navigation
       }
     } catch (error) {
       console.error("Sign out error:", error);
