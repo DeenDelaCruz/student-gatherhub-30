@@ -72,9 +72,12 @@ export const markEventInterest = async (eventId: string, userId: string): Promis
       
     if (error) throw error;
     
-    // Update user profile events_upcoming count
-    const { error: profileError } = await supabase.rpc('increment_user_upcoming_events', { user_id_param: userId });
-    if (profileError) console.error('Error updating user upcoming events count:', profileError);
+    // Update user profile events_upcoming count using the edge function
+    const { error: countError } = await supabase.functions.invoke('increment-user-counts', {
+      body: { action: 'increment_upcoming', userId }
+    });
+    
+    if (countError) console.error('Error updating user upcoming events count:', countError);
     
     return true;
   } catch (error) {
@@ -94,9 +97,12 @@ export const removeEventInterest = async (eventId: string, userId: string): Prom
       
     if (error) throw error;
     
-    // Update user profile events_upcoming count
-    const { error: profileError } = await supabase.rpc('decrement_user_upcoming_events', { user_id_param: userId });
-    if (profileError) console.error('Error updating user upcoming events count:', profileError);
+    // Update user profile events_upcoming count using the edge function
+    const { error: countError } = await supabase.functions.invoke('increment-user-counts', {
+      body: { action: 'decrement_upcoming', userId }
+    });
+    
+    if (countError) console.error('Error updating user upcoming events count:', countError);
     
     return true;
   } catch (error) {
@@ -130,9 +136,12 @@ export const checkInUserToEvent = async (eventId: string, userId: string): Promi
     // Mark interest if not already interested
     await markEventInterest(eventId, userId);
     
-    // Update user profile events_attended count
-    const { error: profileError } = await supabase.rpc('increment_user_attended_events', { user_id_param: userId });
-    if (profileError) console.error('Error updating user attended events count:', profileError);
+    // Update user profile events_attended count using the edge function
+    const { error: countError } = await supabase.functions.invoke('increment-user-counts', {
+      body: { action: 'increment_attended', userId }
+    });
+    
+    if (countError) console.error('Error updating user attended events count:', countError);
     
     return true;
   } catch (error) {
