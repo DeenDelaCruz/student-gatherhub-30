@@ -1,6 +1,3 @@
-// Update the Scanner.tsx to fix the argument errors
-// Let's modify only the parts where we call the functions with incorrect arguments
-
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -13,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import QrScanner from "@/components/QrScanner";
+import QrCodeGenerator from "@/components/QrCodeGenerator";
 import { useNavigate } from "react-router-dom";
 import { 
   supabase, 
@@ -29,8 +27,9 @@ const Scanner = () => {
   const [attendees, setAttendees] = useState<any[]>([]);
   const [interestedUsers, setInterestedUsers] = useState<any[]>([]);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const navigate = useNavigate();
+  const isInfoOfficer = hasRole("information_officer") || hasRole("admin");
   
   useEffect(() => {
     if (!user) {
@@ -59,15 +58,12 @@ const Scanner = () => {
     fetchEvents();
   }, []);
 
-  // Update the handleScanData function to use the fixed function signatures
   const handleScanData = async (data: string) => {
     try {
       setProcessing(true);
       
-      // Parse QR code data
       let eventId: string;
       try {
-        // Try to parse as JSON first
         const jsonData = JSON.parse(data);
         eventId = jsonData.eventId || jsonData.event_id || jsonData.id;
         
@@ -76,13 +72,11 @@ const Scanner = () => {
           return;
         }
       } catch (e) {
-        // If not JSON, use as plain text (assuming it's the event ID)
         eventId = data;
       }
       
       console.log(`Attempting to check in user ${user?.id} to event ${eventId}`);
       
-      // Check if event exists
       const { data: eventData, error: eventError } = await supabase
         .from("events")
         .select("*")
@@ -95,7 +89,6 @@ const Scanner = () => {
         return;
       }
       
-      // Get current attendees to check if user is already checked in
       const attendees = await getEventAttendees(eventId);
       
       const isAlreadyCheckedIn = attendees.some((attendee: any) => 
@@ -107,12 +100,10 @@ const Scanner = () => {
         return;
       }
       
-      // Check in the user
       const success = await checkInUserToEvent(eventId, user?.id as string);
       
       if (success) {
         toast.success(`Checked in to: ${eventData.title}`);
-        // Updated to remove the unnecessary parameter
         fetchAttendees(selectedEvent);
       } else {
         toast.error("Failed to check in");
@@ -129,19 +120,15 @@ const Scanner = () => {
     setScanResult(null);
   };
 
-  // Update the fetchAttendees function to use the fixed function signatures
   const fetchAttendees = async (eventId: string) => {
     if (!eventId) return;
     
     setLoadingAttendees(true);
     try {
-      // Updated to only pass the eventId parameter
       const attendeesData = await getEventAttendees(eventId);
       
       setAttendees(attendeesData);
       
-      // Also update the interested users
-      // Updated to only pass the eventId parameter
       const interestedData = await getEventInterestedUsers(eventId);
       
       setInterestedUsers(interestedData);
@@ -164,9 +151,10 @@ const Scanner = () => {
       
       <main className="flex-1 p-4">
         <Tabs defaultValue="scanner" className="w-full max-w-2xl mx-auto">
-          <TabsList>
+          <TabsList className="grid grid-cols-3">
             <TabsTrigger value="scanner">Scanner</TabsTrigger>
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
+            {isInfoOfficer && <TabsTrigger value="generate">QR Code</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="scanner">
@@ -260,6 +248,12 @@ const Scanner = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          
+          {isInfoOfficer && (
+            <TabsContent value="generate">
+              {user && <QrCodeGenerator userId={user.id} />}
+            </TabsContent>
+          )}
         </Tabs>
       </main>
       
