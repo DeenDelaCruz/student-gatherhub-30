@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -10,6 +11,7 @@ import { supabase, createEventReminderNotifications } from "@/integrations/supab
 import { Event, convertSupabaseEventsToEvents } from "@/types/event";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
+import Lightbox from "@/components/Lightbox";
 
 const Index = () => {
   const { user, profile, hasRole } = useAuth();
