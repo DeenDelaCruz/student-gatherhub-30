@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -173,22 +172,40 @@ const Scanner = () => {
     
     setIsGenerating(true);
     
-    const eventInfo = JSON.stringify({ eventId: selectedEvent });
+    // Generate a unique QR code identifier
+    const uniqueQrCodeData = JSON.stringify({ 
+      eventId: selectedEvent, 
+      timestamp: new Date().toISOString(),
+      randomSeed: Math.random().toString(36).substring(2, 15)
+    });
     
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsGenerating(false);
       
-      const mockQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(eventInfo)}`;
+      const mockQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(uniqueQrCodeData)}`;
       setQrImageUrl(mockQrImageUrl);
-      setQrValue(eventInfo);
+      setQrValue(uniqueQrCodeData);
       
-      const eventTitle = events.find(e => e.id === selectedEvent)?.title || "Selected event";
-      
-      toast.success("QR Code generated", {
-        description: `QR Code for "${eventTitle}" event is ready`,
-        position: "top-center",
-        duration: 5000,
-      });
+      try {
+        // Update the event with the new QR code data
+        const { error } = await supabase
+          .from("events")
+          .update({ qr_code_data: uniqueQrCodeData })
+          .eq("id", selectedEvent);
+        
+        if (error) throw error;
+        
+        const eventTitle = events.find(e => e.id === selectedEvent)?.title || "Selected event";
+        
+        toast.success("QR Code generated", {
+          description: `QR Code for "${eventTitle}" event is ready`,
+          position: "top-center",
+          duration: 5000,
+        });
+      } catch (error) {
+        console.error("Error storing QR code:", error);
+        toast.error("Failed to save QR code");
+      }
     }, 1500);
   };
   
@@ -204,100 +221,32 @@ const Scanner = () => {
     console.log("Raw scanned data:", scannedData);
     
     try {
-      let eventId;
-      
-      const cleanedData = scannedData.trim();
-      console.log("Cleaned data:", cleanedData);
-      
+      let parsedData;
       try {
-        if (uuidRegex.test(cleanedData)) {
-          console.log("Direct UUID detected in QR code");
-          eventId = cleanedData;
-        } else {
-          const parsedData = JSON.parse(cleanedData);
-          console.log("Parsed JSON data from QR code:", parsedData);
-          
-          eventId = parsedData.eventId || parsedData.id;
-          
-          if (!eventId) {
-            for (const key in parsedData) {
-              const value = parsedData[key];
-              if (typeof value === 'string' && uuidRegex.test(value)) {
-                console.log(`Found UUID in property ${key}:`, value);
-                eventId = value;
-                break;
-              }
-            }
-          }
-          
-          if (!eventId) {
-            throw new Error("Could not find valid event ID in parsed JSON data");
-          }
-        }
+        parsedData = JSON.parse(scannedData);
       } catch (parseError) {
-        console.error("Error parsing QR code:", parseError);
-        
-        if (cleanedData.match(uuidRegex)) {
-          eventId = cleanedData;
-          console.log("Using raw string as event ID:", eventId);
-        } else {
-          const uuidMatch = cleanedData.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-          if (uuidMatch) {
-            eventId = uuidMatch[0];
-            console.log("Extracted UUID from string:", eventId);
-          } else {
-            throw new Error("Invalid QR code format: no valid event ID found");
-          }
-        }
+        throw new Error("Invalid QR code format");
       }
       
-      if (!eventId) {
-        throw new Error("Could not determine event ID from QR code");
-      }
-      
-      console.log("Using event ID for check-in:", eventId);
-      
-      const { data: eventData, error: eventCheckError } = await supabase
+      // Verify the QR code against the stored event data
+      const { data: eventData, error: eventError } = await supabase
         .from("events")
-        .select("id, title")
-        .eq("id", eventId)
-        .maybeSingle();
-        
-      if (eventCheckError) {
-        console.error("Error verifying event:", eventCheckError);
-        throw new Error(`Event verification failed: ${eventCheckError.message}`);
+        .select("id, title, qr_code_data")
+        .eq("id", parsedData.eventId)
+        .single();
+      
+      if (eventError) throw eventError;
+      
+      // Additional validation to ensure the QR code is unique and belongs to this event
+      if (!eventData || eventData.qr_code_data !== scannedData) {
+        throw new Error("Invalid or expired QR code");
       }
       
-      if (!eventData) {
-        console.error(`No event found with ID ${eventId}`);
-        throw new Error("Event not found");
-      }
-      
-      console.log("Event verified:", eventData);
-      
-      let success = false;
-      let attempts = 0;
-      let lastError = null;
-      
-      while (!success && attempts < 3) {
-        attempts++;
-        console.log(`Check-in attempt ${attempts} for user ${user.id} to event ${eventId}`);
-        
-        try {
-          success = await checkInUserToEvent(eventId, user.id);
-          if (success) break;
-        } catch (checkInError: any) {
-          console.error(`Attempt ${attempts} failed:`, checkInError);
-          lastError = checkInError;
-          if (attempts < 3) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-      }
+      // Proceed with check-in logic
+      const success = await checkInUserToEvent(eventData.id, user.id);
       
       if (success) {
         setScanSuccess(true);
-        
         toast.success(`Checked in to: ${eventData.title}`, {
           description: "Your attendance has been recorded",
         });
@@ -310,7 +259,7 @@ const Scanner = () => {
         }
       } else {
         setScanSuccess(false);
-        throw new Error(lastError?.message || `Failed to check in to the event after ${attempts} attempts`);
+        throw new Error("Failed to check in to the event");
       }
     } catch (error: any) {
       console.error("Error processing QR code:", error);
