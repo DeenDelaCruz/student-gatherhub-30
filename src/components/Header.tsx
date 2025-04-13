@@ -21,7 +21,7 @@ const Header = ({ onSearch }: HeaderProps) => {
         <div className="text-white font-bold text-xl mr-2">N
           <span className="text-campus-accent">:</span>U
         </div>
-        <p className="text-white text-[10px] opacity-70">CAMPUS EVENTS HUB</p>
+        <p className="text-white text-[10px] opacity-70">EVENTERA</p>
       </div>
       <form onSubmit={handleSearch} className="flex-1 max-w-[300px] mx-4">
         <div className="relative">

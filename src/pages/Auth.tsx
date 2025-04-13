@@ -62,7 +62,15 @@ const Auth = () => {
         className="bg-white rounded-3xl p-8 shadow-sm max-w-md w-full"
       >
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Campus Events Hub</h1>
+          <div className="flex justify-center mb-4">
+            <div className="bg-black p-4 rounded-lg inline-block">
+              <div className="text-white font-bold text-3xl">
+                N<span className="text-campus-accent">:</span>U
+              </div>
+              <div className="text-white text-xs mt-1">EVENTERA</div>
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">EventEra</h1>
           <p className="text-gray-500">Sign in to access events, track attendance, and more</p>
         </div>
 
