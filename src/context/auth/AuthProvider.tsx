@@ -1,0 +1,105 @@
+
+import { createContext, useState, useEffect } from 'react';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { AuthContextType, Profile, UserRole } from './types';
+
+// Create auth context
+export const AuthContext = createContext<AuthContextType | null>(null);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch user profile data
+  const fetchProfileData = async (userId: string) => {
+    try {
+      // Get profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) throw profileError;
+      
+      setProfile(profileData as Profile);
+      
+      // Get user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      
+      if (rolesError) throw rolesError;
+      
+      if (rolesData) {
+        const userRoles = rolesData.map(r => r.role) as UserRole[];
+        setRoles(userRoles);
+      }
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+    }
+  };
+
+  // Refresh user profile
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfileData(user.id);
+    }
+  };
+
+  // Check if user has a specific role
+  const hasRole = (role: UserRole): boolean => {
+    return roles.includes(role);
+  };
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfileData(session.user.id);
+        } else {
+          setProfile(null);
+          setRoles([]);
+        }
+        
+        setLoading(false);
+      }
+    );
+
+    // Get initial session
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          await fetchProfileData(session.user.id);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, profile, loading, hasRole, refreshProfile }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
