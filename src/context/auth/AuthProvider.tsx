@@ -25,11 +25,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (profileError) throw profileError;
       
-      // Add the avatar_url field if it doesn't exist
-      const profileWithAvatar = {
-        ...profileData,
-        avatar_url: profileData.avatar_url || null
-      } as Profile;
+      // Create a profile object that matches our Profile type
+      // including the avatar_url field which might not exist in the database
+      const profileWithAvatar: Profile = {
+        id: profileData.id,
+        name: profileData.name,
+        email: profileData.email,
+        avatar_url: null, // Set default value
+        year: profileData.year,
+        updated_at: profileData.updated_at,
+        events_attended: profileData.events_attended,
+        events_upcoming: profileData.events_upcoming,
+        notifications: profileData.notifications,
+        created_at: profileData.created_at
+      };
       
       setProfile(profileWithAvatar);
       
