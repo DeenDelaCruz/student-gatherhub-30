@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Download, ZoomIn, ZoomOut, RotateCw, Maximize } from "lucide-react";
+import { X, Download, ZoomIn, ZoomOut, RotateCw, Maximize, Minimize } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,15 +16,31 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
   
-  // Reset zoom and rotation when opening new images
+  // Reset zoom, rotation and position when opening new images
   useEffect(() => {
     if (isOpen) {
       setScale(1);
       setRotation(0);
       setIsFullscreen(false);
+      setPosition({ x: 0, y: 0 });
     }
   }, [isOpen, imageSrc]);
+
+  // Handle fullscreen API
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const handleZoomIn = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -58,10 +74,74 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
     }
   };
 
-  const toggleFullscreen = (e: React.MouseEvent) => {
+  const toggleFullscreen = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFullscreen((prev) => !prev);
+    
+    try {
+      if (!isFullscreen) {
+        const element = document.querySelector('.lightbox-container') as HTMLElement;
+        if (element && document.documentElement.requestFullscreen) {
+          await element.requestFullscreen();
+        }
+      } else if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+      setIsFullscreen(!isFullscreen);
+    } catch (error) {
+      console.error('Fullscreen error:', error);
+      // Fallback if fullscreen API fails
+      setIsFullscreen(!isFullscreen);
+    }
   };
+  
+  // Image dragging functionality
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (scale > 1) {
+      setIsDragging(true);
+      setStartPosition({
+        x: e.clientX - position.x, 
+        y: e.clientY - position.y
+      });
+    }
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && scale > 1) {
+      setPosition({
+        x: e.clientX - startPosition.x,
+        y: e.clientY - startPosition.y
+      });
+    }
+  };
+  
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+  
+  // Reset position on zoom out to 1
+  useEffect(() => {
+    if (scale <= 1) {
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [scale]);
+
+  // Close lightbox on escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -72,10 +152,10 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative flex items-center justify-center w-full h-full">
+        <div className="relative flex items-center justify-center w-full h-full lightbox-container">
           <div 
             className={cn(
-              "relative max-w-full max-h-[90vh] overflow-auto bg-black rounded-lg shadow-2xl",
+              "relative max-w-full max-h-[90vh] overflow-hidden bg-black rounded-lg shadow-2xl",
               isFullscreen && "max-h-screen w-screen h-screen rounded-none"
             )}
             onClick={(e) => e.stopPropagation()}
@@ -111,7 +191,7 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
                 className="opacity-70 hover:opacity-100 backdrop-blur-sm bg-black/30 text-white" 
                 onClick={toggleFullscreen}
               >
-                <Maximize size={18} />
+                {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
               </Button>
               <Button 
                 variant="secondary" 
@@ -135,19 +215,28 @@ const Lightbox = ({ isOpen, onClose, imageSrc, alt = "Image" }: LightboxProps) =
               "flex items-center justify-center min-h-[200px]",
               isFullscreen && "h-screen"
             )}>
-              <img 
-                src={imageSrc} 
-                alt={alt} 
-                className={cn(
-                  "max-w-full max-h-[90vh] object-contain transition-transform duration-200",
-                  isFullscreen && "max-h-screen"
-                )}
-                style={{ 
-                  transform: `scale(${scale}) rotate(${rotation}deg)`,
-                  transformOrigin: 'center center'
-                }}
-                onClick={(e) => e.stopPropagation()}
-              />
+              <div
+                className="cursor-grab active:cursor-grabbing"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
+                <img 
+                  src={imageSrc} 
+                  alt={alt} 
+                  className={cn(
+                    "max-w-full max-h-[90vh] object-contain transition-transform duration-200",
+                    isFullscreen && "max-h-screen"
+                  )}
+                  style={{ 
+                    transform: `scale(${scale}) rotate(${rotation}deg) translate(${position.x/scale}px, ${position.y/scale}px)`,
+                    transformOrigin: 'center center'
+                  }}
+                  draggable="false"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
             </div>
           </div>
         </div>
