@@ -19,19 +19,21 @@ const Profile = () => {
   const [interestedEvents, setInterestedEvents] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'attended' | 'interested'>('attended');
   const [showEvents, setShowEvents] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     try {
+      setIsLoggingOut(true);
       if (signOut) {
         await signOut();
         toast.success("Logged out successfully");
-        setTimeout(() => {
-          navigate("/auth", { replace: true });
-        }, 100);
+        navigate("/auth", { replace: true });
       }
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Failed to log out. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -299,10 +301,11 @@ const Profile = () => {
           >
             <Button 
               onClick={handleLogout}
+              disabled={isLoggingOut}
               className="w-full mt-4 bg-white hover:bg-red-50 text-red-600 border border-red-200 hover:border-red-300"
             >
               <LogOut size={18} className="mr-2" />
-              Logout
+              {isLoggingOut ? "Logging out..." : "Logout"}
             </Button>
           </motion.div>
         </motion.div>

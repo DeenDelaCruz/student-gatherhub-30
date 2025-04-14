@@ -62,12 +62,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Sign out user
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      // First update the local state to ensure UI updates immediately
       setUser(null);
       setProfile(null);
       setRoles([]);
+      
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      console.log('Successfully signed out');
+      return true;
     } catch (error) {
       console.error('Error signing out:', error);
+      // Reset state even if there's an error with Supabase
+      setUser(null);
+      setProfile(null);
+      setRoles([]);
       throw error;
     }
   };
@@ -88,6 +99,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, !!session);
+        
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          setRoles([]);
+          setLoading(false);
+          return;
+        }
+        
         setUser(session?.user ?? null);
         
         if (session?.user) {
