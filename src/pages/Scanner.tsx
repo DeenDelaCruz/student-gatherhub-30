@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -11,21 +12,33 @@ import Navigation from "@/components/Navigation";
 import QrCodeGenerator from "@/components/QrCodeGenerator";
 import QrScanner from "@/components/QrScanner";
 import { useNavigate } from "react-router-dom";
+import { Download, Users } from "lucide-react";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 import { 
   supabase, 
   getEventAttendees, 
   getEventInterestedUsers,
   checkInUserToEvent
 } from "@/integrations/supabase/client";
+import { exportUsersToExcel } from "@/utils/exportUtils";
 
 const Scanner = () => {
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedEventTitle, setSelectedEventTitle] = useState<string>("");
   const [events, setEvents] = useState<any[]>([]);
   const [attendees, setAttendees] = useState<any[]>([]);
   const [interestedUsers, setInterestedUsers] = useState<any[]>([]);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activeUsersTab, setActiveUsersTab] = useState("attendees");
   const { user, hasRole, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const isInfoOfficer = hasRole("information_officer") || hasRole("admin");
@@ -80,6 +93,8 @@ const Scanner = () => {
 
   const handleEventSelect = (eventId: string) => {
     setSelectedEvent(eventId);
+    const event = events.find(e => e.id === eventId);
+    setSelectedEventTitle(event?.title || "");
     fetchAttendees(eventId);
   };
 
@@ -134,6 +149,43 @@ const Scanner = () => {
     }
   };
 
+  const handleExportUsers = () => {
+    if (!selectedEvent || !selectedEventTitle) {
+      toast.error("Please select an event first");
+      return;
+    }
+
+    // Format attendees for export
+    const exportAttendees = attendees.map(attendee => ({
+      name: attendee.name,
+      email: attendee.email,
+      timestamp: attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : null,
+      status: "Attended"
+    }));
+
+    // Format interested users for export
+    const exportInterested = interestedUsers.map(user => ({
+      name: user.name,
+      email: user.email,
+      timestamp: null,
+      status: "Interested"
+    }));
+
+    // Combine both lists
+    const allUsers = [...exportAttendees, ...exportInterested];
+
+    // Export to Excel
+    exportUsersToExcel(selectedEventTitle, allUsers);
+    toast.success("User data exported successfully");
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  };
+
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
       <Header />
@@ -142,7 +194,7 @@ const Scanner = () => {
         <Tabs defaultValue={isInfoOfficer ? "attendees" : "scanner"} className="w-full max-w-2xl mx-auto">
           <TabsList className="grid w-full" style={{ gridTemplateColumns: isInfoOfficer ? "1fr 1fr" : "1fr 1fr" }}>
             {isStudent && <TabsTrigger value="scanner">Scanner</TabsTrigger>}
-            <TabsTrigger value="attendees">Attendees</TabsTrigger>
+            <TabsTrigger value="attendees">Users</TabsTrigger>
             {isInfoOfficer && <TabsTrigger value="generate">QR Code</TabsTrigger>}
           </TabsList>
           
@@ -196,9 +248,25 @@ const Scanner = () => {
           
           <TabsContent value="attendees">
             <Card>
-              <CardHeader>
-                <CardTitle>Event Attendees</CardTitle>
-                <CardDescription>View attendees for a specific event.</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    Event Users
+                  </CardTitle>
+                  <CardDescription>View and export event attendees and interested users</CardDescription>
+                </div>
+                {selectedEvent && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleExportUsers}
+                    className="ml-auto"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-2">
@@ -217,38 +285,83 @@ const Scanner = () => {
                   </Select>
                 </div>
                 
-                {loadingAttendees ? (
-                  <div className="flex justify-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                {selectedEvent && (
+                  <div className="space-y-4">
+                    <Tabs 
+                      value={activeUsersTab} 
+                      onValueChange={setActiveUsersTab}
+                      className="w-full"
+                    >
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="attendees">
+                          Attendees ({attendees.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="interested">
+                          Interested ({interestedUsers.length})
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="attendees" className="pt-4">
+                        {loadingAttendees ? (
+                          <div className="flex justify-center py-8">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                          </div>
+                        ) : attendees.length > 0 ? (
+                          <div className="border rounded-md overflow-hidden">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Name</TableHead>
+                                  <TableHead>Email</TableHead>
+                                  <TableHead>Check-in Time</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {attendees.map((attendee) => (
+                                  <TableRow key={attendee.id}>
+                                    <TableCell className="font-medium">{attendee.name || 'N/A'}</TableCell>
+                                    <TableCell>{attendee.email || 'N/A'}</TableCell>
+                                    <TableCell>{formatDate(attendee.check_in_time)}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : (
+                          <p className="text-center py-8 text-muted-foreground">No attendees for this event yet.</p>
+                        )}
+                      </TabsContent>
+                      
+                      <TabsContent value="interested" className="pt-4">
+                        {loadingAttendees ? (
+                          <div className="flex justify-center py-8">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
+                          </div>
+                        ) : interestedUsers.length > 0 ? (
+                          <div className="border rounded-md overflow-hidden">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Name</TableHead>
+                                  <TableHead>Email</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {interestedUsers.map((user) => (
+                                  <TableRow key={user.id}>
+                                    <TableCell className="font-medium">{user.name || 'N/A'}</TableCell>
+                                    <TableCell>{user.email || 'N/A'}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : (
+                          <p className="text-center py-8 text-muted-foreground">No interested users for this event yet.</p>
+                        )}
+                      </TabsContent>
+                    </Tabs>
                   </div>
-                ) : (
-                  <>
-                    <div className="mb-4">
-                      <h3 className="text-md font-semibold">Attendees</h3>
-                      {attendees.length > 0 ? (
-                        <ul className="list-disc pl-5">
-                          {attendees.map((attendee: any) => (
-                            <li key={attendee.id}>{attendee.name} ({attendee.email})</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-sm text-gray-500">No attendees yet.</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-md font-semibold">Interested Users</h3>
-                      {interestedUsers.length > 0 ? (
-                        <ul className="list-disc pl-5">
-                          {interestedUsers.map((user: any) => (
-                            <li key={user.id}>{user.name} ({user.email})</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-sm text-gray-500">No interested users yet.</p>
-                      )}
-                    </div>
-                  </>
                 )}
               </CardContent>
             </Card>
