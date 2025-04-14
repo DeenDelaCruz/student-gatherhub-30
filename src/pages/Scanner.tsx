@@ -10,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import QrCodeGenerator from "@/components/QrCodeGenerator";
+import QrScanner from "@/components/QrScanner";
 import { useNavigate } from "react-router-dom";
 import { 
   supabase, 
   getEventAttendees, 
-  getEventInterestedUsers 
+  getEventInterestedUsers,
+  checkInUserToEvent
 } from "@/integrations/supabase/client";
 
 const Scanner = () => {
@@ -23,7 +25,9 @@ const Scanner = () => {
   const [attendees, setAttendees] = useState<any[]>([]);
   const [interestedUsers, setInterestedUsers] = useState<any[]>([]);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
-  const { user, hasRole } = useAuth();
+  const [isScanning, setIsScanning] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { user, hasRole, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const isInfoOfficer = hasRole("information_officer") || hasRole("admin");
   
@@ -79,43 +83,119 @@ const Scanner = () => {
     fetchAttendees(eventId);
   };
 
+  const handleScanComplete = async (data: string) => {
+    if (!user) return;
+    
+    try {
+      setIsProcessing(true);
+      
+      // Parse the QR code data
+      const parsedData = JSON.parse(data);
+      
+      if (!parsedData.eventId) {
+        toast.error("Invalid QR code", {
+          description: "This QR code is not for an event check-in"
+        });
+        return;
+      }
+      
+      // Check if this is a valid event
+      const event = events.find(e => e.id === parsedData.eventId);
+      if (!event) {
+        toast.error("Event not found", {
+          description: "The event in this QR code doesn't exist or has been removed"
+        });
+        return;
+      }
+      
+      // Process check-in
+      const success = await checkInUserToEvent(parsedData.eventId, user.id);
+      
+      if (success) {
+        toast.success("Check-in successful!", {
+          description: `You have been checked in to "${event.title}"`
+        });
+        
+        // Refresh user profile to update attended events count
+        if (refreshProfile) {
+          await refreshProfile();
+        }
+        
+        // Refresh attendees list if we're viewing the same event
+        if (selectedEvent === parsedData.eventId) {
+          fetchAttendees(parsedData.eventId);
+        }
+      } else {
+        toast.error("Check-in failed", {
+          description: "You may have already checked in to this event"
+        });
+      }
+    } catch (error) {
+      console.error("Error processing QR code:", error);
+      toast.error("Failed to process QR code");
+    } finally {
+      setIsProcessing(false);
+      setIsScanning(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
       <Header />
       
       <main className="flex-1 p-4">
         <Tabs defaultValue={isInfoOfficer ? "attendees" : "scanner"} className="w-full max-w-2xl mx-auto">
-          <TabsList className={`grid ${isInfoOfficer ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {!isInfoOfficer && <TabsTrigger value="scanner">Scanner</TabsTrigger>}
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="scanner">Scanner</TabsTrigger>
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
             {isInfoOfficer && <TabsTrigger value="generate">QR Code</TabsTrigger>}
           </TabsList>
           
-          {!isInfoOfficer && (
-            <TabsContent value="scanner">
-              <Card>
-                <CardHeader>
-                  <CardTitle>QR Code Scanner</CardTitle>
-                  <CardDescription>Scan QR code to check-in to events.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center">
-                    <p>Please navigate to the event page to scan the QR code for check-in.</p>
-                    <Button onClick={() => navigate("/")} className="mt-4">
-                      Browse Events
+          <TabsContent value="scanner">
+            <Card>
+              <CardHeader>
+                <CardTitle>QR Code Scanner</CardTitle>
+                <CardDescription>Scan QR code to check-in to events.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isScanning ? (
+                  <QrScanner 
+                    onScanComplete={handleScanComplete}
+                    isProcessing={isProcessing}
+                    onCancel={() => setIsScanning(false)}
+                  />
+                ) : (
+                  <div className="text-center space-y-6">
+                    <div className="w-24 h-24 mx-auto bg-blue-50 rounded-full flex items-center justify-center">
+                      <img 
+                        src="/lovable-uploads/8b012360-29f5-4cf4-958a-3e9ada2436d3.png" 
+                        alt="QR Code Icon" 
+                        className="w-16 h-16"
+                      />
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-semibold">Scan Event QR Code</h3>
+                      <p className="text-gray-500 text-sm mt-1">
+                        Scan the event QR code to mark your attendance
+                      </p>
+                    </div>
+                    
+                    <Button onClick={() => setIsScanning(true)} className="w-full">
+                      Scan QR Code
                     </Button>
                   </div>
-                </CardContent>
-                <CardFooter>
-                  {user && (
-                    <p className="text-sm text-gray-500">
-                      Logged in as: {user.email}
-                    </p>
-                  )}
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          )}
+                )}
+              </CardContent>
+              <CardFooter>
+                {user && (
+                  <p className="text-sm text-gray-500">
+                    Logged in as: {user.email}
+                  </p>
+                )}
+              </CardFooter>
+            </Card>
+          </TabsContent>
           
           <TabsContent value="attendees">
             <Card>
