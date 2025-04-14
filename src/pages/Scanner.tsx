@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -155,7 +154,6 @@ const Scanner = () => {
       return;
     }
 
-    // Format attendees for export
     const exportAttendees = attendees.map(attendee => ({
       name: attendee.name,
       email: attendee.email,
@@ -163,7 +161,6 @@ const Scanner = () => {
       status: "Attended"
     }));
 
-    // Format interested users for export
     const exportInterested = interestedUsers.map(user => ({
       name: user.name,
       email: user.email,
@@ -171,10 +168,8 @@ const Scanner = () => {
       status: "Interested"
     }));
 
-    // Combine both lists
     const allUsers = [...exportAttendees, ...exportInterested];
 
-    // Export to Excel with separate sheets
     exportUsersToExcel(selectedEventTitle, allUsers);
     toast.success("User data exported successfully");
   };
@@ -256,7 +251,7 @@ const Scanner = () => {
                   </CardTitle>
                   <CardDescription>View and export event attendees and interested users</CardDescription>
                 </div>
-                {selectedEvent && (
+                {selectedEvent && isInfoOfficer && (
                   <Button 
                     variant="outline" 
                     size="sm" 
