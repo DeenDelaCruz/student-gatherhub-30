@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -30,6 +29,7 @@ const Scanner = () => {
   const { user, hasRole, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const isInfoOfficer = hasRole("information_officer") || hasRole("admin");
+  const isStudent = !isInfoOfficer;
   
   useEffect(() => {
     if (!user) {
@@ -89,7 +89,6 @@ const Scanner = () => {
     try {
       setIsProcessing(true);
       
-      // Parse the QR code data
       const parsedData = JSON.parse(data);
       
       if (!parsedData.eventId) {
@@ -99,7 +98,6 @@ const Scanner = () => {
         return;
       }
       
-      // Check if this is a valid event
       const event = events.find(e => e.id === parsedData.eventId);
       if (!event) {
         toast.error("Event not found", {
@@ -108,7 +106,6 @@ const Scanner = () => {
         return;
       }
       
-      // Process check-in
       const success = await checkInUserToEvent(parsedData.eventId, user.id);
       
       if (success) {
@@ -116,12 +113,10 @@ const Scanner = () => {
           description: `You have been checked in to "${event.title}"`
         });
         
-        // Refresh user profile to update attended events count
         if (refreshProfile) {
           await refreshProfile();
         }
         
-        // Refresh attendees list if we're viewing the same event
         if (selectedEvent === parsedData.eventId) {
           fetchAttendees(parsedData.eventId);
         }
@@ -145,57 +140,59 @@ const Scanner = () => {
       
       <main className="flex-1 p-4">
         <Tabs defaultValue={isInfoOfficer ? "attendees" : "scanner"} className="w-full max-w-2xl mx-auto">
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="scanner">Scanner</TabsTrigger>
+          <TabsList className="grid w-full" style={{ gridTemplateColumns: isInfoOfficer ? "1fr 1fr" : "1fr 1fr" }}>
+            {isStudent && <TabsTrigger value="scanner">Scanner</TabsTrigger>}
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
             {isInfoOfficer && <TabsTrigger value="generate">QR Code</TabsTrigger>}
           </TabsList>
           
-          <TabsContent value="scanner">
-            <Card>
-              <CardHeader>
-                <CardTitle>QR Code Scanner</CardTitle>
-                <CardDescription>Scan QR code to check-in to events.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isScanning ? (
-                  <QrScanner 
-                    onScanComplete={handleScanComplete}
-                    isProcessing={isProcessing}
-                    onCancel={() => setIsScanning(false)}
-                  />
-                ) : (
-                  <div className="text-center space-y-6">
-                    <div className="w-24 h-24 mx-auto bg-blue-50 rounded-full flex items-center justify-center">
-                      <img 
-                        src="/lovable-uploads/8b012360-29f5-4cf4-958a-3e9ada2436d3.png" 
-                        alt="QR Code Icon" 
-                        className="w-16 h-16"
-                      />
+          {isStudent && (
+            <TabsContent value="scanner">
+              <Card>
+                <CardHeader>
+                  <CardTitle>QR Code Scanner</CardTitle>
+                  <CardDescription>Scan QR code to check-in to events.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isScanning ? (
+                    <QrScanner 
+                      onScanComplete={handleScanComplete}
+                      isProcessing={isProcessing}
+                      onCancel={() => setIsScanning(false)}
+                    />
+                  ) : (
+                    <div className="text-center space-y-6">
+                      <div className="w-24 h-24 mx-auto bg-blue-50 rounded-full flex items-center justify-center">
+                        <img 
+                          src="/lovable-uploads/8b012360-29f5-4cf4-958a-3e9ada2436d3.png" 
+                          alt="QR Code Icon" 
+                          className="w-16 h-16"
+                        />
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-semibold">Scan Event QR Code</h3>
+                        <p className="text-gray-500 text-sm mt-1">
+                          Scan the event QR code to mark your attendance
+                        </p>
+                      </div>
+                      
+                      <Button onClick={() => setIsScanning(true)} className="w-full">
+                        Scan QR Code
+                      </Button>
                     </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold">Scan Event QR Code</h3>
-                      <p className="text-gray-500 text-sm mt-1">
-                        Scan the event QR code to mark your attendance
-                      </p>
-                    </div>
-                    
-                    <Button onClick={() => setIsScanning(true)} className="w-full">
-                      Scan QR Code
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter>
-                {user && (
-                  <p className="text-sm text-gray-500">
-                    Logged in as: {user.email}
-                  </p>
-                )}
-              </CardFooter>
-            </Card>
-          </TabsContent>
+                  )}
+                </CardContent>
+                <CardFooter>
+                  {user && (
+                    <p className="text-sm text-gray-500">
+                      Logged in as: {user.email}
+                    </p>
+                  )}
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          )}
           
           <TabsContent value="attendees">
             <Card>
