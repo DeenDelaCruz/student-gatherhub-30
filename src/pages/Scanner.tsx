@@ -174,7 +174,7 @@ const Scanner = () => {
     // Combine both lists
     const allUsers = [...exportAttendees, ...exportInterested];
 
-    // Export to Excel
+    // Export to Excel with separate sheets
     exportUsersToExcel(selectedEventTitle, allUsers);
     toast.success("User data exported successfully");
   };
