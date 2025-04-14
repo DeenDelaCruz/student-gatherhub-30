@@ -40,7 +40,7 @@ const Scanner = () => {
       try {
         const { data, error } = await supabase
           .from("events")
-          .select("id, title");
+          .select("id, title, qr_code_data");
           
         if (error) throw error;
         
