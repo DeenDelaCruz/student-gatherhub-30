@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDistanceToNow, subMinutes, format } from "date-fns";
+import { formatDistanceToNow, subMinutes, format, parseISO } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -835,14 +835,135 @@ const Admin = () => {
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
             </TabsList>
+            
             <TabsContent value="events">
-              {/* Add event-related content here */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Event Management</CardTitle>
+                  <CardDescription>Manage all events</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {events.map((event) => (
+                        <TableRow key={event.id}>
+                          <TableCell className="font-medium">{event.title}</TableCell>
+                          <TableCell>{format(parseISO(event.event_date), 'MMM d, yyyy')}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteEvent(event.id)}
+                              disabled={actionLoading[`event-${event.id}`]}
+                            >
+                              {actionLoading[`event-${event.id}`] ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             </TabsContent>
+
             <TabsContent value="users">
-              {/* Add user-related content here */}
+              <div className="grid gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Information Officers</CardTitle>
+                    <CardDescription>Manage information officer roles</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {infoOfficers.map((officer) => (
+                          <TableRow key={officer.user_id}>
+                            <TableCell className="font-medium">{officer.profiles.name}</TableCell>
+                            <TableCell>{officer.profiles.email}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDemoteUser(officer.user_id)}
+                                disabled={actionLoading[`user-${officer.user_id}`]}
+                              >
+                                {actionLoading[`user-${officer.user_id}`] ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
+                                ) : (
+                                  <UserMinus className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Students</CardTitle>
+                    <CardDescription>Promote students to information officers</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {students.map((student) => (
+                          <TableRow key={student.user_id}>
+                            <TableCell className="font-medium">{student.profiles.name}</TableCell>
+                            <TableCell>{student.profiles.email}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePromoteStudent(student.user_id)}
+                                disabled={actionLoading[`student-${student.user_id}`]}
+                              >
+                                {actionLoading[`student-${student.user_id}`] ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary" />
+                                ) : (
+                                  <UserPlus className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
+
             <TabsContent value="activity">
-              {/* Add activity-related content here */}
+              {/* Add activity tab content here */}
             </TabsContent>
           </Tabs>
         </motion.div>
