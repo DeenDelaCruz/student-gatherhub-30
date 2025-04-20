@@ -49,10 +49,8 @@ const Admin = () => {
   const [clearingRecords, setClearingRecords] = useState<boolean>(false);
   const [eventsWithStats, setEventsWithStats] = useState<any[]>([]);
 
-  // Define fetchVisitorsDirectly function only once
   const fetchVisitorsDirectly = async () => {
     try {
-      // Get distinct user_id with most recent visit_time and now use the user_name column
       const { data: visitData, error: visitError } = await supabase
         .from('user_visits')
         .select('user_id, visit_time, user_name')
@@ -66,9 +64,7 @@ const Admin = () => {
         return;
       }
       
-      // If visit data has user_name, we can use it directly
       if (visitData && visitData.length > 0) {
-        // We still need to get emails for the visitors
         const userIds = visitData.map(visit => visit.user_id);
         
         const { data: profileData, error: profileError } = await supabase
@@ -80,7 +76,6 @@ const Admin = () => {
           console.error("Error fetching visitor profiles:", profileError);
           setRecentVisitors([]);
         } else {
-          // Merge visit data with profile data, using the user_name from user_visits
           const visitors = visitData.map(visit => {
             const profile = profileData?.find(p => p.id === visit.user_id);
             return {
@@ -105,7 +100,6 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    // Check if user has admin role
     if (!hasRole('admin')) {
       navigate('/');
       return;
@@ -115,15 +109,12 @@ const Admin = () => {
       try {
         setLoading(true);
         
-        // Fetch total users count
         const users = await getTotalUsers();
         setTotalUsers(users);
         
-        // Fetch total events count
         const events = await getTotalEvents();
         setTotalEvents(events);
         
-        // Fetch information officers - using the same approach as in People.tsx
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -163,7 +154,6 @@ const Admin = () => {
           }
         }
         
-        // Fetch students, but exclude those who are also information officers
         const { data: studentRoleData, error: studentRoleError } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -180,7 +170,6 @@ const Admin = () => {
           if (studentRoleData && studentRoleData.length > 0) {
             const studentIds = studentRoleData.map(item => item.user_id);
             
-            // Get information officer IDs to filter them out
             const { data: officerRoleData, error: officerCheckError } = await supabase
               .from('user_roles')
               .select('user_id')
@@ -195,7 +184,6 @@ const Admin = () => {
                 description: "Failed to filter students"
               });
             } else {
-              // Filter out users who have both roles
               const officerUserIds = officerRoleData ? officerRoleData.map(item => item.user_id) : [];
               const pureStudentIds = studentIds.filter(id => !officerUserIds.includes(id));
               
@@ -227,11 +215,9 @@ const Admin = () => {
           }
         }
         
-        // Fetch all events
         const allEvents = await getAllEvents();
         setEvents(allEvents);
         
-        // Get actual online users based on recent visits in the last 15 minutes
         const fifteenMinutesAgo = subMinutes(new Date(), 15).toISOString();
         
         const { data: onlineVisitorsData, error: onlineVisitorsError } = await supabase
@@ -243,7 +229,6 @@ const Admin = () => {
           console.error("Error fetching online users:", onlineVisitorsError);
           setOnlineUsers(0);
         } else {
-          // Count distinct users who visited in the last 15 minutes
           const uniqueUserIds = new Set();
           onlineVisitorsData?.forEach(visit => uniqueUserIds.add(visit.user_id));
           setOnlineUsers(uniqueUserIds.size);
@@ -264,7 +249,6 @@ const Admin = () => {
       try {
         setLoadingVisitors(true);
         
-        // First check if the user_visits table exists
         const { count, error: tableCheckError } = await supabase
           .from('user_visits')
           .select('*', { count: 'exact', head: true })
@@ -277,13 +261,11 @@ const Admin = () => {
           return;
         }
         
-        // Try to use get_recent_visitors function first, which should be updated to include user_name
         try {
           const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
           
           if (error) {
             console.error("Error calling get_recent_visitors function:", error);
-            // If function fails, fallback to direct query
             fetchVisitorsDirectly();
           } else {
             setRecentVisitors(data || []);
@@ -291,7 +273,6 @@ const Admin = () => {
           }
         } catch (functionError) {
           console.error("RPC function error:", functionError);
-          // Fallback to direct query
           fetchVisitorsDirectly();
         }
       } catch (error) {
@@ -301,9 +282,6 @@ const Admin = () => {
       }
     };
     
-    fetchStats();
-    fetchRecentVisitors();
-
     const fetchEventsWithStats = async () => {
       try {
         const { data: eventsData, error: eventsError } = await supabase
@@ -313,7 +291,6 @@ const Admin = () => {
           
         if (eventsError) throw eventsError;
         
-        // Get interest and attendance counts for each event
         const eventsWithCounts = await Promise.all((eventsData || []).map(async (event) => {
           const [interestedCount, attendeeCount] = await Promise.all([
             getEventInterestCount(event.id),
@@ -334,9 +311,10 @@ const Admin = () => {
       }
     };
     
+    fetchStats();
+    fetchRecentVisitors();
     fetchEventsWithStats();
     
-    // Refresh stats every 30 seconds
     const interval = setInterval(() => {
       fetchStats();
       fetchRecentVisitors();
@@ -348,11 +326,9 @@ const Admin = () => {
   const onlinePercentage = totalUsers > 0 ? Math.round((onlineUsers / totalUsers) * 100) : 0;
 
   const handleDemoteUser = async (userId: string) => {
-    // Set loading state for this specific user
     setActionLoading(prev => ({ ...prev, [`user-${userId}`]: true }));
     
     try {
-      // First check if the user already has a student role
       const { data: existingStudentRole, error: checkError } = await supabase
         .from('user_roles')
         .select('*')
@@ -362,8 +338,6 @@ const Admin = () => {
         
       if (checkError) throw checkError;
       
-      // Begin transaction
-      // Remove information_officer role
       const { error: deleteError } = await supabase
         .from('user_roles')
         .delete()
@@ -372,7 +346,6 @@ const Admin = () => {
         
       if (deleteError) throw deleteError;
       
-      // If student role doesn't exist, add it
       if (!existingStudentRole) {
         const { error: insertError } = await supabase
           .from('user_roles')
@@ -386,7 +359,6 @@ const Admin = () => {
         description: "User demoted to student successfully"
       });
       
-      // Refresh the information officers list
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -412,7 +384,6 @@ const Admin = () => {
         setInfoOfficers([]);
       }
       
-      // Refresh the students list
       const { data: studentRoleData, error: studentRoleError } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -445,13 +416,11 @@ const Admin = () => {
         description: "An error occurred while demoting user"
       });
     } finally {
-      // Clear loading state for this specific user
       setActionLoading(prev => ({ ...prev, [`user-${userId}`]: false }));
     }
   };
 
   const handlePromoteStudent = async (userId: string) => {
-    // Set loading state for this specific student
     setActionLoading(prev => ({ ...prev, [`student-${userId}`]: true }));
     
     try {
@@ -463,7 +432,6 @@ const Admin = () => {
           description: "Student promoted to information officer successfully"
         });
         
-        // Refresh the information officers list
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -489,7 +457,6 @@ const Admin = () => {
           setInfoOfficers([]);
         }
         
-        // Refresh the students list by getting only users with student role
         const { data: studentRoleData, error: studentRoleError } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -497,38 +464,20 @@ const Admin = () => {
           
         if (studentRoleError) throw studentRoleError;
         
-        // Filter out users who also have information_officer role
         if (studentRoleData && studentRoleData.length > 0) {
           const studentIds = studentRoleData.map(item => item.user_id);
           
-          // Check which of these students also have information_officer role
-          const { data: officerRoleData, error: officerCheckError } = await supabase
-            .from('user_roles')
-            .select('user_id')
-            .eq('role', 'information_officer')
-            .in('user_id', studentIds);
+          const { data: studentProfileData, error: studentProfileError } = await supabase
+            .from('profiles')
+            .select('id, name, email, year, events_attended')
+            .in('id', studentIds);
             
-          if (officerCheckError) throw officerCheckError;
+          if (studentProfileError) throw studentProfileError;
           
-          // Filter out users who have both roles
-          const officerUserIds = officerRoleData ? officerRoleData.map(item => item.user_id) : [];
-          const pureStudentIds = studentIds.filter(id => !officerUserIds.includes(id));
-          
-          if (pureStudentIds.length > 0) {
-            const { data: studentProfileData, error: studentProfileError } = await supabase
-              .from('profiles')
-              .select('id, name, email, year, events_attended')
-              .in('id', pureStudentIds);
-              
-            if (studentProfileError) throw studentProfileError;
-            
-            setStudents(studentProfileData ? studentProfileData.map(profile => ({
-              user_id: profile.id,
-              profiles: profile
-            })) : []);
-          } else {
-            setStudents([]);
-          }
+          setStudents(studentProfileData ? studentProfileData.map(profile => ({
+            user_id: profile.id,
+            profiles: profile
+          })) : []);
         } else {
           setStudents([]);
         }
@@ -547,13 +496,11 @@ const Admin = () => {
         description: "An error occurred while promoting student"
       });
     } finally {
-      // Clear loading state for this specific student
       setActionLoading(prev => ({ ...prev, [`student-${userId}`]: false }));
     }
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    // Set loading state for this specific event
     setActionLoading(prev => ({ ...prev, [`event-${eventId}`]: true }));
     
     try {
@@ -564,10 +511,8 @@ const Admin = () => {
           title: "Success",
           description: "Event deleted successfully"
         });
-        // Refresh the events list
         const allEvents = await getAllEvents();
         setEvents(allEvents);
-        // Update total events count
         const totalEvents = await getTotalEvents();
         setTotalEvents(totalEvents);
       } else {
@@ -585,7 +530,6 @@ const Admin = () => {
         description: "An error occurred while deleting event"
       });
     } finally {
-      // Clear loading state for this specific event
       setActionLoading(prev => ({ ...prev, [`event-${eventId}`]: false }));
     }
   };
@@ -595,7 +539,6 @@ const Admin = () => {
     try {
       const success = await clearVisitorRecords();
       if (success) {
-        // Refresh the visitor data if records were cleared successfully
         setRecentVisitors([]);
       }
     } finally {
@@ -603,13 +546,10 @@ const Admin = () => {
     }
   };
 
-  // Refresh visitor records after deletion
   const handleVisitorDeleted = () => {
-    // Refresh the visitor data
     setLoadingVisitors(true);
     const fetchRecentVisitors = async () => {
       try {
-        // First check if the user_visits table exists
         const { count, error: tableCheckError } = await supabase
           .from('user_visits')
           .select('*', { count: 'exact', head: true })
@@ -622,13 +562,11 @@ const Admin = () => {
           return;
         }
         
-        // Try to use get_recent_visitors function first, which should be updated to include user_name
         try {
           const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
           
           if (error) {
             console.error("Error calling get_recent_visitors function:", error);
-            // If function fails, fallback to direct query
             fetchVisitorsDirectly();
           } else {
             setRecentVisitors(data || []);
@@ -636,7 +574,6 @@ const Admin = () => {
           }
         } catch (functionError) {
           console.error("RPC function error:", functionError);
-          // Fallback to direct query
           fetchVisitorsDirectly();
         }
       } catch (error) {
@@ -676,7 +613,6 @@ const Admin = () => {
           <p className="text-gray-500">System statistics and management</p>
         </motion.div>
         
-        {/* Add the EventStatistics component before the stats cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -686,9 +622,7 @@ const Admin = () => {
           <EventStatistics events={eventsWithStats} />
         </motion.div>
         
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Users Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -725,7 +659,6 @@ const Admin = () => {
             </Card>
           </motion.div>
           
-          {/* Events Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -753,7 +686,6 @@ const Admin = () => {
             </Card>
           </motion.div>
 
-          {/* Recent Activity Card with ScrollArea */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -842,7 +774,6 @@ const Admin = () => {
           </motion.div>
         </div>
         
-        {/* System Status Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -888,7 +819,6 @@ const Admin = () => {
           </Card>
         </motion.div>
 
-        {/* Management Tabs */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -896,3 +826,26 @@ const Admin = () => {
           className="mb-6"
         >
           <Tabs defaultValue="events">
+            <TabsList>
+              <TabsTrigger value="events">Events</TabsTrigger>
+              <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+            </TabsList>
+            <TabsContent value="events">
+              {/* Add event-related content here */}
+            </TabsContent>
+            <TabsContent value="users">
+              {/* Add user-related content here */}
+            </TabsContent>
+            <TabsContent value="activity">
+              {/* Add activity-related content here */}
+            </TabsContent>
+          </Tabs>
+        </motion.div>
+      </main>
+      <Navigation />
+    </div>
+  );
+};
+
+export default Admin;
