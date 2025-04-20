@@ -53,7 +53,6 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
       };
     };
 
-    console.log(`Filtering events for month: ${selectedMonth}`);
     setFilteredEvents(filterEventsByMonth(events, selectedMonth));
   }, [selectedMonth, events]);
 
@@ -81,7 +80,6 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
   }));
 
   const handleMonthChange = (value: string) => {
-    console.log(`Month changed to: ${value}`);
     setSelectedMonth(value);
   };
 
@@ -133,7 +131,7 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
           </CardContent>
         </Card>
 
-        {filteredEvents.past.length > 0 && (
+        {filteredEvents.past.length > 0 ? (
           <Card>
             <CardHeader>
               <CardTitle>Attendance Overview</CardTitle>
@@ -157,6 +155,16 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
                   <Bar dataKey="attended" fill="#82ca9d" />
                 </BarChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Attendance Overview</CardTitle>
+              <CardDescription>No past events in this month to display</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center h-[200px] text-muted-foreground">
+              No data available for the selected month
             </CardContent>
           </Card>
         )}
