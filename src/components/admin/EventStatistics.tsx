@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,29 +21,37 @@ interface EventStatisticsProps {
 
 export const EventStatistics = ({ events }: EventStatisticsProps) => {
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
+  const [filteredEvents, setFilteredEvents] = useState<{
+    upcoming: Event[];
+    past: Event[];
+  }>({ upcoming: [], past: [] });
 
-  const filterEventsByMonth = (events: Event[], monthDate: string) => {
-    const start = startOfMonth(parseISO(monthDate + '-01'));
-    const end = endOfMonth(start);
-    
-    return {
-      upcoming: events.filter(event => {
-        const eventDate = parseISO(event.event_date);
-        return isAfter(eventDate, new Date());
-      }),
-      past: events.filter(event => {
-        const eventDate = parseISO(event.event_date);
-        return isBefore(eventDate, new Date());
-      })
+  // Update filtered events whenever selectedMonth or events change
+  useEffect(() => {
+    const filterEventsByMonth = (eventsToFilter: Event[], monthDate: string) => {
+      const start = startOfMonth(parseISO(monthDate + '-01'));
+      const end = endOfMonth(start);
+      const currentDate = new Date();
+      
+      return {
+        upcoming: eventsToFilter.filter(event => {
+          const eventDate = parseISO(event.event_date);
+          return isAfter(eventDate, currentDate);
+        }),
+        past: eventsToFilter.filter(event => {
+          const eventDate = parseISO(event.event_date);
+          return isBefore(eventDate, currentDate);
+        })
+      };
     };
-  };
 
-  const { upcoming, past } = filterEventsByMonth(events, selectedMonth);
+    setFilteredEvents(filterEventsByMonth(events, selectedMonth));
+  }, [selectedMonth, events]);
 
-  // Calculate total stats for the month
+  // Calculate total stats for the month based on filtered events
   const totalStats = {
-    interested: past.reduce((sum, event) => sum + (event.interestedCount || 0), 0),
-    attended: past.reduce((sum, event) => sum + (event.attendeeCount || 0), 0)
+    interested: filteredEvents.past.reduce((sum, event) => sum + (event.interestedCount || 0), 0),
+    attended: filteredEvents.past.reduce((sum, event) => sum + (event.attendeeCount || 0), 0)
   };
 
   // Generate last 12 months for the dropdown
@@ -56,18 +64,22 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
     };
   });
 
-  // Prepare data for the chart
-  const chartData = past.map(event => ({
+  // Prepare data for the chart from filtered past events
+  const chartData = filteredEvents.past.map(event => ({
     name: event.title,
     interested: event.interestedCount || 0,
     attended: event.attendeeCount || 0
   }));
 
+  const handleMonthChange = (value: string) => {
+    setSelectedMonth(value);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Monthly Statistics</h2>
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+        <Select value={selectedMonth} onValueChange={handleMonthChange}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select month" />
           </SelectTrigger>
@@ -92,11 +104,11 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">Total Events</p>
-                  <p className="text-2xl font-bold">{past.length + upcoming.length}</p>
+                  <p className="text-2xl font-bold">{filteredEvents.past.length + filteredEvents.upcoming.length}</p>
                 </div>
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">Past Events</p>
-                  <p className="text-2xl font-bold">{past.length}</p>
+                  <p className="text-2xl font-bold">{filteredEvents.past.length}</p>
                 </div>
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">Total Interested</p>
@@ -111,7 +123,7 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
           </CardContent>
         </Card>
 
-        {past.length > 0 && (
+        {filteredEvents.past.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Attendance Overview</CardTitle>
@@ -144,7 +156,7 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
         <Card>
           <CardHeader>
             <CardTitle>Upcoming Events</CardTitle>
-            <CardDescription>{upcoming.length} events scheduled</CardDescription>
+            <CardDescription>{filteredEvents.upcoming.length} events scheduled</CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px]">
@@ -157,7 +169,7 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcoming.map((event) => (
+                  {filteredEvents.upcoming.map((event) => (
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.title}</TableCell>
                       <TableCell>{format(parseISO(event.event_date), 'MMM d, yyyy')}</TableCell>
@@ -173,7 +185,7 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
         <Card>
           <CardHeader>
             <CardTitle>Past Events</CardTitle>
-            <CardDescription>{past.length} events completed</CardDescription>
+            <CardDescription>{filteredEvents.past.length} events completed</CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px]">
@@ -187,7 +199,7 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {past.map((event) => (
+                  {filteredEvents.past.map((event) => (
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.title}</TableCell>
                       <TableCell>{format(parseISO(event.event_date), 'MMM d, yyyy')}</TableCell>
