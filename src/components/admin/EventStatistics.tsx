@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, startOfMonth, endOfMonth, isAfter, isBefore, parseISO } from 'date-fns';
-import { Chart } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface Event {
   id: string;
@@ -118,22 +118,23 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
               <CardDescription>Interest vs Attendance comparison</CardDescription>
             </CardHeader>
             <CardContent>
-              <Chart
-                type="bar"
-                data={chartData}
-                height={200}
-                options={{
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      title: {
-                        display: true,
-                        text: 'Number of People'
-                      }
-                    }
-                  }
-                }}
-              />
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis 
+                    label={{ 
+                      value: 'Number of People', 
+                      angle: -90, 
+                      position: 'insideLeft' 
+                    }}
+                  />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="interested" fill="#8884d8" />
+                  <Bar dataKey="attended" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         )}

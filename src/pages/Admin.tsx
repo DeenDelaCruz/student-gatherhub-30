@@ -307,7 +307,11 @@ const Admin = () => {
         setEventsWithStats(eventsWithCounts);
       } catch (error) {
         console.error("Error fetching events with stats:", error);
-        toast.error("Failed to load event statistics");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load event statistics"
+        });
       }
     };
     
