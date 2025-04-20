@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, startOfMonth, endOfMonth, isAfter, isBefore, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isAfter, isBefore, parseISO, isWithinInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface Event {
@@ -24,7 +24,8 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
   const [filteredEvents, setFilteredEvents] = useState<{
     upcoming: Event[];
     past: Event[];
-  }>({ upcoming: [], past: [] });
+    all: Event[];
+  }>({ upcoming: [], past: [], all: [] });
 
   // Update filtered events whenever selectedMonth or events change
   useEffect(() => {
@@ -33,18 +34,26 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
       const end = endOfMonth(start);
       const currentDate = new Date();
       
+      // First filter all events to only include those in the selected month
+      const eventsInSelectedMonth = eventsToFilter.filter(event => {
+        const eventDate = parseISO(event.event_date);
+        return isWithinInterval(eventDate, { start, end });
+      });
+      
       return {
-        upcoming: eventsToFilter.filter(event => {
+        upcoming: eventsInSelectedMonth.filter(event => {
           const eventDate = parseISO(event.event_date);
           return isAfter(eventDate, currentDate);
         }),
-        past: eventsToFilter.filter(event => {
+        past: eventsInSelectedMonth.filter(event => {
           const eventDate = parseISO(event.event_date);
           return isBefore(eventDate, currentDate);
-        })
+        }),
+        all: eventsInSelectedMonth
       };
     };
 
+    console.log(`Filtering events for month: ${selectedMonth}`);
     setFilteredEvents(filterEventsByMonth(events, selectedMonth));
   }, [selectedMonth, events]);
 
@@ -72,6 +81,7 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
   }));
 
   const handleMonthChange = (value: string) => {
+    console.log(`Month changed to: ${value}`);
     setSelectedMonth(value);
   };
 
@@ -104,7 +114,7 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">Total Events</p>
-                  <p className="text-2xl font-bold">{filteredEvents.past.length + filteredEvents.upcoming.length}</p>
+                  <p className="text-2xl font-bold">{filteredEvents.all.length}</p>
                 </div>
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">Past Events</p>
@@ -176,6 +186,13 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
                       <TableCell>{event.interestedCount || 0}</TableCell>
                     </TableRow>
                   ))}
+                  {filteredEvents.upcoming.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
+                        No upcoming events for this month
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </ScrollArea>
@@ -207,6 +224,13 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
                       <TableCell>{event.attendeeCount || 0}</TableCell>
                     </TableRow>
                   ))}
+                  {filteredEvents.past.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                        No past events for this month
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </ScrollArea>
