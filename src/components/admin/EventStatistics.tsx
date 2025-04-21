@@ -138,21 +138,32 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
               <CardDescription>Interest vs Attendance comparison</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={chartData}>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={chartData}
+                  layout="vertical"
+                  margin={{ top: 16, right: 30, left: 40, bottom: 16 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis 
+                  <XAxis 
+                    type="number"
                     label={{ 
                       value: 'Number of People', 
-                      angle: -90, 
-                      position: 'insideLeft' 
+                      angle: 0, 
+                      position: 'insideBottomLeft' 
                     }}
+                    allowDecimals={false}
+                  />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    width={180}
+                    tick={{ fontSize: 12 }}
                   />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="interested" fill="#8884d8" />
-                  <Bar dataKey="attended" fill="#82ca9d" />
+                  <Bar dataKey="interested" fill="#8884d8" barSize={14} />
+                  <Bar dataKey="attended" fill="#82ca9d" barSize={14} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
