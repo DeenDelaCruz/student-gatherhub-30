@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,14 +26,12 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
     all: Event[];
   }>({ upcoming: [], past: [], all: [] });
 
-  // Update filtered events whenever selectedMonth or events change
   useEffect(() => {
     const filterEventsByMonth = (eventsToFilter: Event[], monthDate: string) => {
       const start = startOfMonth(parseISO(monthDate + '-01'));
       const end = endOfMonth(start);
       const currentDate = new Date();
       
-      // First filter all events to only include those in the selected month
       const eventsInSelectedMonth = eventsToFilter.filter(event => {
         const eventDate = parseISO(event.event_date);
         return isWithinInterval(eventDate, { start, end });
@@ -56,13 +53,11 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
     setFilteredEvents(filterEventsByMonth(events, selectedMonth));
   }, [selectedMonth, events]);
 
-  // Calculate total stats for the month based on filtered events
   const totalStats = {
     interested: filteredEvents.past.reduce((sum, event) => sum + (event.interestedCount || 0), 0),
     attended: filteredEvents.past.reduce((sum, event) => sum + (event.attendeeCount || 0), 0)
   };
 
-  // Generate last 12 months for the dropdown
   const last12Months = Array.from({ length: 12 }, (_, i) => {
     const date = new Date();
     date.setMonth(date.getMonth() - i);
@@ -72,7 +67,6 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
     };
   });
 
-  // Prepare data for the chart from filtered past events
   const chartData = filteredEvents.past.map(event => ({
     name: event.title,
     interested: event.interestedCount || 0,
@@ -138,16 +132,25 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
               <CardDescription>Interest vs Attendance comparison</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={chartData}>
+              <ResponsiveContainer width="100%" height={Math.max(70 * chartData.length, 200)}>
+                <BarChart
+                  data={chartData}
+                  layout="vertical"
+                  margin={{ top: 20, right: 20, left: 30, bottom: 20 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis 
-                    label={{ 
-                      value: 'Number of People', 
-                      angle: -90, 
-                      position: 'insideLeft' 
+                  <XAxis
+                    type="number"
+                    label={{
+                      value: 'Number of People',
+                      position: 'insideBottom',
+                      offset: -5,
                     }}
+                  />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={180}
                   />
                   <Tooltip />
                   <Legend />
