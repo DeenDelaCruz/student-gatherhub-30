@@ -12,9 +12,13 @@ const Auth = () => {
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate("/");
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Error checking user session:", error);
       }
     };
     
@@ -58,7 +62,7 @@ const Auth = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-md flex flex-col items-center"
       >
         <div className="text-center mb-8">

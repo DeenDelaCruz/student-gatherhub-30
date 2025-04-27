@@ -12,9 +12,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   // Fetch user profile data
   const fetchProfileData = async (userId: string) => {
+    if (!userId) return;
+    
     try {
       // Get profile
       const { data: profileData, error: profileError } = await supabase
@@ -26,7 +29,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (profileError) throw profileError;
       
       // Create a profile object that matches our Profile type
-      // including the avatar_url field which might not exist in the database
       const profileWithAvatar: Profile = {
         id: profileData.id,
         name: profileData.name,
@@ -96,35 +98,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, !!session);
-        
-        if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setProfile(null);
-          setRoles([]);
-          setLoading(false);
-          return;
-        }
-        
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchProfileData(session.user.id);
-        } else {
-          setProfile(null);
-          setRoles([]);
-        }
-        
-        setLoading(false);
-      }
-    );
-
+    // Set mounted state to true to indicate component has mounted
+    setMounted(true);
+    
     // Get initial session
     const initializeAuth = async () => {
       try {
+        // Set up auth state listener first
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('Auth state changed:', event, !!session);
+            
+            if (event === 'SIGNED_OUT') {
+              setUser(null);
+              setProfile(null);
+              setRoles([]);
+              setLoading(false);
+              return;
+            }
+            
+            setUser(session?.user ?? null);
+            
+            if (session?.user) {
+              // Use setTimeout to prevent potential deadlock with Supabase auth
+              setTimeout(() => {
+                fetchProfileData(session.user.id);
+              }, 0);
+            } else {
+              setProfile(null);
+              setRoles([]);
+            }
+            
+            setLoading(false);
+          }
+        );
+        
+        // Then get initial session
         const { data: { session } } = await supabase.auth.getSession();
         
         setUser(session?.user ?? null);
@@ -132,9 +141,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user) {
           await fetchProfileData(session.user.id);
         }
+        
+        setLoading(false);
+        
+        return () => {
+          if (subscription) subscription.unsubscribe();
+        };
       } catch (error) {
         console.error('Error initializing auth:', error);
-      } finally {
         setLoading(false);
       }
     };
@@ -142,9 +156,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     initializeAuth();
 
     return () => {
-      subscription.unsubscribe();
+      setMounted(false);
     };
   }, []);
+
+  // Only render children when mounted to prevent hydration issues
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider value={{ user, profile, roles, loading, hasRole, refreshProfile, signOut }}>
