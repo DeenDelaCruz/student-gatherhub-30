@@ -119,6 +119,12 @@ const EventDetails = () => {
     }
   };
 
+  const handleRatingSubmitted = async (newRating: number) => {
+    await fetchRatingData();
+    setHasUserRated(true);
+    setCanRate(false);
+  };
+
   useEffect(() => {
     const fetchEventDetails = async () => {
       if (!eventId) return;
@@ -557,6 +563,7 @@ const EventDetails = () => {
         onClose={() => setIsRatingDialogOpen(false)}
         eventId={eventId!}
         eventTitle={event.title}
+        onRatingSubmitted={handleRatingSubmitted}
       />
     </div>
   );

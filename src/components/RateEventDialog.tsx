@@ -18,9 +18,16 @@ interface RateEventDialogProps {
   onClose: () => void;
   eventId: string;
   eventTitle: string;
+  onRatingSubmitted?: (rating: number) => void;
 }
 
-const RateEventDialog = ({ isOpen, onClose, eventId, eventTitle }: RateEventDialogProps) => {
+const RateEventDialog = ({ 
+  isOpen, 
+  onClose, 
+  eventId, 
+  eventTitle,
+  onRatingSubmitted 
+}: RateEventDialogProps) => {
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +40,6 @@ const RateEventDialog = ({ isOpen, onClose, eventId, eventTitle }: RateEventDial
 
     setIsSubmitting(true);
     try {
-      // Use type assertion to work around TypeScript limitations
       const { error } = await supabase
         .from("event_ratings" as any)
         .insert({
@@ -46,6 +52,7 @@ const RateEventDialog = ({ isOpen, onClose, eventId, eventTitle }: RateEventDial
       if (error) throw error;
 
       toast.success("Thank you for your rating!");
+      onRatingSubmitted?.(rating);
       onClose();
     } catch (error) {
       console.error("Error submitting rating:", error);
