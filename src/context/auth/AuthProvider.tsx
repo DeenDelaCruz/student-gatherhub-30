@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (profileError) throw profileError;
       
       // Create a profile object that matches our Profile type
-      // including the avatar_url field which might not exist in the database
       const profileWithAvatar: Profile = {
         id: profileData.id,
         name: profileData.name,
@@ -62,6 +61,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Sign out user
   const signOut = async () => {
     try {
+      setLoading(true);
       // First update the local state to ensure UI updates immediately
       setUser(null);
       setProfile(null);
@@ -80,6 +80,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(null);
       setRoles([]);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,29 +98,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, !!session);
         
         if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setProfile(null);
-          setRoles([]);
-          setLoading(false);
+          if (isMounted) {
+            setUser(null);
+            setProfile(null);
+            setRoles([]);
+            setLoading(false);
+          }
           return;
         }
         
-        setUser(session?.user ?? null);
+        if (isMounted) {
+          setUser(session?.user ?? null);
         
-        if (session?.user) {
-          await fetchProfileData(session.user.id);
-        } else {
-          setProfile(null);
-          setRoles([]);
+          if (session?.user) {
+            await fetchProfileData(session.user.id);
+          } else {
+            setProfile(null);
+            setRoles([]);
+          }
+          
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
@@ -127,27 +135,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          await fetchProfileData(session.user.id);
+        if (isMounted) {
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            await fetchProfileData(session.user.id);
+          }
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, roles, loading, hasRole, refreshProfile, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      profile, 
+      roles, 
+      loading, 
+      hasRole, 
+      refreshProfile, 
+      signOut 
+    }}>
       {children}
     </AuthContext.Provider>
   );
