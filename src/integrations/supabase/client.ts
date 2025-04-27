@@ -107,11 +107,11 @@ export const getEventAverageRating = async (eventId: string): Promise<number> =>
 export const getEventRatingCount = async (eventId: string): Promise<number> => {
   try {
     // Using raw SQL query to count ratings
-    const { count, error } = await supabase
+    const { data, error } = await supabase
       .rpc('get_event_rating_count', { event_id_param: eventId });
 
     if (error) throw error;
-    return count || 0;
+    return data || 0;
   } catch (error) {
     console.error("Error getting event rating count:", error);
     return 0;

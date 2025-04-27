@@ -315,6 +315,14 @@ export type Database = {
         Args: { user_id_param: string }
         Returns: boolean
       }
+      get_event_average_rating: {
+        Args: { event_id_param: string }
+        Returns: number
+      }
+      get_event_rating_count: {
+        Args: { event_id_param: string }
+        Returns: number
+      }
       get_recent_user_visits: {
         Args: { user_id_param: string; minutes_ago: number }
         Returns: {
