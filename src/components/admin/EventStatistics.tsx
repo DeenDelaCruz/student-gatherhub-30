@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, startOfMonth, endOfMonth, isAfter, isBefore, parseISO, isWithinInterval } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { TopRatedEvents } from './TopRatedEvents';
 
 interface Event {
   id: string;
@@ -174,6 +175,8 @@ export const EventStatistics = ({ events }: EventStatisticsProps) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <TopRatedEvents events={events} />
+        
         <Card>
           <CardHeader>
             <CardTitle>Upcoming Events</CardTitle>
