@@ -113,6 +113,36 @@ export type Database = {
           },
         ]
       }
+      event_ratings: {
+        Row: {
+          created_at: string
+          event_id: string
+          feedback: string | null
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          feedback?: string | null
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          feedback?: string | null
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string | null
@@ -314,6 +344,14 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      increment: {
+        Args: { row_id: string; table_name: string; column_name: string }
+        Returns: number
+      }
+      increment_events_attended: {
+        Args: { user_id_param: string }
+        Returns: undefined
       }
       is_information_officer: {
         Args: { user_id: string }

@@ -3,3 +3,4 @@ project_id = "nsjyerikykwbitksdurq"
 
 [functions]
 [functions.increment_events_attended]
+[functions.get_event_rating_functions]
