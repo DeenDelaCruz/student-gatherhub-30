@@ -9,8 +9,8 @@ import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import Header from "@/components/Header";
 import { format } from "date-fns";
-import { Notification } from "@/types/notification";
-import Lightbox from "@/components/Lightbox";
+import RatingStars from "@/components/RatingStars";
+import RateEventDialog from "@/components/RateEventDialog";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -24,6 +24,11 @@ const EventDetails = () => {
   const [lastToggleTime, setLastToggleTime] = useState<number | null>(null);
   const [eventUpdates, setEventUpdates] = useState<Notification[]>([]);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [averageRating, setAverageRating] = useState<number>(0);
+  const [ratingCount, setRatingCount] = useState<number>(0);
+  const [canRate, setCanRate] = useState(false);
+  const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
+  const [hasUserRated, setHasUserRated] = useState(false);
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   const canEdit = isInformationOfficer && event?.created_by === user?.id;
 
@@ -74,6 +79,40 @@ const EventDetails = () => {
       }
     } catch (error) {
       console.error("Error fetching event updates:", error);
+    }
+  };
+
+  const fetchRatingData = async () => {
+    if (!eventId) return;
+    
+    try {
+      const [avgRating, rateCount] = await Promise.all([
+        supabase.rpc('get_event_average_rating', { event_id_param: eventId }),
+        supabase.rpc('get_event_rating_count', { event_id_param: eventId })
+      ]);
+      
+      setAverageRating(avgRating.data || 0);
+      setRatingCount(rateCount.data || 0);
+
+      if (user) {
+        const { data: canRateData } = await supabase.rpc('can_user_rate_event', {
+          user_id_param: user.id,
+          event_id_param: eventId
+        });
+        setCanRate(canRateData || false);
+
+        // Check if user has already rated
+        const { data: existingRating } = await supabase
+          .from('event_ratings')
+          .select('rating')
+          .eq('event_id', eventId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        setHasUserRated(!!existingRating);
+      }
+    } catch (error) {
+      console.error('Error fetching rating data:', error);
     }
   };
 
@@ -178,6 +217,10 @@ const EventDetails = () => {
       supabase.removeChannel(channel);
     };
   }, [eventId]);
+
+  useEffect(() => {
+    fetchRatingData();
+  }, [eventId, user]);
 
   const handleToggleInterest = async () => {
     if (!user) {
@@ -443,6 +486,13 @@ const EventDetails = () => {
               <p className="text-gray-700 whitespace-pre-line">{event?.description || "No description available."}</p>
             </div>
             
+            <div className="mb-4 flex items-center gap-2">
+              <RatingStars rating={Math.round(averageRating)} readonly size={20} />
+              <span className="text-sm text-gray-600">
+                {averageRating.toFixed(1)} ({ratingCount} {ratingCount === 1 ? 'rating' : 'ratings'})
+              </span>
+            </div>
+            
             <Button 
               onClick={handleToggleInterest}
               className={isInterested ? "bg-red-500 hover:bg-red-600" : ""}
@@ -463,6 +513,13 @@ const EventDetails = () => {
         onClose={() => setLightboxOpen(false)}
         imageSrc={event?.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"}
         alt={event?.title || "Event poster"}
+      />
+      
+      <RateEventDialog
+        isOpen={isRatingDialogOpen}
+        onClose={() => setIsRatingDialogOpen(false)}
+        eventId={eventId!}
+        eventTitle={event.title}
       />
     </div>
   );

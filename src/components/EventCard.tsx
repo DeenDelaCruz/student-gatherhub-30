@@ -10,6 +10,7 @@ import { supabase, getEventInterestCount, getEventCheckedInCount } from "@/integ
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { format } from "date-fns";
 import Lightbox from "@/components/Lightbox";
+import RatingStars from "./RatingStars";
 
 interface EventCardProps {
   title: string;
@@ -47,6 +48,10 @@ const EventCard = ({
   const canEdit = isInformationOfficer && createdBy === user?.id;
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [ratingCount, setRatingCount] = useState(0);
+  const eventDate = date ? new Date(date) : null;
+  const isPastEvent = eventDate ? eventDate < new Date() : false;
 
   useEffect(() => {
     const fetchAttendeeCounts = async () => {
@@ -100,6 +105,26 @@ const EventCard = ({
       supabase.removeChannel(attendeesChannel);
     };
   }, [id]);
+
+  useEffect(() => {
+    const fetchRatingData = async () => {
+      if (!id || !isPastEvent) return;
+      
+      try {
+        const [avgRating, rateCount] = await Promise.all([
+          supabase.rpc('get_event_average_rating', { event_id_param: id }),
+          supabase.rpc('get_event_rating_count', { event_id_param: id })
+        ]);
+        
+        setAverageRating(avgRating.data || 0);
+        setRatingCount(rateCount.data || 0);
+      } catch (error) {
+        console.error('Error fetching rating data:', error);
+      }
+    };
+
+    fetchRatingData();
+  }, [id, isPastEvent]);
 
   const handleEditEvent = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -204,6 +229,15 @@ const EventCard = ({
         </div>
         <div className="p-3">
           <h3 className="font-medium text-gray-900">{title}</h3>
+          
+          {isPastEvent && averageRating > 0 && (
+            <div className="mt-1 flex items-center gap-2">
+              <RatingStars rating={Math.round(averageRating)} readonly size={16} />
+              <span className="text-xs text-gray-600">
+                ({ratingCount})
+              </span>
+            </div>
+          )}
           
           <div className="mt-3 flex flex-wrap gap-1">
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
