@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { supabase, getEventInterestCount, getEventCheckedInCount } from "@/integrations/supabase/client";
+import { supabase, getEventInterestCount, getEventCheckedInCount, getEventAverageRating, getEventRatingCount } from "@/integrations/supabase/client";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { format } from "date-fns";
 import Lightbox from "@/components/Lightbox";
@@ -111,22 +111,11 @@ const EventCard = ({
       if (!id || !isPastEvent) return;
       
       try {
-        const { data: avgRatingData } = await supabase
-          .from('event_ratings')
-          .select('rating')
-          .eq('event_id', id.toString());
-          
-        const { count: ratingCountData } = await supabase
-          .from('event_ratings')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_id', id.toString());
+        const avgRating = await getEventAverageRating(id.toString());
+        const ratingCount = await getEventRatingCount(id.toString());
         
-        if (avgRatingData && avgRatingData.length > 0) {
-          const total = avgRatingData.reduce((sum, item) => sum + item.rating, 0);
-          setAverageRating(total / avgRatingData.length);
-        }
-        
-        setRatingCount(ratingCountData || 0);
+        setAverageRating(avgRating);
+        setRatingCount(ratingCount);
       } catch (error) {
         console.error('Error fetching rating data:', error);
       }

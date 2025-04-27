@@ -361,7 +361,7 @@ export const createEventReminderNotifications = async (eventId: string, title: s
 export const getEventAverageRating = async (eventId: string): Promise<number> => {
   try {
     const { data, error } = await supabase
-      .from('event_ratings')
+      .from('event_ratings' as any)
       .select('rating')
       .eq('event_id', eventId);
       
@@ -369,7 +369,7 @@ export const getEventAverageRating = async (eventId: string): Promise<number> =>
     
     if (!data || data.length === 0) return 0;
     
-    const total = data.reduce((sum, item) => sum + item.rating, 0);
+    const total = data.reduce((sum: number, item: any) => sum + item.rating, 0);
     return total / data.length;
   } catch (error) {
     console.error("Error getting event average rating:", error);
@@ -380,7 +380,7 @@ export const getEventAverageRating = async (eventId: string): Promise<number> =>
 export const getEventRatingCount = async (eventId: string): Promise<number> => {
   try {
     const { count, error } = await supabase
-      .from('event_ratings')
+      .from('event_ratings' as any)
       .select('*', { count: 'exact', head: true })
       .eq('event_id', eventId);
       
@@ -418,7 +418,7 @@ export const canUserRateEvent = async (userId: string, eventId: string): Promise
     
     // Check if user has already rated
     const { data: ratingData } = await supabase
-      .from('event_ratings')
+      .from('event_ratings' as any)
       .select('*')
       .eq('event_id', eventId)
       .eq('user_id', userId)
