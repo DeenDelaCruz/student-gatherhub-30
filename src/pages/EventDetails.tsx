@@ -518,22 +518,22 @@ const EventDetails = () => {
             </div>
             
             <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
                 <RatingStars rating={Math.round(averageRating)} readonly size={20} />
                 <span className="text-sm text-gray-600">
                   {averageRating.toFixed(1)} ({ratingCount} {ratingCount === 1 ? 'rating' : 'ratings'})
                 </span>
+                
+                {isPastEvent && canRate && !hasUserRated && (
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenRatingDialog}
+                  >
+                    Rate this event
+                  </Button>
+                )}
               </div>
-              
-              {isPastEvent && canRate && !hasUserRated && (
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenRatingDialog}
-                >
-                  Rate this event
-                </Button>
-              )}
             </div>
             
             <Button 
