@@ -9,3 +9,355 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Event Interest & Attendance Functions
+export const getEventInterestCount = async (eventId: string): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('event_interested')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error("Error getting event interest count:", error);
+    return 0;
+  }
+};
+
+export const getEventCheckedInCount = async (eventId: string): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('event_attendees_new')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error("Error getting event check-in count:", error);
+    return 0;
+  }
+};
+
+export const isUserInterestedInEvent = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('event_interested')
+      .select('*')
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return !!data;
+  } catch (error) {
+    console.error("Error checking if user interested in event:", error);
+    return false;
+  }
+};
+
+export const markEventInterest = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('event_interested')
+      .insert({ event_id: eventId, user_id: userId });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error marking interest in event:", error);
+    return false;
+  }
+};
+
+export const removeEventInterest = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('event_interested')
+      .delete()
+      .eq('event_id', eventId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error removing interest in event:", error);
+    return false;
+  }
+};
+
+// Event Rating Functions
+export const getEventAverageRating = async (eventId: string): Promise<number> => {
+  try {
+    const { data, error } = await supabase
+      .from('event_ratings')
+      .select('rating')
+      .eq('event_id', eventId);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) return 0;
+    
+    const sum = data.reduce((total, current) => total + (current.rating || 0), 0);
+    return sum / data.length;
+  } catch (error) {
+    console.error("Error getting event average rating:", error);
+    return 0;
+  }
+};
+
+export const getEventRatingCount = async (eventId: string): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('event_ratings')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error("Error getting event rating count:", error);
+    return 0;
+  }
+};
+
+// Admin Functions
+export const getTotalUsers = async (): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error("Error getting total users:", error);
+    return 0;
+  }
+};
+
+export const getTotalEvents = async (): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from('events')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error("Error getting total events:", error);
+    return 0;
+  }
+};
+
+export const getAllEvents = async (): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('event_date', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error getting all events:", error);
+    return [];
+  }
+};
+
+export const deleteEvent = async (eventId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting event:", error);
+    return false;
+  }
+};
+
+export const promoteStudentToInfoOfficer = async (userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('user_roles')
+      .insert({ user_id: userId, role: 'information_officer' });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error promoting student to info officer:", error);
+    return false;
+  }
+};
+
+// Event Attendees & User Functions
+export const getEventAttendees = async (eventId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('event_attendees_new')
+      .select(`
+        id,
+        user_id,
+        check_in_time,
+        profiles:user_id (
+          name,
+          email
+        )
+      `)
+      .eq('event_id', eventId)
+      .order('check_in_time', { ascending: false });
+
+    if (error) throw error;
+
+    return data?.map(item => ({
+      id: item.id,
+      user_id: item.user_id,
+      check_in_time: item.check_in_time,
+      name: item.profiles?.name || 'Unknown',
+      email: item.profiles?.email || 'No email'
+    })) || [];
+  } catch (error) {
+    console.error("Error getting event attendees:", error);
+    return [];
+  }
+};
+
+export const getEventInterestedUsers = async (eventId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('event_interested')
+      .select(`
+        id,
+        user_id,
+        created_at,
+        profiles:user_id (
+          name,
+          email
+        )
+      `)
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data?.map(item => ({
+      id: item.id,
+      user_id: item.user_id,
+      created_at: item.created_at,
+      name: item.profiles?.name || 'Unknown',
+      email: item.profiles?.email || 'No email'
+    })) || [];
+  } catch (error) {
+    console.error("Error getting event interested users:", error);
+    return [];
+  }
+};
+
+export const checkInUserToEvent = async (eventId: string, userId: string): Promise<boolean> => {
+  try {
+    // Check if user is already checked in
+    const { data: existingCheckIn, error: checkError } = await supabase
+      .from('event_attendees_new')
+      .select('id')
+      .eq('event_id', eventId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (checkError) throw checkError;
+
+    // If already checked in, return true
+    if (existingCheckIn) {
+      return true;
+    }
+
+    // Otherwise, create new check-in record
+    const { error } = await supabase
+      .from('event_attendees_new')
+      .insert({
+        event_id: eventId,
+        user_id: userId
+      });
+
+    if (error) throw error;
+
+    // Update user's attended events count
+    const { error: profileError } = await supabase
+      .rpc('increment_events_attended', { user_id_param: userId });
+      
+    if (profileError) {
+      console.error("Error updating events attended count:", profileError);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error checking in user to event:", error);
+    return false;
+  }
+};
+
+export const getUserAttendedEvents = async (userId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('event_attendees_new')
+      .select(`
+        event_id,
+        check_in_time,
+        events:event_id (*)
+      `)
+      .eq('user_id', userId)
+      .order('check_in_time', { ascending: false });
+
+    if (error) throw error;
+
+    return data?.map(item => ({
+      ...item.events,
+      check_in_time: item.check_in_time
+    })) || [];
+  } catch (error) {
+    console.error("Error getting user attended events:", error);
+    return [];
+  }
+};
+
+export const getUserInterestedEvents = async (userId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('event_interested')
+      .select(`
+        event_id,
+        created_at,
+        events:event_id (*)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data?.map(item => ({
+      ...item.events,
+      interest_time: item.created_at
+    })) || [];
+  } catch (error) {
+    console.error("Error getting user interested events:", error);
+    return [];
+  }
+};
+
+// Notification Functions
+export const createEventReminderNotifications = async (): Promise<boolean> => {
+  try {
+    // This is a placeholder function that would normally call an edge function
+    // For simplicity, we're making it return true
+    // In a real implementation, this would trigger notifications for upcoming events
+    return true;
+  } catch (error) {
+    console.error("Error creating event reminder notifications:", error);
+    return false;
+  }
+};
