@@ -111,13 +111,22 @@ const EventCard = ({
       if (!id || !isPastEvent) return;
       
       try {
-        const [avgRating, rateCount] = await Promise.all([
-          supabase.rpc('get_event_average_rating', { event_id_param: id }),
-          supabase.rpc('get_event_rating_count', { event_id_param: id })
-        ]);
+        const { data: avgRatingData } = await supabase
+          .from('event_ratings')
+          .select('rating')
+          .eq('event_id', id.toString());
+          
+        const { count: ratingCountData } = await supabase
+          .from('event_ratings')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', id.toString());
         
-        setAverageRating(avgRating.data || 0);
-        setRatingCount(rateCount.data || 0);
+        if (avgRatingData && avgRatingData.length > 0) {
+          const total = avgRatingData.reduce((sum, item) => sum + item.rating, 0);
+          setAverageRating(total / avgRatingData.length);
+        }
+        
+        setRatingCount(ratingCountData || 0);
       } catch (error) {
         console.error('Error fetching rating data:', error);
       }

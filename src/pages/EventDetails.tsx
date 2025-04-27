@@ -11,6 +11,8 @@ import Header from "@/components/Header";
 import { format } from "date-fns";
 import RatingStars from "@/components/RatingStars";
 import RateEventDialog from "@/components/RateEventDialog";
+import { CustomNotification } from "@/types/custom-notification";
+import Lightbox from "@/components/Lightbox";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -22,7 +24,7 @@ const EventDetails = () => {
   const [interestedCount, setInterestedCount] = useState(0);
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastToggleTime, setLastToggleTime] = useState<number | null>(null);
-  const [eventUpdates, setEventUpdates] = useState<Notification[]>([]);
+  const [eventUpdates, setEventUpdates] = useState<CustomNotification[]>([]);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [averageRating, setAverageRating] = useState<number>(0);
   const [ratingCount, setRatingCount] = useState<number>(0);
@@ -61,9 +63,9 @@ const EventDetails = () => {
       if (data && data.length > 0) {
         const validNotifications = data.filter(notification => 
           ['event', 'info', 'reminder', 'event_reminder'].includes(notification.type)
-        ) as Notification[];
+        ) as CustomNotification[];
         
-        const uniqueNotifications: Notification[] = [];
+        const uniqueNotifications: CustomNotification[] = [];
         const messageSet = new Set<string>();
         
         validNotifications.forEach(notification => {
@@ -86,22 +88,36 @@ const EventDetails = () => {
     if (!eventId) return;
     
     try {
-      const [avgRating, rateCount] = await Promise.all([
-        supabase.rpc('get_event_average_rating', { event_id_param: eventId }),
-        supabase.rpc('get_event_rating_count', { event_id_param: eventId })
-      ]);
+      const { data: avgRatingData } = await supabase
+        .from('event_ratings')
+        .select('rating')
+        .eq('event_id', eventId);
+        
+      const { count: ratingCountData } = await supabase
+        .from('event_ratings')
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', eventId);
       
-      setAverageRating(avgRating.data || 0);
-      setRatingCount(rateCount.data || 0);
+      if (avgRatingData && avgRatingData.length > 0) {
+        const total = avgRatingData.reduce((sum, item) => sum + item.rating, 0);
+        setAverageRating(total / avgRatingData.length);
+      } else {
+        setAverageRating(0);
+      }
+      
+      setRatingCount(ratingCountData || 0);
 
       if (user) {
-        const { data: canRateData } = await supabase.rpc('can_user_rate_event', {
-          user_id_param: user.id,
-          event_id_param: eventId
-        });
-        setCanRate(canRateData || false);
+        const { data: attendeeData } = await supabase
+          .from('event_attendees_new')
+          .select('*')
+          .eq('event_id', eventId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+          
+        const eventPast = event && new Date(event.event_date) < new Date();
+        setCanRate(!!attendeeData && !!eventPast);
 
-        // Check if user has already rated
         const { data: existingRating } = await supabase
           .from('event_ratings')
           .select('rating')
@@ -220,7 +236,7 @@ const EventDetails = () => {
 
   useEffect(() => {
     fetchRatingData();
-  }, [eventId, user]);
+  }, [eventId, user, event]);
 
   const handleToggleInterest = async () => {
     if (!user) {
@@ -336,6 +352,26 @@ const EventDetails = () => {
   const handleOpenPoster = () => {
     setLightboxOpen(true);
   };
+  
+  const handleOpenRatingDialog = () => {
+    if (!user) {
+      toast.error("Please log in to rate this event");
+      navigate("/auth");
+      return;
+    }
+    
+    if (hasUserRated) {
+      toast.info("You have already rated this event");
+      return;
+    }
+    
+    if (!canRate) {
+      toast.info("You can only rate events you've attended");
+      return;
+    }
+    
+    setIsRatingDialogOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -363,6 +399,8 @@ const EventDetails = () => {
       </div>
     );
   }
+  
+  const isPastEvent = new Date(event.event_date) < new Date();
 
   return (
     <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
@@ -486,11 +524,23 @@ const EventDetails = () => {
               <p className="text-gray-700 whitespace-pre-line">{event?.description || "No description available."}</p>
             </div>
             
-            <div className="mb-4 flex items-center gap-2">
-              <RatingStars rating={Math.round(averageRating)} readonly size={20} />
-              <span className="text-sm text-gray-600">
-                {averageRating.toFixed(1)} ({ratingCount} {ratingCount === 1 ? 'rating' : 'ratings'})
-              </span>
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <RatingStars rating={Math.round(averageRating)} readonly size={20} />
+                <span className="text-sm text-gray-600">
+                  {averageRating.toFixed(1)} ({ratingCount} {ratingCount === 1 ? 'rating' : 'ratings'})
+                </span>
+              </div>
+              
+              {isPastEvent && canRate && !hasUserRated && (
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenRatingDialog}
+                >
+                  Rate this event
+                </Button>
+              )}
             </div>
             
             <Button 

@@ -33,11 +33,12 @@ const RateEventDialog = ({ isOpen, onClose, eventId, eventTitle }: RateEventDial
 
     setIsSubmitting(true);
     try {
+      // Use a direct insert query instead of referencing "event_ratings" which TypeScript doesn't know about
       const { error } = await supabase.from("event_ratings").insert({
         event_id: eventId,
-        rating,
+        rating: rating,
         feedback: feedback.trim() || null,
-      });
+      } as any);  // Using 'as any' temporarily until types are updated
 
       if (error) throw error;
 
