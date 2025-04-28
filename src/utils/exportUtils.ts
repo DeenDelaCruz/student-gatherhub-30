@@ -1,10 +1,10 @@
-
 import * as XLSX from 'xlsx';
 
 interface ExportableUser {
+  event: string;
   name: string | null;
   email: string | null;
-  timestamp: string | null;
+  check_in_time: string | null;
   status: string;
   rating?: number | null;
   feedback?: string | null;
@@ -54,7 +54,7 @@ export const exportUsersToExcel = (
       event: eventTitle,
       name: attendee.name,
       email: attendee.email,
-      check_in_time: attendee.timestamp,
+      check_in_time: attendee.check_in_time,
       rating: attendee.rating || 'No rating',
       feedback: attendee.feedback || 'No feedback'
     }));
