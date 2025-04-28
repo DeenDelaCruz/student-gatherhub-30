@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Upload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,9 @@ import {
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { SubEvent } from "@/types/sub-event";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/auth";
+import { toast } from "sonner";
 
 const subEventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -40,7 +44,10 @@ interface SubEventDialogProps {
 }
 
 export const SubEventDialog = ({ isOpen, onClose, onSubmit, subEvent }: SubEventDialogProps) => {
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
   const form = useForm<SubEventFormData>({
     resolver: zodResolver(subEventSchema),
     defaultValues: subEvent ? {
@@ -57,6 +64,49 @@ export const SubEventDialog = ({ isOpen, onClose, onSubmit, subEvent }: SubEvent
       image_url: "",
     },
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    if (!user) {
+      toast.error("You must be logged in to upload images");
+      return;
+    }
+    
+    const file = files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+    
+    try {
+      setIsUploading(true);
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('sub_event_images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: publicUrl } = supabase.storage
+        .from('sub_event_images')
+        .getPublicUrl(fileName);
+      
+      if (publicUrl) {
+        form.setValue('image_url', publicUrl.publicUrl);
+        toast.success("Image uploaded successfully");
+      }
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setIsUploading(false);
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
 
   const handleSubmit = async (data: SubEventFormData) => {
     try {
@@ -133,10 +183,47 @@ export const SubEventDialog = ({ isOpen, onClose, onSubmit, subEvent }: SubEvent
               name="image_url"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
+                  <FormLabel>Image</FormLabel>
+                  <div className="space-y-4">
+                    {field.value && (
+                      <div className="relative h-48 w-full overflow-hidden rounded-md">
+                        <img
+                          src={field.value}
+                          alt="Sub-event preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('image-upload')?.click()}
+                        disabled={isUploading}
+                        className="flex items-center gap-2"
+                      >
+                        <Upload className="h-4 w-4" />
+                        {isUploading ? "Uploading..." : "Upload Image"}
+                      </Button>
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      {field.value && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => form.setValue('image_url', '')}
+                        >
+                          Remove Image
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
