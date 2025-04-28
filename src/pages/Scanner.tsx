@@ -95,7 +95,15 @@ const Scanner = () => {
       setAttendees(combinedData);
       
       const interestedData = await getEventInterestedUsers(eventId);
-      setInterestedUsers(interestedData);
+      
+      const processedInterestedUsers = interestedData.map(user => ({
+        id: user.id,
+        user_id: user.user_id,
+        name: user.profiles?.name || 'N/A',
+        email: user.profiles?.email || 'N/A'
+      }));
+      
+      setInterestedUsers(processedInterestedUsers);
     } catch (error) {
       console.error("Error fetching attendees:", error);
       toast.error("Failed to load attendees");
@@ -169,17 +177,21 @@ const Scanner = () => {
     }
 
     const exportAttendees = attendees.map(attendee => ({
-      name: attendee.name,
-      email: attendee.email,
+      name: attendee.profiles?.name,
+      email: attendee.profiles?.email,
       timestamp: attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : null,
-      status: "Attended"
+      status: "Attended",
+      rating: attendee.rating,
+      feedback: attendee.feedback
     }));
 
     const exportInterested = interestedUsers.map(user => ({
       name: user.name,
       email: user.email,
       timestamp: null,
-      status: "Interested"
+      status: "Interested",
+      rating: null,
+      feedback: null
     }));
 
     const allUsers = [...exportAttendees, ...exportInterested];
