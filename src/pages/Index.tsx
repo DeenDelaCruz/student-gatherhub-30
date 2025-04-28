@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -7,11 +6,17 @@ import EventCard from "@/components/event-card";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
-import { supabase, createEventReminderNotifications } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Event, convertSupabaseEventsToEvents } from "@/types/event";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
-import Lightbox from "@/components/Lightbox";
+import { PlusCircle, ArrowDownAZ, ArrowUpAZ } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { sortEvents, SortOption } from "@/utils/eventSorting";
 
 const Index = () => {
   const { user, profile, hasRole } = useAuth();
@@ -21,6 +26,7 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<"active" | "inactive">("active");
+  const [sortOption, setSortOption] = useState<SortOption>("date-desc");
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
 
   const calendarEvents = events.map(event => ({
@@ -127,9 +133,11 @@ const Index = () => {
       activeFilter === "active" ? event.is_active : !event.is_active
     );
     
+    filtered = sortEvents(filtered, sortOption);
+    
     console.log(`Filtered events: ${filtered.length} (activeFilter: ${activeFilter})`);
     setFilteredEvents(filtered);
-  }, [events, searchTerm, activeFilter]);
+  }, [events, searchTerm, activeFilter, sortOption]);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -192,9 +200,33 @@ const Index = () => {
         
         <div className="events-section">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
-            <h2 className="text-lg font-medium">
-              All {activeFilter} events
-            </h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-lg font-medium">
+                All {activeFilter} events
+              </h2>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-1">
+                    {sortOption.includes('asc') ? <ArrowUpAZ className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />}
+                    <span>Sort</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setSortOption("date-desc")}>
+                    Newest First
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("date-asc")}>
+                    Oldest First
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("name-asc")}>
+                    Name A-Z
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("name-desc")}>
+                    Name Z-A
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             
             {isInformationOfficer && (
               <Button 
