@@ -1,3 +1,4 @@
+
 import { Search } from "lucide-react";
 
 interface HeaderProps {
@@ -15,27 +16,27 @@ const Header = ({ onSearch }: HeaderProps) => {
   };
 
   return (
-    <header className="w-full bg-campus-header py-4 px-3 flex items-center justify-between animate-fade-in">
+    <header className="w-full bg-gradient-to-r from-black to-zinc-900 py-4 px-6 flex items-center justify-between shadow-md animate-fade-in">
       <div className="flex items-center">
-        <div className="flex items-center gap-1">
-          <div className="bg-black rounded-lg p-2">
-            <div className="text-white font-bold text-xl">
+        <div className="flex items-center gap-2">
+          <div className="bg-gradient-to-br from-campus-purple to-campus-pink rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="text-white font-bold text-2xl tracking-tight">
               EventEra
             </div>
           </div>
         </div>
       </div>
-      <form onSubmit={handleSearch} className="flex-1 max-w-[300px] mx-4">
+      <form onSubmit={handleSearch} className="flex-1 max-w-[400px] mx-8">
         <div className="relative">
           <input
             type="text"
             name="search"
             placeholder="Search your organization's events..."
-            className="w-full bg-white rounded-full py-1.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-campus-accent transition-all"
+            className="w-full bg-white/10 backdrop-blur-lg text-white rounded-full py-2 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-campus-accent/50 transition-all placeholder:text-gray-400"
           />
           <button
             type="submit"
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-500 p-1 hover:text-campus-accent transition-colors"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 p-1 hover:text-white transition-colors"
           >
             <Search size={18} />
           </button>
@@ -46,3 +47,4 @@ const Header = ({ onSearch }: HeaderProps) => {
 };
 
 export default Header;
+
