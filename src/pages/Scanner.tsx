@@ -38,6 +38,7 @@ const Scanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeUsersTab, setActiveUsersTab] = useState("attendees");
+  const [attendeesWithRatings, setAttendeesWithRatings] = useState<any[]>([]);
   const { user, hasRole, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const isInfoOfficer = hasRole("information_officer") || hasRole("admin");
@@ -70,17 +71,30 @@ const Scanner = () => {
     fetchEvents();
   }, []);
 
-  const fetchAttendees = async (eventId: string) => {
+  const fetchAttendeesWithRatings = async (eventId: string) => {
     if (!eventId) return;
     
     setLoadingAttendees(true);
     try {
       const attendeesData = await getEventAttendees(eventId);
       
-      setAttendees(attendeesData);
+      const { data: ratingsData, error: ratingsError } = await supabase
+        .from('event_ratings')
+        .select('rating, feedback, user_id')
+        .eq('event_id', eventId);
+        
+      if (ratingsError) throw ratingsError;
+      
+      const combinedData = attendeesData.map(attendee => ({
+        ...attendee,
+        rating: ratingsData?.find(r => r.user_id === attendee.user_id)?.rating || null,
+        feedback: ratingsData?.find(r => r.user_id === attendee.user_id)?.feedback || null
+      }));
+      
+      setAttendeesWithRatings(combinedData);
+      setAttendees(combinedData);
       
       const interestedData = await getEventInterestedUsers(eventId);
-      
       setInterestedUsers(interestedData);
     } catch (error) {
       console.error("Error fetching attendees:", error);
@@ -94,7 +108,7 @@ const Scanner = () => {
     setSelectedEvent(eventId);
     const event = events.find(e => e.id === eventId);
     setSelectedEventTitle(event?.title || "");
-    fetchAttendees(eventId);
+    fetchAttendeesWithRatings(eventId);
   };
 
   const handleScanComplete = async (data: string) => {
@@ -132,7 +146,7 @@ const Scanner = () => {
         }
         
         if (selectedEvent === parsedData.eventId) {
-          fetchAttendees(parsedData.eventId);
+          fetchAttendeesWithRatings(parsedData.eventId);
         }
       } else {
         toast.error("Check-in failed", {
@@ -309,21 +323,43 @@ const Scanner = () => {
                                   <TableHead>Name</TableHead>
                                   <TableHead>Email</TableHead>
                                   <TableHead>Check-in Time</TableHead>
+                                  {(isInfoOfficer || hasRole("admin")) && (
+                                    <>
+                                      <TableHead>Rating</TableHead>
+                                      <TableHead>Feedback</TableHead>
+                                    </>
+                                  )}
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {attendees.map((attendee) => (
                                   <TableRow key={attendee.id}>
-                                    <TableCell className="font-medium">{attendee.name || 'N/A'}</TableCell>
-                                    <TableCell>{attendee.email || 'N/A'}</TableCell>
+                                    <TableCell className="font-medium">
+                                      {attendee.profiles?.name || 'N/A'}
+                                    </TableCell>
+                                    <TableCell>{attendee.profiles?.email || 'N/A'}</TableCell>
                                     <TableCell>{formatDate(attendee.check_in_time)}</TableCell>
+                                    {(isInfoOfficer || hasRole("admin")) && (
+                                      <>
+                                        <TableCell>
+                                          {attendee.rating ? `${attendee.rating}/5` : 'No rating'}
+                                        </TableCell>
+                                        <TableCell className="max-w-[200px]">
+                                          <div className="truncate">
+                                            {attendee.feedback || 'No feedback'}
+                                          </div>
+                                        </TableCell>
+                                      </>
+                                    )}
                                   </TableRow>
                                 ))}
                               </TableBody>
                             </Table>
                           </div>
                         ) : (
-                          <p className="text-center py-8 text-muted-foreground">No attendees for this event yet.</p>
+                          <p className="text-center py-8 text-muted-foreground">
+                            No attendees for this event yet.
+                          </p>
                         )}
                       </TabsContent>
                       
@@ -352,7 +388,9 @@ const Scanner = () => {
                             </Table>
                           </div>
                         ) : (
-                          <p className="text-center py-8 text-muted-foreground">No interested users for this event yet.</p>
+                          <p className="text-center py-8 text-muted-foreground">
+                            No interested users for this event yet.
+                          </p>
                         )}
                       </TabsContent>
                     </Tabs>
