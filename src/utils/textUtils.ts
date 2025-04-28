@@ -17,9 +17,11 @@ export const convertUrlsToLinks = (text: string): React.ReactNode[] => {
     if (part) {
       result.push(<span key={`text-${index}`}>{part}</span>);
     }
+    
     if (matchIndex < matches.length) {
       const url = matches[matchIndex];
       const href = url.startsWith('www.') ? `https://${url}` : url;
+      
       result.push(
         <a
           key={`link-${matchIndex}`}
@@ -31,6 +33,7 @@ export const convertUrlsToLinks = (text: string): React.ReactNode[] => {
           {url}
         </a>
       );
+      
       matchIndex++;
     }
   });
