@@ -213,7 +213,7 @@ const Index = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
             </div>
           ) : (
-            <div className="events-grid">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredEvents.length > 0 ? (
                 filteredEvents.map((event) => (
                   <EventCard
@@ -230,7 +230,7 @@ const Index = () => {
                   />
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 col-span-2">
                   {searchTerm ? `No events found for "${searchTerm}"` : `No ${activeFilter} events available`}
                 </div>
               )}
