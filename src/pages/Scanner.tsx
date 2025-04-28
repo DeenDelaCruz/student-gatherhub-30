@@ -177,18 +177,20 @@ const Scanner = () => {
     }
 
     const exportAttendees = attendees.map(attendee => ({
-      name: attendee.profiles?.name,
-      email: attendee.profiles?.email,
-      timestamp: attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : null,
+      event: selectedEventTitle,
+      name: attendee.profiles?.name || 'N/A',
+      email: attendee.profiles?.email || 'N/A',
+      check_in_time: attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : null,
       status: "Attended",
-      rating: attendee.rating,
-      feedback: attendee.feedback
+      rating: attendee.rating || 'No rating',
+      feedback: attendee.feedback || 'No feedback'
     }));
 
     const exportInterested = interestedUsers.map(user => ({
-      name: user.name,
-      email: user.email,
-      timestamp: null,
+      event: selectedEventTitle,
+      name: user.name || 'N/A',
+      email: user.email || 'N/A',
+      check_in_time: null,
       status: "Interested",
       rating: null,
       feedback: null
