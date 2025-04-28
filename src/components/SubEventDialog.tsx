@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,6 +25,7 @@ import { SubEvent } from "@/types/sub-event";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/auth";
 import { toast } from "sonner";
+import { format, parse } from "date-fns";
 
 const subEventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -48,6 +49,10 @@ export const SubEventDialog = ({ isOpen, onClose, onSubmit, subEvent }: SubEvent
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
+  // Create separate state for date and time inputs
+  const [dateInput, setDateInput] = useState(subEvent ? new Date(subEvent.date_time).toISOString().split('T')[0] : '');
+  const [timeInput, setTimeInput] = useState(subEvent ? format(new Date(subEvent.date_time), 'HH:mm') : '');
+  
   const form = useForm<SubEventFormData>({
     resolver: zodResolver(subEventSchema),
     defaultValues: subEvent ? {
@@ -64,6 +69,48 @@ export const SubEventDialog = ({ isOpen, onClose, onSubmit, subEvent }: SubEvent
       image_url: "",
     },
   });
+
+  // Initialize date and time when subEvent changes or on initial load
+  useEffect(() => {
+    if (subEvent) {
+      const eventDate = new Date(subEvent.date_time);
+      setDateInput(format(eventDate, 'yyyy-MM-dd'));
+      setTimeInput(format(eventDate, 'HH:mm'));
+      
+      // Set the combined date_time in the form
+      form.setValue('date_time', eventDate.toISOString().slice(0, 16));
+    } else {
+      setDateInput('');
+      setTimeInput('');
+    }
+  }, [subEvent, form]);
+
+  // Handle separate date change
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setDateInput(newDate);
+    updateCombinedDateTime(newDate, timeInput);
+  };
+
+  // Handle separate time change
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = e.target.value;
+    setTimeInput(newTime);
+    updateCombinedDateTime(dateInput, newTime);
+  };
+
+  // Update the combined date_time field in the form
+  const updateCombinedDateTime = (date: string, time: string) => {
+    if (!date || !time) return;
+    
+    try {
+      // Create a combined date-time string in ISO format
+      const isoDateTime = `${date}T${time}`;
+      form.setValue('date_time', isoDateTime);
+    } catch (error) {
+      console.error("Error updating combined date time:", error);
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -152,17 +199,31 @@ export const SubEventDialog = ({ isOpen, onClose, onSubmit, subEvent }: SubEvent
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4">
+              <FormItem>
+                <FormLabel>Date</FormLabel>
+                <Input
+                  type="date"
+                  value={dateInput}
+                  onChange={handleDateChange}
+                  required
+                />
+              </FormItem>
+              <FormItem>
+                <FormLabel>Time</FormLabel>
+                <Input
+                  type="time"
+                  value={timeInput}
+                  onChange={handleTimeChange}
+                  required
+                />
+              </FormItem>
+            </div>
             <FormField
               control={form.control}
               name="date_time"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date and Time</FormLabel>
-                  <FormControl>
-                    <Input type="datetime-local" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                <input type="hidden" {...field} />
               )}
             />
             <FormField
