@@ -210,11 +210,11 @@ const Scanner = () => {
   };
 
   return (
-    <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
+    <div className="min-h-screen bg-campus-bg flex flex-col">
       <Header />
       
-      <main className="flex-1 p-4">
-        <Tabs defaultValue={isInfoOfficer ? "attendees" : "scanner"} className="w-full max-w-2xl mx-auto">
+      <main className="flex-1 p-4 pb-20">
+        <Tabs defaultValue={isInfoOfficer ? "attendees" : "scanner"} className="w-full max-w-4xl mx-auto">
           <TabsList className="grid w-full" style={{ gridTemplateColumns: isInfoOfficer ? "1fr 1fr" : "1fr 1fr" }}>
             {isStudent && <TabsTrigger value="scanner">Scanner</TabsTrigger>}
             <TabsTrigger value="attendees">Users</TabsTrigger>
@@ -270,7 +270,7 @@ const Scanner = () => {
           )}
           
           <TabsContent value="attendees">
-            <Card>
+            <Card className="h-full">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
@@ -330,17 +330,17 @@ const Scanner = () => {
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                           </div>
                         ) : attendees.length > 0 ? (
-                          <div className="border rounded-md overflow-hidden">
+                          <div className="border rounded-md overflow-x-auto">
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead>Name</TableHead>
-                                  <TableHead>Email</TableHead>
-                                  <TableHead>Check-in Time</TableHead>
+                                  <TableHead className="w-1/5">Name</TableHead>
+                                  <TableHead className="w-1/5">Email</TableHead>
+                                  <TableHead className="w-1/5">Check-in Time</TableHead>
                                   {(isInfoOfficer || hasRole("admin")) && (
                                     <>
-                                      <TableHead>Rating</TableHead>
-                                      <TableHead>Feedback</TableHead>
+                                      <TableHead className="w-1/10">Rating</TableHead>
+                                      <TableHead className="w-3/10">Feedback</TableHead>
                                     </>
                                   )}
                                 </TableRow>
@@ -348,18 +348,20 @@ const Scanner = () => {
                               <TableBody>
                                 {attendees.map((attendee) => (
                                   <TableRow key={attendee.id}>
-                                    <TableCell className="font-medium">
+                                    <TableCell className="font-medium max-w-[200px] break-words">
                                       {attendee.profiles?.name || 'N/A'}
                                     </TableCell>
-                                    <TableCell>{attendee.profiles?.email || 'N/A'}</TableCell>
+                                    <TableCell className="max-w-[200px] break-words">
+                                      {attendee.profiles?.email || 'N/A'}
+                                    </TableCell>
                                     <TableCell>{formatDate(attendee.check_in_time)}</TableCell>
                                     {(isInfoOfficer || hasRole("admin")) && (
                                       <>
                                         <TableCell>
                                           {attendee.rating ? `${attendee.rating}/5` : 'No rating'}
                                         </TableCell>
-                                        <TableCell className="max-w-[200px]">
-                                          <div className="truncate">
+                                        <TableCell className="max-w-[300px]">
+                                          <div className="whitespace-normal break-words">
                                             {attendee.feedback || 'No feedback'}
                                           </div>
                                         </TableCell>
@@ -383,19 +385,23 @@ const Scanner = () => {
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                           </div>
                         ) : interestedUsers.length > 0 ? (
-                          <div className="border rounded-md overflow-hidden">
+                          <div className="border rounded-md overflow-x-auto">
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead>Name</TableHead>
-                                  <TableHead>Email</TableHead>
+                                  <TableHead className="w-1/2">Name</TableHead>
+                                  <TableHead className="w-1/2">Email</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {interestedUsers.map((user) => (
                                   <TableRow key={user.id}>
-                                    <TableCell className="font-medium">{user.name || 'N/A'}</TableCell>
-                                    <TableCell>{user.email || 'N/A'}</TableCell>
+                                    <TableCell className="font-medium max-w-[300px] break-words">
+                                      {user.name || 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="max-w-[300px] break-words">
+                                      {user.email || 'N/A'}
+                                    </TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
