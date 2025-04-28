@@ -24,7 +24,7 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
   const canManage = hasRole('admin') || hasRole('information_officer');
 
   return (
-    <Card className="w-full">
+    <Card className="w-full h-full flex flex-col">
       {subEvent.image_url && (
         <div className="relative h-48 w-full overflow-hidden">
           <img
@@ -35,23 +35,23 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
         </div>
       )}
       <CardHeader>
-        <CardTitle>{subEvent.title}</CardTitle>
-        <CardDescription className="flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
+        <CardTitle className="text-xl">{subEvent.title}</CardTitle>
+        <CardDescription className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 flex-shrink-0" />
           {format(new Date(subEvent.date_time), 'MMMM d, yyyy - h:mm a')}
         </CardDescription>
         {subEvent.location && (
-          <CardDescription className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
+          <CardDescription className="flex items-center gap-2 text-sm">
+            <MapPin className="h-4 w-4 flex-shrink-0" />
             {subEvent.location}
           </CardDescription>
         )}
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-gray-600">{subEvent.description}</p>
+      <CardContent className="flex-grow">
+        <p className="text-sm text-gray-600">{subEvent.description || "No description available."}</p>
       </CardContent>
       {canManage && (
-        <CardFooter className="gap-2">
+        <CardFooter className="gap-2 pt-4 border-t mt-auto">
           <Button
             variant="outline"
             size="sm"

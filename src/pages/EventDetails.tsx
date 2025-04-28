@@ -626,19 +626,33 @@ const EventDetails = () => {
           )}
         </div>
         
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {subEvents.map((subEvent) => (
-            <SubEventCard
-              key={subEvent.id}
-              subEvent={subEvent}
-              onEdit={handleEditSubEvent}
-              onDelete={handleDeleteSubEvent}
-            />
-          ))}
-        </div>
-        
-        {subEvents.length === 0 && (
-          <p className="text-gray-500 text-center py-8">No sub-events have been added yet.</p>
+        {subEvents.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <p className="text-gray-500">No sub-events have been added yet.</p>
+            {canManageSubEvents && event?.is_active && (
+              <Button
+                onClick={() => {
+                  setSelectedSubEvent(undefined);
+                  setIsSubEventDialogOpen(true);
+                }}
+                variant="outline"
+                className="mt-4"
+              >
+                Create the first sub-event
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {subEvents.map((subEvent) => (
+              <SubEventCard
+                key={subEvent.id}
+                subEvent={subEvent}
+                onEdit={handleEditSubEvent}
+                onDelete={handleDeleteSubEvent}
+              />
+            ))}
+          </div>
         )}
       </div>
       
