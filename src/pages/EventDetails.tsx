@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInterest, removeEventInterest, getEventAverageRating, getEventRatingCount, getSubEvents, createSubEvent, updateSubEvent, deleteSubEvent } from "@/integrations/supabase/client";
@@ -608,53 +609,54 @@ const EventDetails = () => {
             </Button>
           </div>
         </div>
-      </main>
-      
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Sub-Events</h2>
-          {canManageSubEvents && event?.is_active && (
-            <Button
-              onClick={() => {
-                setSelectedSubEvent(undefined);
-                setIsSubEventDialogOpen(true);
-              }}
-              className="flex items-center gap-2"
-            >
-              Add Sub-Event
-            </Button>
-          )}
-        </div>
         
-        {subEvents.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-500">No sub-events have been added yet.</p>
+        {/* Sub-Events section with improved layout */}
+        <div className="mt-8 bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold">Sub-Events</h2>
             {canManageSubEvents && event?.is_active && (
               <Button
                 onClick={() => {
                   setSelectedSubEvent(undefined);
                   setIsSubEventDialogOpen(true);
                 }}
-                variant="outline"
-                className="mt-4"
+                className="flex items-center gap-2"
               >
-                Create the first sub-event
+                Add Sub-Event
               </Button>
             )}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {subEvents.map((subEvent) => (
-              <SubEventCard
-                key={subEvent.id}
-                subEvent={subEvent}
-                onEdit={handleEditSubEvent}
-                onDelete={handleDeleteSubEvent}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          
+          {subEvents.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No sub-events have been added yet.</p>
+              {canManageSubEvents && event?.is_active && (
+                <Button
+                  onClick={() => {
+                    setSelectedSubEvent(undefined);
+                    setIsSubEventDialogOpen(true);
+                  }}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  Create the first sub-event
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {subEvents.map((subEvent) => (
+                <SubEventCard
+                  key={subEvent.id}
+                  subEvent={subEvent}
+                  onEdit={handleEditSubEvent}
+                  onDelete={handleDeleteSubEvent}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
       
       <SubEventDialog
         isOpen={isSubEventDialogOpen}
@@ -679,7 +681,7 @@ const EventDetails = () => {
         isOpen={isRatingDialogOpen}
         onClose={() => setIsRatingDialogOpen(false)}
         eventId={eventId!}
-        eventTitle={event.title}
+        eventTitle={event?.title || ""}
         onRatingSubmitted={handleRatingSubmitted}
       />
     </div>
