@@ -6,6 +6,8 @@ interface ExportableUser {
   email: string | null;
   timestamp: string | null;
   status: string;
+  rating?: number | null;
+  feedback?: string | null;
 }
 
 export const exportUsersToExcel = (
@@ -16,12 +18,22 @@ export const exportUsersToExcel = (
   // Create a workbook
   const wb = XLSX.utils.book_new();
   
+  // Calculate average rating if there are any ratings
+  const ratings = attendees
+    .filter(a => a.status === "Attended" && a.rating !== null && a.rating !== undefined)
+    .map(a => a.rating as number);
+    
+  const averageRating = ratings.length > 0 
+    ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)
+    : 'No ratings';
+  
   // Add event title information as a summary sheet
   const titleData = [
     { A: 'Event Name', B: eventTitle },
     { A: 'Export Date', B: new Date().toLocaleString() },
     { A: 'Total Attendees', B: attendees.filter(a => a.status === "Attended").length },
-    { A: 'Total Interested', B: attendees.filter(a => a.status === "Interested").length }
+    { A: 'Total Interested', B: attendees.filter(a => a.status === "Interested").length },
+    { A: 'Average Rating', B: averageRating }
   ];
   const titleSheet = XLSX.utils.json_to_sheet(titleData, { header: ['A', 'B'] });
   
@@ -42,7 +54,9 @@ export const exportUsersToExcel = (
       event: eventTitle,
       name: attendee.name,
       email: attendee.email,
-      check_in_time: attendee.timestamp
+      check_in_time: attendee.timestamp,
+      rating: attendee.rating || 'No rating',
+      feedback: attendee.feedback || 'No feedback'
     }));
   
   // Create attendees worksheet
@@ -54,6 +68,8 @@ export const exportUsersToExcel = (
     { wch: 30 }, // Name
     { wch: 40 }, // Email
     { wch: 25 }, // Check-in Time
+    { wch: 15 }, // Rating
+    { wch: 50 }, // Feedback
   ];
   attendeesSheet['!cols'] = attendeesCols;
   
