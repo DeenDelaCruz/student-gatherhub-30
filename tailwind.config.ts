@@ -12,10 +12,10 @@ const config = {
   theme: {
     container: {
       center: true,
-      padding: '2rem',
+      padding: "2rem",
       screens: {
-        '2xl': '1400px'
-      }
+        "2xl": "1400px",
+      },
     },
     extend: {
       colors: {
@@ -63,12 +63,12 @@ const config = {
           ring: 'hsl(var(--sidebar-ring))'
         },
         campus: {
-          DEFAULT: '#161616',
-          header: '#1A1A1A',
-          bg: '#F5F5F5',
-          accent: '#4A6FFF',
-          purple: '#8E6BF5',
-          pink: '#FF6B95'
+          DEFAULT: "#161616",
+          header: "#1A1A1A",
+          bg: "#F5F5F5",
+          accent: "#4A6FFF",
+          purple: "#8E6BF5",
+          pink: "#FF6B95"
         }
       },
       borderRadius: {
