@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Calendar, Users, Star } from "lucide-react";
+import { Calendar, Users, MessageSquare, Activity } from "lucide-react";
 import { toast } from "sonner";
 
 const Auth = () => {
@@ -59,50 +59,66 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-campus-purple to-campus-accent flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-black to-zinc-900 flex flex-col items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-4xl flex flex-col lg:flex-row items-center justify-between gap-12 p-8"
+        className="w-full max-w-6xl flex flex-col lg:flex-row items-center justify-between gap-12 p-8"
       >
         {/* Left side - Content */}
-        <div className="flex-1 text-white">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-5xl lg:text-6xl font-bold mb-6 tracking-tight"
-          >
-            NEU EVENTERA
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-xl mb-8 text-white/90"
-          >
-            Your central hub for campus events and activities.
-          </motion.p>
-
+        <div className="flex-1 text-white space-y-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+            transition={{ delay: 0.2 }}
+            className="space-y-4"
           >
-            <div className="flex items-center gap-3">
-              <Calendar className="w-6 h-6" />
-              <span>Track Events</span>
+            <h1 className="text-6xl lg:text-7xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              NEU EVENTERA
+            </h1>
+            <p className="text-xl text-gray-400 max-w-xl">
+              Your all-in-one campus event management platform. Connect, discover, and engage with events that matter.
+            </p>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-8"
+          >
+            <div className="space-y-6">
+              <div className="flex items-start gap-4 group">
+                <Calendar className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
+                <div>
+                  <h3 className="font-semibold mb-1">Event Discovery</h3>
+                  <p className="text-sm text-gray-400">Browse and track campus events, get notifications, and never miss out.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 group">
+                <Users className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
+                <div>
+                  <h3 className="font-semibold mb-1">Community Engagement</h3>
+                  <p className="text-sm text-gray-400">Connect with peers, join groups, and build your campus network.</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Users className="w-6 h-6" />
-              <span>Connect with Peers</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Star className="w-6 h-6" />
-              <span>Rate Experiences</span>
+            <div className="space-y-6">
+              <div className="flex items-start gap-4 group">
+                <MessageSquare className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
+                <div>
+                  <h3 className="font-semibold mb-1">Real-time Updates</h3>
+                  <p className="text-sm text-gray-400">Get instant notifications about event changes and updates.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 group">
+                <Activity className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
+                <div>
+                  <h3 className="font-semibold mb-1">Event Analytics</h3>
+                  <p className="text-sm text-gray-400">Track attendance, gather feedback, and improve future events.</p>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -114,19 +130,19 @@ const Auth = () => {
           transition={{ delay: 0.5 }}
           className="w-full max-w-md"
         >
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl border border-white/20">
+          <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-8 border border-white/10 shadow-2xl">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold text-white mb-2">
-                Welcome Back
+                Welcome to EventEra
               </h2>
-              <p className="text-white/80">
-                Sign in to access all campus events
+              <p className="text-gray-400">
+                Sign in to discover and manage campus events
               </p>
             </div>
 
             <Button
               onClick={handleGoogleSignIn}
-              className="w-full py-6 flex items-center justify-center space-x-2 bg-white hover:bg-gray-100 text-gray-800 rounded-xl transition-colors"
+              className="w-full py-6 flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-800 rounded-xl transition-colors"
             >
               <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
                 <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
@@ -136,10 +152,10 @@ const Auth = () => {
                   <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z" />
                 </g>
               </svg>
-              <span>Continue with Google</span>
+              <span className="text-base font-medium">Continue with Google</span>
             </Button>
 
-            <p className="text-white/60 text-sm mt-8 text-center">
+            <p className="text-gray-500 text-sm mt-8 text-center">
               Secured by Google Authentication
             </p>
           </div>
