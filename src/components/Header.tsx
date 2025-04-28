@@ -1,4 +1,3 @@
-
 import { Search } from "lucide-react";
 
 interface HeaderProps {
@@ -19,12 +18,11 @@ const Header = ({ onSearch }: HeaderProps) => {
     <header className="w-full bg-campus-header py-4 px-3 flex items-center justify-between animate-fade-in">
       <div className="flex items-center">
         <div className="flex items-center gap-1">
-          <div className="bg-gradient-to-r from-campus-purple to-campus-accent rounded-lg p-2">
+          <div className="bg-black rounded-lg p-2">
             <div className="text-white font-bold text-xl">
-              Era
+              EventEra
             </div>
           </div>
-          <div className="text-campus-accent font-bold text-2xl">.</div>
         </div>
       </div>
       <form onSubmit={handleSearch} className="flex-1 max-w-[300px] mx-4">
@@ -48,4 +46,3 @@ const Header = ({ onSearch }: HeaderProps) => {
 };
 
 export default Header;
-
