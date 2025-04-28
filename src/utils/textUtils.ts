@@ -1,4 +1,6 @@
 
+import React from 'react';
+
 export const convertUrlsToLinks = (text: string): JSX.Element[] => {
   // Regex to match URLs (supports http, https, www)
   const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/g;
