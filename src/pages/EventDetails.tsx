@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInterest, removeEventInterest, getEventAverageRating, getEventRatingCount, getSubEvents, createSubEvent, updateSubEvent, deleteSubEvent } from "@/integrations/supabase/client";
@@ -17,6 +16,7 @@ import Lightbox from "@/components/Lightbox";
 import { SubEventCard } from "@/components/SubEventCard";
 import { SubEventDialog } from "@/components/SubEventDialog";
 import { SubEvent } from "@/types/sub-event";
+import { convertUrlsToLinks } from "@/utils/textUtils";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -576,7 +576,9 @@ const EventDetails = () => {
             
             <div className="mb-6 mt-4">
               <h2 className="font-medium mb-2">Description</h2>
-              <p className="text-gray-700 whitespace-pre-line">{event?.description || "No description available."}</p>
+              <p className="text-gray-700 whitespace-pre-line">
+                {event?.description ? convertUrlsToLinks(event.description) : "No description available."}
+              </p>
             </div>
             
             <div className="flex justify-between items-center mb-4">
@@ -610,7 +612,6 @@ const EventDetails = () => {
           </div>
         </div>
         
-        {/* Sub-Events section with improved layout */}
         <div className="mt-8 bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold">Sub-Events</h2>

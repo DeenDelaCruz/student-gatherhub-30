@@ -11,6 +11,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { format } from "date-fns";
 import Lightbox from "@/components/Lightbox";
 import RatingStars from "./RatingStars";
+import { convertUrlsToLinks } from "@/utils/textUtils";
 
 interface EventCardProps {
   title: string;
@@ -291,7 +292,9 @@ const EventCard = ({
                   
                   {description && (
                     <div className="mt-2 mb-3">
-                      <p className="text-sm text-gray-700 line-clamp-3">{description}</p>
+                      <p className="text-sm text-gray-700 line-clamp-3">
+                        {convertUrlsToLinks(description)}
+                      </p>
                     </div>
                   )}
                   
