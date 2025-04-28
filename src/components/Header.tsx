@@ -1,4 +1,3 @@
-
 import { Search } from "lucide-react";
 
 interface HeaderProps {
@@ -19,8 +18,8 @@ const Header = ({ onSearch }: HeaderProps) => {
     <header className="w-full bg-gradient-to-r from-black to-zinc-900 py-4 px-6 flex items-center justify-between shadow-md animate-fade-in">
       <div className="flex items-center">
         <div className="flex items-center gap-2">
-          <div className="bg-gradient-to-br from-campus-purple to-campus-pink rounded-xl p-3 shadow-lg hover:shadow-xl transition-all duration-300">
-            <div className="text-white font-bold text-2xl tracking-tight">
+          <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl p-2 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="text-white font-bold text-xl tracking-tight">
               EventEra
             </div>
           </div>
@@ -47,4 +46,3 @@ const Header = ({ onSearch }: HeaderProps) => {
 };
 
 export default Header;
-
