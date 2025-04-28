@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-export const convertUrlsToLinks = (text: string): JSX.Element[] => {
+export const convertUrlsToLinks = (text: string): React.ReactNode[] => {
   // Regex to match URLs (supports http, https, www)
   const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/g;
   
@@ -10,7 +10,7 @@ export const convertUrlsToLinks = (text: string): JSX.Element[] => {
   const parts = text.split(urlRegex);
   const matches = text.match(urlRegex) || [];
   
-  const result: JSX.Element[] = [];
+  const result: React.ReactNode[] = [];
   let matchIndex = 0;
   
   parts.forEach((part, index) => {
