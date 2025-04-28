@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,8 +98,8 @@ const Auth = () => {
               <div className="flex items-start gap-4 group">
                 <Users className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
                 <div>
-                  <h3 className="font-semibold mb-1">Community Engagement</h3>
-                  <p className="text-sm text-gray-400">Connect with peers, join groups, and build your campus network.</p>
+                  <h3 className="font-semibold mb-1">Attendance Tracking</h3>
+                  <p className="text-sm text-gray-400">Monitor and manage event attendance with QR codes and real-time tracking.</p>
                 </div>
               </div>
             </div>
