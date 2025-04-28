@@ -61,73 +61,74 @@ const Auth = () => {
   const features = [
     {
       icon: Calendar,
-      title: "Event Discovery",
-      description: "Browse and track campus events with an intuitive calendar interface. Filter by interests, departments, or organizations.",
-      details: ["Real-time updates on event changes", "Personalized event recommendations", "Easy registration process"]
+      title: "Smart Event Discovery",
+      description: "Find and track campus events effortlessly with our intelligent calendar interface. Filter events by your interests, departments, or student organizations.",
+      details: ["Real-time updates and notifications", "Personalized event recommendations", "One-click registration process"]
     },
     {
       icon: Users,
-      title: "Community Engagement",
-      description: "Connect with peers, join student organizations, and build your campus network through shared interests and events.",
-      details: ["Join student organizations", "Network with peers", "Build meaningful connections"]
+      title: "Campus Community Hub",
+      description: "Connect with fellow students, join organizations, and build your network through shared interests and activities.",
+      details: ["Join student groups instantly", "Connect with event organizers", "Build your campus network"]
     },
     {
       icon: MessageSquare,
-      title: "Interactive Communication",
-      description: "Engage in discussions, provide feedback, and collaborate with event organizers and attendees.",
-      details: ["Direct messaging with organizers", "Event comments and discussions", "Real-time notifications"]
+      title: "Interactive Discussions",
+      description: "Engage in meaningful conversations, share feedback, and collaborate with event participants and organizers.",
+      details: ["Live event discussions", "Direct messaging system", "Community feedback channels"]
     },
     {
       icon: Activity,
-      title: "Event Analytics",
-      description: "Track attendance, gather feedback, and measure engagement to improve future events.",
-      details: ["Attendance tracking", "Feedback collection", "Performance metrics"]
+      title: "Event Analytics & Insights",
+      description: "Get detailed insights into event performance, attendance trends, and engagement metrics.",
+      details: ["Real-time attendance tracking", "Engagement analytics", "Feedback collection"]
     },
     {
       icon: Star,
-      title: "Personalized Experience",
-      description: "Customize your event feed based on your interests and previous attendance.",
-      details: ["Interest-based recommendations", "Event history tracking", "Favorite events saving"]
+      title: "Tailored Experience",
+      description: "Enjoy a personalized event feed based on your interests, past attendance, and campus involvement.",
+      details: ["Smart event recommendations", "Customizable preferences", "Event history tracking"]
     },
     {
       icon: Globe,
-      title: "Campus-Wide Access",
-      description: "Access events from all departments and student organizations in one centralized platform.",
-      details: ["Cross-department events", "Organization directories", "Unified event calendar"]
+      title: "Campus-Wide Integration",
+      description: "Access a unified platform connecting all university departments, organizations, and student groups.",
+      details: ["Cross-department event access", "Unified calendar system", "Organization directory"]
     },
     {
       icon: Bell,
       title: "Smart Notifications",
-      description: "Stay informed with intelligent notifications about events you care about.",
-      details: ["Customizable alerts", "Event reminders", "Important updates"]
+      description: "Never miss important events with intelligent alerts and reminders customized to your schedule.",
+      details: ["Customizable notifications", "Calendar integration", "Priority alerts"]
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black to-zinc-900">
+    <div className="min-h-screen bg-gradient-to-br from-black to-zinc-900 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Hero Section */}
+        {/* Hero Section with Enhanced Typography */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          className="text-center mb-24"
         >
-          <h1 className="text-7xl lg:text-8xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent mb-6">
+          <h1 className="text-8xl lg:text-9xl font-bold tracking-tighter bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent mb-8">
             NEU EVENTERA
           </h1>
-          <p className="text-xl lg:text-2xl text-gray-400 max-w-3xl mx-auto">
-            Transform your campus experience with NEU EventEra - the comprehensive event management platform designed exclusively for Northeastern University.
+          <p className="text-2xl lg:text-3xl text-gray-400 max-w-4xl mx-auto leading-relaxed">
+            Transform your campus experience with NEU EventEra — where every event becomes an opportunity to connect, learn, and grow.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-          {/* Features Section */}
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start relative">
+          {/* Features Section with Enhanced Cards */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="space-y-12"
+            className="space-y-8"
           >
             <div className="grid gap-8">
               {features.map((feature, index) => (
@@ -136,21 +137,23 @@ const Auth = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * index }}
-                  className="glass-card p-6 rounded-xl backdrop-blur-xl bg-white/5 border border-white/10"
+                  className="group hover:scale-[1.02] transition-all duration-300"
                 >
-                  <div className="flex items-start gap-4 group">
-                    <feature.icon className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
-                    <div>
-                      <h3 className="text-white font-semibold text-lg mb-2">{feature.title}</h3>
-                      <p className="text-gray-400 mb-4">{feature.description}</p>
-                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {feature.details.map((detail, i) => (
-                          <li key={i} className="text-sm text-gray-500 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-gray-500 rounded-full"></span>
-                            {detail}
-                          </li>
-                        ))}
-                      </ul>
+                  <div className="glass-card p-8 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                    <div className="flex items-start gap-6">
+                      <feature.icon className="w-8 h-8 text-gray-400 group-hover:text-white transition-colors" />
+                      <div>
+                        <h3 className="text-white font-semibold text-xl mb-3">{feature.title}</h3>
+                        <p className="text-gray-400 mb-6 leading-relaxed">{feature.description}</p>
+                        <ul className="grid grid-cols-1 gap-3">
+                          {feature.details.map((detail, i) => (
+                            <li key={i} className="text-sm text-gray-500 flex items-center gap-3 group-hover:text-gray-400 transition-colors">
+                              <span className="w-1.5 h-1.5 bg-gray-500 rounded-full group-hover:bg-white/50 transition-colors"></span>
+                              {detail}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -158,26 +161,26 @@ const Auth = () => {
             </div>
           </motion.div>
 
-          {/* Auth Card */}
+          {/* Auth Card with Enhanced Design */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5 }}
             className="lg:sticky lg:top-8"
           >
-            <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-8 border border-white/10 shadow-2xl">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-semibold text-white mb-2">
+            <div className="backdrop-blur-xl bg-white/5 rounded-3xl p-10 border border-white/10 shadow-2xl">
+              <div className="text-center mb-10">
+                <h2 className="text-3xl font-bold text-white mb-4">
                   Welcome to EventEra
                 </h2>
-                <p className="text-gray-400">
+                <p className="text-gray-400 text-lg leading-relaxed">
                   Sign in with your Northeastern account to discover and manage campus events
                 </p>
               </div>
 
               <Button
                 onClick={handleGoogleSignIn}
-                className="w-full py-6 flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-800 rounded-xl transition-colors"
+                className="w-full py-8 flex items-center justify-center gap-4 bg-white hover:bg-gray-100 text-gray-800 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
                   <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
@@ -187,17 +190,17 @@ const Auth = () => {
                     <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z" />
                   </g>
                 </svg>
-                <span className="text-base font-medium">Continue with Google</span>
+                <span className="text-lg font-medium">Continue with Google</span>
               </Button>
 
               <p className="text-gray-500 text-sm mt-8 text-center">
-                Secured by Google Authentication
+                Protected by Google Authentication
               </p>
             </div>
           </motion.div>
         </div>
 
-        {/* Footer Section */}
+        {/* Footer */}
         <motion.footer
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
