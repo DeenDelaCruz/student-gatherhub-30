@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInterest, removeEventInterest, getEventAverageRating, getEventRatingCount } from "@/integrations/supabase/client";
+import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInterest, removeEventInterest, getEventAverageRating, getEventRatingCount, getSubEvents, createSubEvent, updateSubEvent, deleteSubEvent } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth";
 import { Event, convertSupabaseEventToEvent } from "@/types/event";
@@ -13,6 +13,9 @@ import RatingStars from "@/components/RatingStars";
 import RateEventDialog from "@/components/RateEventDialog";
 import { CustomNotification } from "@/types/custom-notification";
 import Lightbox from "@/components/Lightbox";
+import { SubEventCard } from "@/components/SubEventCard";
+import { SubEventDialog } from "@/components/SubEventDialog";
+import { SubEvent } from "@/types/sub-event";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -31,8 +34,12 @@ const EventDetails = () => {
   const [canRate, setCanRate] = useState(false);
   const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
   const [hasUserRated, setHasUserRated] = useState(false);
+  const [subEvents, setSubEvents] = useState<SubEvent[]>([]);
+  const [isSubEventDialogOpen, setIsSubEventDialogOpen] = useState(false);
+  const [selectedSubEvent, setSelectedSubEvent] = useState<SubEvent | undefined>();
   const isInformationOfficer = hasRole('information_officer') || hasRole('admin');
   const canEdit = isInformationOfficer && event?.created_by === user?.id;
+  const canManageSubEvents = hasRole('admin') || hasRole('information_officer');
 
   const fetchInterestCount = async () => {
     if (!eventId) return;
@@ -230,6 +237,60 @@ const EventDetails = () => {
   useEffect(() => {
     fetchRatingData();
   }, [eventId, user, event]);
+
+  useEffect(() => {
+    const fetchSubEvents = async () => {
+      if (!eventId) return;
+      const events = await getSubEvents(eventId);
+      setSubEvents(events);
+    };
+
+    if (!isUpdating) {
+      fetchSubEvents();
+    }
+  }, [eventId, isUpdating]);
+
+  const handleCreateSubEvent = async (formData: any) => {
+    if (!eventId || !user) return;
+    
+    const newSubEvent = await createSubEvent({
+      event_id: eventId,
+      created_by: user.id,
+      ...formData,
+    });
+
+    if (newSubEvent) {
+      setSubEvents(prev => [...prev, newSubEvent]);
+      toast.success("Sub-event created successfully");
+    }
+  };
+
+  const handleUpdateSubEvent = async (formData: any) => {
+    if (!selectedSubEvent) return;
+    
+    const updatedSubEvent = await updateSubEvent(selectedSubEvent.id, formData);
+    
+    if (updatedSubEvent) {
+      setSubEvents(prev => prev.map(se => 
+        se.id === updatedSubEvent.id ? updatedSubEvent : se
+      ));
+      toast.success("Sub-event updated successfully");
+    }
+  };
+
+  const handleDeleteSubEvent = async (subEventId: string) => {
+    const success = await deleteSubEvent(subEventId);
+    
+    if (success) {
+      setSubEvents(prev => prev.filter(se => se.id !== subEventId));
+      toast.success("Sub-event deleted successfully");
+    }
+  };
+
+  const handleEditSubEvent = (subEvent: SubEvent) => {
+    setSelectedSubEvent(subEvent);
+    setIsSubEventDialogOpen(true);
+  };
 
   const handleToggleInterest = async () => {
     if (!user) {
@@ -548,6 +609,48 @@ const EventDetails = () => {
           </div>
         </div>
       </main>
+      
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Sub-Events</h2>
+          {canManageSubEvents && event?.is_active && (
+            <Button
+              onClick={() => {
+                setSelectedSubEvent(undefined);
+                setIsSubEventDialogOpen(true);
+              }}
+              className="flex items-center gap-2"
+            >
+              Add Sub-Event
+            </Button>
+          )}
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {subEvents.map((subEvent) => (
+            <SubEventCard
+              key={subEvent.id}
+              subEvent={subEvent}
+              onEdit={handleEditSubEvent}
+              onDelete={handleDeleteSubEvent}
+            />
+          ))}
+        </div>
+        
+        {subEvents.length === 0 && (
+          <p className="text-gray-500 text-center py-8">No sub-events have been added yet.</p>
+        )}
+      </div>
+      
+      <SubEventDialog
+        isOpen={isSubEventDialogOpen}
+        onClose={() => {
+          setIsSubEventDialogOpen(false);
+          setSelectedSubEvent(undefined);
+        }}
+        onSubmit={selectedSubEvent ? handleUpdateSubEvent : handleCreateSubEvent}
+        subEvent={selectedSubEvent}
+      />
       
       <Navigation />
       
