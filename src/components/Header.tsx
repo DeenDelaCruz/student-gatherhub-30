@@ -18,10 +18,14 @@ const Header = ({ onSearch }: HeaderProps) => {
   return (
     <header className="w-full bg-campus-header py-4 px-3 flex items-center justify-between animate-fade-in">
       <div className="flex items-center">
-        <div className="text-white font-bold text-xl mr-2">N
-          <span className="text-campus-accent">:</span>U
+        <div className="flex items-center gap-1">
+          <div className="bg-gradient-to-r from-campus-purple to-campus-accent rounded-lg p-2">
+            <div className="text-white font-bold text-xl">
+              Era
+            </div>
+          </div>
+          <div className="text-campus-accent font-bold text-2xl">.</div>
         </div>
-        <p className="text-white text-[10px] opacity-70">EVENTERA</p>
       </div>
       <form onSubmit={handleSearch} className="flex-1 max-w-[300px] mx-4">
         <div className="relative">
@@ -44,3 +48,4 @@ const Header = ({ onSearch }: HeaderProps) => {
 };
 
 export default Header;
+
