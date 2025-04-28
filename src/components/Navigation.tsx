@@ -1,6 +1,5 @@
-
 import { Link, useLocation } from "react-router-dom";
-import { Calendar, QrCode, Users, Bell, User } from "lucide-react";
+import { Calendar, QrCode, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth";
 import { useState, useEffect } from "react";
@@ -40,7 +39,6 @@ const Navigation = () => {
     
     fetchUnreadCount();
     
-    // Subscribe to changes
     if (user) {
       const channel = supabase
         .channel('notification-count')
@@ -70,12 +68,6 @@ const Navigation = () => {
       { icon: QrCode, label: "Scanner", path: "/scanner" },
     ];
     
-    // Show People button only for admins and information officers
-    if (!isStudent) {
-      baseItems.push({ icon: Users, label: "People", path: "/people" });
-    }
-    
-    // Show Notifications button for students and information officers
     if (isStudent || isInfoOfficer) {
       baseItems.push({ 
         icon: Bell, 
@@ -85,7 +77,6 @@ const Navigation = () => {
       });
     }
     
-    // Add Profile button for all users
     baseItems.push({ icon: User, label: "Profile", path: "/profile" });
     
     return baseItems;
