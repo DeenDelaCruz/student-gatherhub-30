@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -848,10 +847,9 @@ const Admin = () => {
         >
           <Tabs defaultValue="events" className="w-full">
             <div className="bg-white p-4 rounded-t-xl shadow-sm">
-              <TabsList className="grid w-full max-w-md grid-cols-3 mx-auto">
+              <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
                 <TabsTrigger value="events" className="text-sm">Events</TabsTrigger>
                 <TabsTrigger value="users" className="text-sm">Users</TabsTrigger>
-                <TabsTrigger value="activity" className="text-sm">Activity</TabsTrigger>
               </TabsList>
             </div>
             
@@ -1012,16 +1010,6 @@ const Admin = () => {
                       </Table>
                     </div>
                   </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="activity" className="p-6">
-                <div className="text-center py-10">
-                  <Activity className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-medium mb-2">Activity Logging</h3>
-                  <p className="text-gray-500 max-w-md mx-auto">
-                    Detailed activity logging and reporting will be available in a future update.
-                  </p>
                 </div>
               </TabsContent>
             </div>
