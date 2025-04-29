@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -85,6 +86,7 @@ const Scanner = () => {
         
       if (ratingsError) throw ratingsError;
       
+      // Map the attendees with their profile data and ratings
       const combinedData = attendeesData.map(attendee => ({
         ...attendee,
         rating: ratingsData?.find(r => r.user_id === attendee.user_id)?.rating || null,
@@ -190,10 +192,15 @@ const Scanner = () => {
       return;
     }
 
+    // Enhance exported attendees data with additional profile fields
     const exportAttendees = attendees.map(attendee => ({
       event: selectedEventTitle,
       name: attendee.profiles?.name || 'N/A',
       email: attendee.profiles?.email || 'N/A',
+      department: attendee.profiles?.department || 'N/A',
+      program: attendee.profiles?.program || 'N/A',
+      student_number: attendee.profiles?.student_number || 'N/A',
+      year: attendee.profiles?.year || 'N/A',
       check_in_time: attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : null,
       status: "Attended",
       rating: attendee.rating || 'No rating',
@@ -348,13 +355,17 @@ const Scanner = () => {
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead className="w-1/5">Name</TableHead>
-                                  <TableHead className="w-1/5">Email</TableHead>
-                                  <TableHead className="w-1/5">Check-in Time</TableHead>
+                                  <TableHead className="w-1/6">Name</TableHead>
+                                  <TableHead className="w-1/6">Email</TableHead>
                                   {(isInfoOfficer || hasRole("admin")) && (
                                     <>
-                                      <TableHead className="w-1/10">Rating</TableHead>
-                                      <TableHead className="w-3/10">Feedback</TableHead>
+                                      <TableHead className="w-1/8">Department</TableHead>
+                                      <TableHead className="w-1/8">Program</TableHead>
+                                      <TableHead className="w-1/8">Student No.</TableHead>
+                                      <TableHead className="w-1/8">Year</TableHead>
+                                      <TableHead className="w-1/8">Check-in Time</TableHead>
+                                      <TableHead className="w-1/12">Rating</TableHead>
+                                      <TableHead className="w-1/6">Feedback</TableHead>
                                     </>
                                   )}
                                 </TableRow>
@@ -362,19 +373,31 @@ const Scanner = () => {
                               <TableBody>
                                 {attendees.map((attendee) => (
                                   <TableRow key={attendee.id}>
-                                    <TableCell className="font-medium max-w-[200px] break-words">
+                                    <TableCell className="font-medium max-w-[150px] break-words">
                                       {attendee.profiles?.name || 'N/A'}
                                     </TableCell>
-                                    <TableCell className="max-w-[200px] break-words">
+                                    <TableCell className="max-w-[150px] break-words">
                                       {attendee.profiles?.email || 'N/A'}
                                     </TableCell>
-                                    <TableCell>{formatDate(attendee.check_in_time)}</TableCell>
                                     {(isInfoOfficer || hasRole("admin")) && (
                                       <>
+                                        <TableCell className="max-w-[120px] break-words">
+                                          {attendee.profiles?.department || 'N/A'}
+                                        </TableCell>
+                                        <TableCell className="max-w-[120px] break-words">
+                                          {attendee.profiles?.program || 'N/A'}
+                                        </TableCell>
+                                        <TableCell className="max-w-[120px] break-words">
+                                          {attendee.profiles?.student_number || 'N/A'}
+                                        </TableCell>
+                                        <TableCell className="max-w-[80px] break-words">
+                                          {attendee.profiles?.year || 'N/A'}
+                                        </TableCell>
+                                        <TableCell>{formatDate(attendee.check_in_time)}</TableCell>
                                         <TableCell>
                                           {attendee.rating ? `${attendee.rating}/5` : 'No rating'}
                                         </TableCell>
-                                        <TableCell className="max-w-[300px]">
+                                        <TableCell className="max-w-[200px]">
                                           <div className="whitespace-normal break-words">
                                             {attendee.feedback || 'No feedback'}
                                           </div>
