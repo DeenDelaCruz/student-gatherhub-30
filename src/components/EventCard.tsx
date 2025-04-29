@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ interface EventCardProps {
   createdBy?: string;
   description?: string;
   location?: string;
+  interestCount?: number; // Added interestCount property to the interface
 }
 
 const EventCard = ({ 
