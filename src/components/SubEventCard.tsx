@@ -1,6 +1,6 @@
 
 import { format } from "date-fns";
-import { MapPin, Calendar, Edit, Trash2 } from "lucide-react";
+import { MapPin, Calendar, Edit, Trash2, ZoomIn } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -12,6 +12,8 @@ import {
 } from "./ui/card";
 import { SubEvent } from "@/types/sub-event";
 import { useAuth } from "@/context/auth";
+import { useState } from "react";
+import Lightbox from "./Lightbox";
 
 interface SubEventCardProps {
   subEvent: SubEvent;
@@ -22,6 +24,7 @@ interface SubEventCardProps {
 export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) => {
   const { hasRole } = useAuth();
   const canManage = hasRole('admin') || hasRole('information_officer');
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
     <Card className="w-full h-full flex flex-col">
@@ -30,8 +33,16 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
           <img
             src={subEvent.image_url}
             alt={subEvent.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-zoom-in"
+            onClick={() => setLightboxOpen(true)}
           />
+          <Button
+            className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white shadow-lg"
+            size="sm"
+            onClick={() => setLightboxOpen(true)}
+          >
+            <ZoomIn size={16} className="mr-1" /> View Image
+          </Button>
         </div>
       )}
       <CardHeader>
@@ -69,6 +80,16 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
             <Trash2 className="h-4 w-4" /> Delete
           </Button>
         </CardFooter>
+      )}
+      
+      {/* Lightbox for maximized image view */}
+      {subEvent.image_url && (
+        <Lightbox 
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          imageSrc={subEvent.image_url}
+          alt={subEvent.title}
+        />
       )}
     </Card>
   );
