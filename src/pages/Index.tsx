@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -6,10 +7,10 @@ import EventCard from "@/components/event-card";
 import Navigation from "@/components/Navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getEventInterestCount } from "@/integrations/supabase/client";
 import { Event, convertSupabaseEventsToEvents } from "@/types/event";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, ArrowDownAZ, ArrowUpAZ } from "lucide-react";
+import { PlusCircle, ArrowDownAZ, ArrowUpAZ, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +54,12 @@ const Index = () => {
         
         if (data) {
           const formattedEvents = convertSupabaseEventsToEvents(data);
+          
+          // Fetch interest count for each event
+          for (const event of formattedEvents) {
+            event.interest_count = await getEventInterestCount(event.id);
+          }
+          
           setEvents(formattedEvents);
           
           const initialFiltered = formattedEvents.filter(event => 
@@ -209,6 +216,7 @@ const Index = () => {
                   <Button variant="outline" size="sm" className="flex items-center gap-1">
                     {sortOption.includes('asc') ? <ArrowUpAZ className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />}
                     <span>Sort</span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -223,6 +231,12 @@ const Index = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setSortOption("name-desc")}>
                     Name Z-A
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("interest-desc")}>
+                    Most Interested
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption("interest-asc")}>
+                    Least Interested
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -259,6 +273,7 @@ const Index = () => {
                     createdBy={event.created_by}
                     description={event.description}
                     location={event.location}
+                    interestCount={event.interest_count}
                   />
                 ))
               ) : (

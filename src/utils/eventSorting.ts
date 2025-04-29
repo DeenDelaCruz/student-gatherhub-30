@@ -1,7 +1,7 @@
 
 import { Event } from "@/types/event";
 
-export type SortOption = "date-asc" | "date-desc" | "name-asc" | "name-desc";
+export type SortOption = "date-asc" | "date-desc" | "name-asc" | "name-desc" | "interest-asc" | "interest-desc";
 
 export const sortEvents = (events: Event[], sortOption: SortOption): Event[] => {
   const sortedEvents = [...events];
@@ -19,6 +19,10 @@ export const sortEvents = (events: Event[], sortOption: SortOption): Event[] => 
       return sortedEvents.sort((a, b) => a.title.localeCompare(b.title));
     case "name-desc":
       return sortedEvents.sort((a, b) => b.title.localeCompare(a.title));
+    case "interest-asc":
+      return sortedEvents.sort((a, b) => (a.interest_count || 0) - (b.interest_count || 0));
+    case "interest-desc":
+      return sortedEvents.sort((a, b) => (b.interest_count || 0) - (a.interest_count || 0));
     default:
       return sortedEvents;
   }

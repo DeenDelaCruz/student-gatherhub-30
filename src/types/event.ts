@@ -16,6 +16,7 @@ export interface Event {
   created_by: string;
   created_at: string;
   updated_at: string;
+  interest_count?: number; // Added interest count property
 }
 
 export interface EventFormData {

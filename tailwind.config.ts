@@ -75,6 +75,11 @@ const config = {
           active: "#10B981",
           pending: "#F59E0B",
           error: "#EF4444"
+        },
+        interest: {
+          high: "#3B82F6", // Blue for high interest
+          medium: "#8B5CF6", // Purple for medium interest
+          low: "#9CA3AF" // Gray for low interest
         }
       },
       borderRadius: {
