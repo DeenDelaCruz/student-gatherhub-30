@@ -107,30 +107,6 @@ const Profile = () => {
         </motion.div>
         
         <motion.div 
-          className="activity-card bg-white rounded-3xl p-6 shadow-sm mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <h3 className="text-lg font-medium mb-4">Activity Summary</h3>
-          <div className="flex justify-between text-center">
-            <div className="flex-1">
-              <p className="text-2xl font-semibold text-campus-accent">
-                {profile?.events_attended || 0}
-              </p>
-              <p className="text-sm text-gray-500">Events Attended</p>
-            </div>
-            <div className="w-px bg-gray-200"></div>
-            <div className="flex-1">
-              <p className="text-2xl font-semibold text-campus-purple">
-                {profile?.events_upcoming || 0}
-              </p>
-              <p className="text-sm text-gray-500">Upcoming Events</p>
-            </div>
-          </div>
-        </motion.div>
-        
-        <motion.div 
           className="menu-section"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
