@@ -221,34 +221,43 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
+          department: string | null
           email: string | null
           events_attended: number | null
           events_upcoming: number | null
           id: string
           name: string | null
           notifications: boolean | null
+          program: string | null
+          student_number: string | null
           updated_at: string | null
           year: string | null
         }
         Insert: {
           created_at?: string | null
+          department?: string | null
           email?: string | null
           events_attended?: number | null
           events_upcoming?: number | null
           id: string
           name?: string | null
           notifications?: boolean | null
+          program?: string | null
+          student_number?: string | null
           updated_at?: string | null
           year?: string | null
         }
         Update: {
           created_at?: string | null
+          department?: string | null
           email?: string | null
           events_attended?: number | null
           events_upcoming?: number | null
           id?: string
           name?: string | null
           notifications?: boolean | null
+          program?: string | null
+          student_number?: string | null
           updated_at?: string | null
           year?: string | null
         }

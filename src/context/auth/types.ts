@@ -17,6 +17,9 @@ export type Profile = {
   events_upcoming?: number;
   notifications?: boolean;
   created_at?: string;
+  department?: string | null;
+  program?: string | null;
+  student_number?: string | null;
 };
 
 // Auth context type

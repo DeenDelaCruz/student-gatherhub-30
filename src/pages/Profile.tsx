@@ -1,8 +1,9 @@
+
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { User, Calendar, LogOut, BarChart, MapPin, Clock, Heart } from "lucide-react";
+import { User, Calendar, LogOut, BarChart, MapPin, Clock, Heart, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import { useEffect, useState } from "react";
 import { getUserAttendedEvents, getUserInterestedEvents } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
+import { ProfileForm } from "@/components/ProfileForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Profile = () => {
   const { profile, signOut, roles, hasRole } = useAuth();
@@ -20,6 +23,7 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState<'attended' | 'interested'>('attended');
   const [showEvents, setShowEvents] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [currentTab, setCurrentTab] = useState<'info' | 'edit'>('info');
 
   const handleLogout = async () => {
     try {
@@ -79,31 +83,92 @@ const Profile = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <div className="flex items-center">
-            <div className="bg-campus-accent/10 rounded-full p-4 mr-4">
-              <User size={32} className="text-campus-accent" />
-            </div>
-            <div>
-              <h2 className="text-xl font-medium">{profile?.name || "Loading..."}</h2>
-              <p className="text-gray-500 text-sm">{profile?.email || "Loading..."}</p>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {roles && roles.map((role, index) => (
-                  <span 
-                    key={index} 
-                    className={`inline-block text-xs px-2 py-1 rounded-full ${
-                      role === 'admin' 
-                        ? 'bg-red-100 text-red-800' 
-                        : role === 'information_officer' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-green-100 text-green-800'
-                    }`}
-                  >
-                    {role.replace('_', ' ')}
-                  </span>
-                ))}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="bg-campus-accent/10 rounded-full p-4 mr-4">
+                <User size={32} className="text-campus-accent" />
+              </div>
+              <div>
+                <h2 className="text-xl font-medium">{profile?.name || "Loading..."}</h2>
+                <p className="text-gray-500 text-sm">{profile?.email || "Loading..."}</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {roles && roles.map((role, index) => (
+                    <span 
+                      key={index} 
+                      className={`inline-block text-xs px-2 py-1 rounded-full ${
+                        role === 'admin' 
+                          ? 'bg-red-100 text-red-800' 
+                          : role === 'information_officer' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-green-100 text-green-800'
+                      }`}
+                    >
+                      {role.replace('_', ' ')}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
+
+            <Tabs value={currentTab} className="w-auto" onValueChange={(val) => setCurrentTab(val as 'info' | 'edit')}>
+              <TabsList className="bg-campus-bg/50">
+                <TabsTrigger value="info" className="data-[state=active]:bg-campus-accent data-[state=active]:text-white">
+                  Info
+                </TabsTrigger>
+                <TabsTrigger value="edit" className="data-[state=active]:bg-campus-accent data-[state=active]:text-white">
+                  Edit
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
+
+          {currentTab === 'edit' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              transition={{ duration: 0.3 }}
+              className="mt-6"
+            >
+              <ProfileForm />
+            </motion.div>
+          )}
+
+          {currentTab === 'info' && profile && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              {profile.year && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500">Year</p>
+                  <p className="font-medium">{profile.year}</p>
+                </div>
+              )}
+              
+              {profile.department && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500">Department</p>
+                  <p className="font-medium">{profile.department}</p>
+                </div>
+              )}
+              
+              {profile.program && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500">Program</p>
+                  <p className="font-medium">{profile.program}</p>
+                </div>
+              )}
+              
+              {profile.student_number && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500">Student Number</p>
+                  <p className="font-medium">{profile.student_number}</p>
+                </div>
+              )}
+            </motion.div>
+          )}
         </motion.div>
         
         <motion.div 
