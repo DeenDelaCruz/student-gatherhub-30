@@ -120,12 +120,25 @@ const Scanner = () => {
   };
 
   const handleScanComplete = async (data: string) => {
-    if (!user) return;
+    if (!user) {
+      toast.error("You need to be logged in to check in");
+      return;
+    }
     
     try {
       setIsProcessing(true);
+      console.log("Processing scan data:", data);
       
-      const parsedData = JSON.parse(data);
+      let parsedData;
+      try {
+        parsedData = JSON.parse(data);
+      } catch (error) {
+        console.error("Error parsing QR data:", error);
+        toast.error("Invalid QR code format", {
+          description: "The QR code could not be processed"
+        });
+        return;
+      }
       
       if (!parsedData.eventId) {
         toast.error("Invalid QR code", {
@@ -142,6 +155,7 @@ const Scanner = () => {
         return;
       }
       
+      console.log("Checking in to event:", parsedData.eventId, "User:", user.id);
       const success = await checkInUserToEvent(parsedData.eventId, user.id);
       
       if (success) {

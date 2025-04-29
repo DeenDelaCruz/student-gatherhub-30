@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Loader2, Camera, X, Upload } from 'lucide-react';
 import { useAuth } from '@/context/auth';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { validateQrCodeData } from '@/utils/capacitorUtils';
 
 interface QrScannerProps {
   onScanComplete: (data: string) => void;
@@ -43,6 +43,27 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     };
   }, []);
 
+  const processQrData = (decodedText: string) => {
+    console.log("Processing QR data:", decodedText);
+    
+    if (typeof decodedText === 'string' && decodedText.trim()) {
+      // Validate QR code format
+      if (validateQrCodeData(decodedText.trim())) {
+        onScanComplete(decodedText.trim());
+      } else {
+        setError("Invalid QR code format for event check-in");
+        toast.error("Invalid QR code", {
+          description: "This QR code is not in the correct format for event check-in"
+        });
+      }
+    } else {
+      setError("Invalid QR code data received");
+      toast.error("Invalid QR code", {
+        description: "The QR code didn't contain valid data"
+      });
+    }
+  };
+
   const initializeScanner = async () => {
     try {
       const html5QrCode = new Html5Qrcode(scannerContainerId);
@@ -62,21 +83,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           html5QrCode.stop()
             .then(() => {
               setIsScanning(false);
-              
-              if (typeof decodedText === 'string' && decodedText.trim()) {
-                onScanComplete(decodedText.trim());
-                
-                if (user && user.id) {
-                  setTimeout(() => {
-                    console.log("Refreshing profile data for user:", user.id);
-                  }, 2000);
-                }
-              } else {
-                setError("Invalid QR code data received");
-                toast.error("Invalid QR code", {
-                  description: "The QR code didn't contain valid data"
-                });
-              }
+              processQrData(decodedText);
             })
             .catch(err => console.error("Error stopping scanner after success:", err));
         },
@@ -156,24 +163,12 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       scannerRef.current = new Html5Qrcode(scannerContainerId);
     }
     
+    console.log("Processing file upload:", file.name, file.type);
+    
     scannerRef.current.scanFile(file, true)
       .then(decodedText => {
         console.log("QR Code from image:", decodedText);
-        
-        if (typeof decodedText === 'string' && decodedText.trim()) {
-          onScanComplete(decodedText.trim());
-          
-          if (user && user.id) {
-            setTimeout(() => {
-              console.log("Refreshing profile data for user:", user.id);
-            }, 2000);
-          }
-        } else {
-          setError("Invalid QR code data received from image");
-          toast.error("Invalid QR code", {
-            description: "The image didn't contain a valid QR code"
-          });
-        }
+        processQrData(decodedText);
       })
       .catch(err => {
         console.error("Error scanning uploaded image:", err);
@@ -184,6 +179,9 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       })
       .finally(() => {
         setIsLocalProcessing(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';  // Reset file input
+        }
       });
   };
 

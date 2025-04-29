@@ -38,3 +38,25 @@ export const stopScanner = () => {
   // No operation needed for web implementation
   console.log('Scanner cleanup not needed for web implementation');
 };
+
+/**
+ * Validates if a string is a valid QR code format for event check-in
+ * @param data The decoded QR code data string
+ * @returns Boolean indicating if the data is valid
+ */
+export const validateQrCodeData = (data: string): boolean => {
+  try {
+    // Try to parse as JSON
+    const parsed = JSON.parse(data);
+    
+    // Check if it has the expected event check-in format
+    return typeof parsed === 'object' && 
+           parsed !== null && 
+           typeof parsed.eventId === 'string' && 
+           parsed.eventId.length > 0;
+  } catch (error) {
+    console.error('QR code validation error:', error);
+    return false;
+  }
+};
+
