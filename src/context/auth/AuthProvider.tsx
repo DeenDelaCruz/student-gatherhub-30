@@ -104,9 +104,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Get initial session
     const initializeAuth = async () => {
       try {
-        // Set up auth state listener first
+        console.log('Initializing auth system...');
+        // First, set up auth state listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
+          (event, session) => {
             console.log('Auth state changed:', event, !!session);
             
             if (event === 'SIGNED_OUT') {
@@ -133,13 +134,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         );
         
-        // Then get initial session
+        // Then, get initial session
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initial session check:', !!session);
         
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchProfileData(session.user.id);
+          // Use setTimeout to prevent potential deadlock
+          setTimeout(() => {
+            fetchProfileData(session.user.id);
+          }, 0);
         }
         
         setLoading(false);
