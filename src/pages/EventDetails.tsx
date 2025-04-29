@@ -4,7 +4,7 @@ import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInte
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth";
 import { Event, convertSupabaseEventToEvent } from "@/types/event";
-import { CalendarClock, MapPin, Users, Heart, AlertTriangle, Edit, ToggleLeft, ToggleRight, Bell, ZoomIn } from "lucide-react";
+import { CalendarClock, MapPin, Users, Heart, AlertTriangle, Edit, ToggleLeft, ToggleRight, Bell, ZoomIn, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import Navigation from "@/components/Navigation";
 import Header from "@/components/Header";
@@ -17,6 +17,7 @@ import { SubEventCard } from "@/components/SubEventCard";
 import { SubEventDialog } from "@/components/SubEventDialog";
 import { SubEvent } from "@/types/sub-event";
 import { convertUrlsToLinks } from "@/utils/textUtils";
+import { createGoogleCalendarLink } from "@/utils/calendarUtils";
 
 const EventDetails = () => {
   const { eventId } = useParams();
@@ -131,6 +132,21 @@ const EventDetails = () => {
     await fetchRatingData();
     setHasUserRated(true);
     setCanRate(false);
+  };
+
+  const handleAddToGoogleCalendar = () => {
+    if (!event) return;
+    
+    const calendarUrl = createGoogleCalendarLink(
+      event.title,
+      event.description || "",
+      event.location || "",
+      new Date(event.event_date),
+      // End time defaults to 1 hour later in the utility function
+    );
+    
+    window.open(calendarUrl, '_blank');
+    toast.success("Opening Google Calendar...");
   };
 
   useEffect(() => {
@@ -600,15 +616,28 @@ const EventDetails = () => {
               </div>
             </div>
             
-            <Button 
-              onClick={handleToggleInterest}
-              className={isInterested ? "bg-red-500 hover:bg-red-600" : ""}
-              disabled={isUpdating || (event && !event.is_active)}
-            >
-              <Heart className={`h-4 w-4 mr-2 ${isInterested ? "fill-white" : ""}`} />
-              {isInterested ? "Interested" : "Mark Interested"}
-              {isUpdating && <span className="ml-2 animate-spin">•</span>}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                onClick={handleToggleInterest}
+                className={isInterested ? "bg-red-500 hover:bg-red-600" : ""}
+                disabled={isUpdating || (event && !event.is_active)}
+              >
+                <Heart className={`h-4 w-4 mr-2 ${isInterested ? "fill-white" : ""}`} />
+                {isInterested ? "Interested" : "Mark Interested"}
+                {isUpdating && <span className="ml-2 animate-spin">•</span>}
+              </Button>
+              
+              {event && event.is_active && !isPastEvent && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleAddToGoogleCalendar}
+                  className="bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Add to Google Calendar
+                </Button>
+              )}
+            </div>
           </div>
         </div>
         

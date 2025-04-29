@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CalendarClock, Users, UserCheck, QrCode, Edit, Eye, ToggleLeft, ToggleRight } from "lucide-react";
+import { CalendarClock, Users, UserCheck, QrCode, Edit, Eye, ToggleLeft, ToggleRight, Calendar } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import Lightbox from "@/components/Lightbox";
 import RatingStars from "./RatingStars";
 import { convertUrlsToLinks } from "@/utils/textUtils";
+import { createGoogleCalendarLink } from "@/utils/calendarUtils";
 
 interface EventCardProps {
   title: string;
@@ -195,6 +196,22 @@ const EventCard = ({
     setLightboxOpen(true);
   };
 
+  const handleAddToGoogleCalendar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!date) return;
+    
+    const calendarUrl = createGoogleCalendarLink(
+      title,
+      description || "",
+      location || "",
+      date,
+      // End time defaults to 1 hour later in the utility function
+    );
+    
+    window.open(calendarUrl, '_blank');
+    toast.success("Opening Google Calendar...");
+  };
+
   return (
     <>
       <motion.div
@@ -298,17 +315,30 @@ const EventCard = ({
                     </div>
                   )}
                   
-                  <Button 
-                    size="sm" 
-                    className="w-full mt-2"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPopoverOpen(false);
-                      navigate(`/event/${id.toString()}`);
-                    }}
-                  >
-                    View Full Details
-                  </Button>
+                  <div className="flex gap-2 mt-3">
+                    <Button 
+                      size="sm" 
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPopoverOpen(false);
+                        navigate(`/event/${id.toString()}`);
+                      }}
+                    >
+                      View Full Details
+                    </Button>
+                    
+                    {active && date && new Date(date) > new Date() && (
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        className="flex-shrink-0 text-blue-600 border-blue-600 hover:bg-blue-50"
+                        onClick={handleAddToGoogleCalendar}
+                      >
+                        <Calendar className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </PopoverContent>
             </Popover>
