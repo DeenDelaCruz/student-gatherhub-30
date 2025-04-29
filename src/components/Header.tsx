@@ -1,3 +1,4 @@
+
 import { Search } from "lucide-react";
 
 interface HeaderProps {
@@ -30,7 +31,7 @@ const Header = ({ onSearch }: HeaderProps) => {
           <input
             type="text"
             name="search"
-            placeholder="Search your organization's events..."
+            placeholder="Search for campus events..."
             className="w-full bg-white/10 backdrop-blur-lg text-white rounded-full py-2 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-campus-accent/50 transition-all placeholder:text-gray-400"
           />
           <button
