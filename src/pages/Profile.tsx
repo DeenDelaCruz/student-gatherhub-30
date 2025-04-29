@@ -37,6 +37,10 @@ const Profile = () => {
     }
   };
 
+  const navigateToEventDetails = (eventId: string) => {
+    navigate(`/event/${eventId}`);
+  };
+
   useEffect(() => {
     const fetchUserEvents = async () => {
       if (profile?.id) {
@@ -186,7 +190,7 @@ const Profile = () => {
                       <Card 
                         key={event.id}
                         className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => navigate(`/events/${event.id}`)}
+                        onClick={() => navigateToEventDetails(event.id)}
                       >
                         <div className="flex p-3">
                           {event.image_url ? (
@@ -234,7 +238,7 @@ const Profile = () => {
                       <Card 
                         key={event.id}
                         className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => navigate(`/events/${event.id}`)}
+                        onClick={() => navigateToEventDetails(event.id)}
                       >
                         <div className="flex p-3">
                           {event.image_url ? (
