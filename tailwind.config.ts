@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss"
 
 const config = {
@@ -69,6 +70,11 @@ const config = {
           accent: "#4A6FFF",
           purple: "#8E6BF5",
           pink: "#FF6B95"
+        },
+        status: {
+          active: "#10B981",
+          pending: "#F59E0B",
+          error: "#EF4444"
         }
       },
       borderRadius: {

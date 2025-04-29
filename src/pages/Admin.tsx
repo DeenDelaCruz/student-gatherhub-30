@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
@@ -14,7 +15,7 @@ import {
   getEventInterestCount,
   getEventCheckedInCount
 } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/tooltip";
 import { clearVisitorRecords, deleteVisitorRecord } from "@/utils/adminUtils";
 import { EventStatistics } from "@/components/admin/EventStatistics";
+import { TopRatedEvents } from "@/components/admin/TopRatedEvents";
 
 const Admin = () => {
   const { hasRole } = useAuth();
@@ -603,44 +605,55 @@ const Admin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
+    <div className="min-h-screen bg-gray-50 flex flex-col pb-20">
       <Header />
       
-      <main className="flex-1 p-4">
+      <main className="flex-1 container mx-auto px-4 py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="mb-6"
+          className="mb-8"
         >
-          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-          <p className="text-gray-500">System statistics and management</p>
+          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+          <p className="text-gray-500 mt-1">System statistics and management</p>
         </motion.div>
         
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6"
-        >
-          <EventStatistics events={eventsWithStats} />
-        </motion.div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
+            className="lg:col-span-2"
           >
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-medium flex items-center">
-                  <Users className="h-5 w-5 text-blue-500 mr-2" />
+            <EventStatistics events={eventsWithStats} />
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <TopRatedEvents events={eventsWithStats} />
+          </motion.div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="col-span-1"
+          >
+            <Card className="shadow-md border-0 overflow-hidden">
+              <CardHeader className="pb-2 bg-blue-50">
+                <CardTitle className="text-lg font-medium flex items-center text-blue-700">
+                  <Users className="h-5 w-5 mr-2" />
                   Users
                 </CardTitle>
                 <CardDescription>Total registered users</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 {loading ? (
                   <div className="h-16 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
@@ -667,23 +680,25 @@ const Admin = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
+            className="col-span-1"
           >
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-medium flex items-center">
-                  <CalendarDays className="h-5 w-5 text-green-500 mr-2" />
+            <Card className="shadow-md border-0 overflow-hidden">
+              <CardHeader className="pb-2 bg-green-50">
+                <CardTitle className="text-lg font-medium flex items-center text-green-700">
+                  <CalendarDays className="h-5 w-5 mr-2" />
                   Events
                 </CardTitle>
                 <CardDescription>Total events created</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 {loading ? (
                   <div className="h-16 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                   </div>
                 ) : (
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col justify-center h-16">
                     <span className="text-3xl font-bold">{totalEvents}</span>
+                    <span className="text-xs text-gray-500">All-time events</span>
                   </div>
                 )}
               </CardContent>
@@ -693,30 +708,77 @@ const Admin = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="col-span-1"
           >
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className="shadow-md border-0 overflow-hidden h-full">
+              <CardHeader className="pb-2 bg-purple-50">
+                <CardTitle className="text-lg font-medium flex items-center text-purple-700">
+                  <Activity className="h-5 w-5 mr-2" />
+                  System Status
+                </CardTitle>
+                <CardDescription>Current system health</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">API Status</span>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                      Operational
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Database Status</span>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                      Operational
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Storage Status</span>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                      Operational
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">System Uptime</span>
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      99.9%
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="col-span-1"
+          >
+            <Card className="shadow-md border-0 overflow-hidden h-full">
+              <CardHeader className="pb-2 bg-rose-50">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-medium flex items-center">
-                    <Clock className="h-5 w-5 text-purple-500 mr-2" />
+                  <CardTitle className="text-lg font-medium flex items-center text-rose-700">
+                    <Clock className="h-5 w-5 mr-2" />
                     Recent Activity
                   </CardTitle>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button 
-                          variant="destructive" 
+                          variant="outline" 
                           size="sm"
                           onClick={handleClearVisitorRecords}
                           disabled={clearingRecords}
+                          className="bg-white"
                         >
                           {clearingRecords ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-rose-500"></div>
                           ) : (
                             <>
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Clear Records
+                              <Trash2 className="h-4 w-4 mr-1 text-rose-500" />
+                              <span className="text-rose-500">Clear</span>
                             </>
                           )}
                         </Button>
@@ -729,7 +791,7 @@ const Admin = () => {
                 </div>
                 <CardDescription>Latest user visits</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 {loadingVisitors ? (
                   <div className="h-16 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
@@ -739,10 +801,10 @@ const Admin = () => {
                 ) : (
                   <div className="text-sm">
                     <p className="text-xs text-gray-500 mb-2">{recentVisitors.length} recent visitors</p>
-                    <ScrollArea className={recentVisitors.length > 5 ? "h-48" : ""}>
+                    <ScrollArea className={recentVisitors.length > 3 ? "h-28" : ""}>
                       <div className="space-y-2">
-                        {recentVisitors.map((visitor, index) => (
-                          <div key={index} className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                        {recentVisitors.slice(0, 3).map((visitor, index) => (
+                          <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded-md">
                             <div>
                               <p className="font-medium text-sm">{visitor.name || 'Unknown user'}</p>
                               <p className="text-xs text-muted-foreground">{visitor.email || 'No email'}</p>
@@ -777,51 +839,6 @@ const Admin = () => {
             </Card>
           </motion.div>
         </div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mb-6"
-        >
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium flex items-center">
-                <Activity className="h-5 w-5 text-purple-500 mr-2" />
-                System Status
-              </CardTitle>
-              <CardDescription>Current system health</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">API Status</span>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                    Operational
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Database Status</span>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                    Operational
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Storage Status</span>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                    Operational
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">System Uptime</span>
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                    99.9%
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
 
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -829,142 +846,185 @@ const Admin = () => {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mb-6"
         >
-          <Tabs defaultValue="events">
-            <TabsList>
-              <TabsTrigger value="events">Events</TabsTrigger>
-              <TabsTrigger value="users">Users</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="events" className="w-full">
+            <div className="bg-white p-4 rounded-t-xl shadow-sm">
+              <TabsList className="grid w-full max-w-md grid-cols-3 mx-auto">
+                <TabsTrigger value="events" className="text-sm">Events</TabsTrigger>
+                <TabsTrigger value="users" className="text-sm">Users</TabsTrigger>
+                <TabsTrigger value="activity" className="text-sm">Activity</TabsTrigger>
+              </TabsList>
+            </div>
             
-            <TabsContent value="events">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Event Management</CardTitle>
-                  <CardDescription>Manage all events</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {events.map((event) => (
-                        <TableRow key={event.id}>
-                          <TableCell className="font-medium">{event.title}</TableCell>
-                          <TableCell>{format(parseISO(event.event_date), 'MMM d, yyyy')}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteEvent(event.id)}
-                              disabled={actionLoading[`event-${event.id}`]}
-                            >
-                              {actionLoading[`event-${event.id}`] ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="users">
-              <div className="grid gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Information Officers</CardTitle>
-                    <CardDescription>Manage information officer roles</CardDescription>
-                  </CardHeader>
-                  <CardContent>
+            <div className="bg-white rounded-b-xl shadow-md overflow-hidden">
+              <TabsContent value="events" className="m-0">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-4">Event Management</h3>
+                  <p className="text-gray-500 mb-4">Manage all events in the system</p>
+                </div>
+                <div className="px-6 pb-6">
+                  <div className="border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Actions</TableHead>
+                          <TableHead className="font-semibold">Title</TableHead>
+                          <TableHead className="font-semibold">Date</TableHead>
+                          <TableHead className="font-semibold">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {infoOfficers.map((officer) => (
-                          <TableRow key={officer.user_id}>
-                            <TableCell className="font-medium">{officer.profiles.name}</TableCell>
-                            <TableCell>{officer.profiles.email}</TableCell>
-                            <TableCell>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDemoteUser(officer.user_id)}
-                                disabled={actionLoading[`user-${officer.user_id}`]}
-                              >
-                                {actionLoading[`user-${officer.user_id}`] ? (
-                                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
-                                ) : (
-                                  <UserMinus className="h-4 w-4" />
-                                )}
-                              </Button>
+                        {events.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                              No events found
                             </TableCell>
                           </TableRow>
-                        ))}
+                        ) : (
+                          events.map((event) => (
+                            <TableRow key={event.id}>
+                              <TableCell className="font-medium">{event.title}</TableCell>
+                              <TableCell>{format(parseISO(event.event_date), 'MMM d, yyyy')}</TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                  disabled={actionLoading[`event-${event.id}`]}
+                                >
+                                  {actionLoading[`event-${event.id}`] ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
+                                  ) : (
+                                    <>
+                                      <Trash2 className="h-4 w-4 mr-1" />
+                                      Delete
+                                    </>
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
                       </TableBody>
                     </Table>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
+              </TabsContent>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Students</CardTitle>
-                    <CardDescription>Promote students to information officers</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {students.map((student) => (
-                          <TableRow key={student.user_id}>
-                            <TableCell className="font-medium">{student.profiles.name}</TableCell>
-                            <TableCell>{student.profiles.email}</TableCell>
-                            <TableCell>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePromoteStudent(student.user_id)}
-                                disabled={actionLoading[`student-${student.user_id}`]}
-                              >
-                                {actionLoading[`student-${student.user_id}`] ? (
-                                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary" />
-                                ) : (
-                                  <UserPlus className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </TableCell>
+              <TabsContent value="users" className="m-0">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-1">User Management</h3>
+                  <p className="text-gray-500 mb-4">Manage user roles and permissions</p>
+                </div>
+                
+                <div className="px-6 pb-6">
+                  <div className="mb-8">
+                    <h4 className="text-lg font-medium mb-3 px-2">Information Officers</h4>
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="font-semibold">Name</TableHead>
+                            <TableHead className="font-semibold">Email</TableHead>
+                            <TableHead className="font-semibold">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+                        </TableHeader>
+                        <TableBody>
+                          {infoOfficers.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                                No information officers found
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            infoOfficers.map((officer) => (
+                              <TableRow key={officer.user_id}>
+                                <TableCell className="font-medium">{officer.profiles.name}</TableCell>
+                                <TableCell>{officer.profiles.email}</TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleDemoteUser(officer.user_id)}
+                                    disabled={actionLoading[`user-${officer.user_id}`]}
+                                  >
+                                    {actionLoading[`user-${officer.user_id}`] ? (
+                                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
+                                    ) : (
+                                      <>
+                                        <UserMinus className="h-4 w-4 mr-1" />
+                                        Demote
+                                      </>
+                                    )}
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
 
-            <TabsContent value="activity">
-              {/* Add activity tab content here */}
-            </TabsContent>
+                  <div>
+                    <h4 className="text-lg font-medium mb-3 px-2">Students</h4>
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="font-semibold">Name</TableHead>
+                            <TableHead className="font-semibold">Email</TableHead>
+                            <TableHead className="font-semibold">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {students.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                                No students found
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            students.map((student) => (
+                              <TableRow key={student.user_id}>
+                                <TableCell className="font-medium">{student.profiles.name}</TableCell>
+                                <TableCell>{student.profiles.email}</TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePromoteStudent(student.user_id)}
+                                    disabled={actionLoading[`student-${student.user_id}`]}
+                                    className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                                  >
+                                    {actionLoading[`student-${student.user_id}`] ? (
+                                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-600" />
+                                    ) : (
+                                      <>
+                                        <UserPlus className="h-4 w-4 mr-1" />
+                                        Promote
+                                      </>
+                                    )}
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="activity" className="p-6">
+                <div className="text-center py-10">
+                  <Activity className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-medium mb-2">Activity Logging</h3>
+                  <p className="text-gray-500 max-w-md mx-auto">
+                    Detailed activity logging and reporting will be available in a future update.
+                  </p>
+                </div>
+              </TabsContent>
+            </div>
           </Tabs>
         </motion.div>
       </main>
