@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -351,21 +350,21 @@ const Scanner = () => {
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                           </div>
                         ) : attendees.length > 0 ? (
-                          <div className="border rounded-md overflow-x-auto">
-                            <Table>
+                          <div className="overflow-x-auto w-full">
+                            <Table className="w-full table-fixed">
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead className="w-1/6">Name</TableHead>
-                                  <TableHead className="w-1/6">Email</TableHead>
+                                  <TableHead className="w-[15%]">Name</TableHead>
+                                  <TableHead className="w-[15%]">Email</TableHead>
                                   {(isInfoOfficer || hasRole("admin")) && (
                                     <>
-                                      <TableHead className="w-1/8">Department</TableHead>
-                                      <TableHead className="w-1/8">Program</TableHead>
-                                      <TableHead className="w-1/8">Student No.</TableHead>
-                                      <TableHead className="w-1/8">Year</TableHead>
-                                      <TableHead className="w-1/8">Check-in Time</TableHead>
-                                      <TableHead className="w-1/12">Rating</TableHead>
-                                      <TableHead className="w-1/6">Feedback</TableHead>
+                                      <TableHead className="w-[10%]">Department</TableHead>
+                                      <TableHead className="w-[10%]">Program</TableHead>
+                                      <TableHead className="w-[10%]">Student No.</TableHead>
+                                      <TableHead className="w-[5%]">Year</TableHead>
+                                      <TableHead className="w-[12%]">Check-in Time</TableHead>
+                                      <TableHead className="w-[6%]">Rating</TableHead>
+                                      <TableHead className="w-[17%]">Feedback</TableHead>
                                     </>
                                   )}
                                 </TableRow>
@@ -373,32 +372,44 @@ const Scanner = () => {
                               <TableBody>
                                 {attendees.map((attendee) => (
                                   <TableRow key={attendee.id}>
-                                    <TableCell className="font-medium max-w-[150px] break-words">
-                                      {attendee.profiles?.name || 'N/A'}
+                                    <TableCell className="font-medium truncate">
+                                      <div className="max-w-full overflow-hidden text-ellipsis">
+                                        {attendee.profiles?.name || 'N/A'}
+                                      </div>
                                     </TableCell>
-                                    <TableCell className="max-w-[150px] break-words">
-                                      {attendee.profiles?.email || 'N/A'}
+                                    <TableCell className="truncate">
+                                      <div className="max-w-full overflow-hidden text-ellipsis">
+                                        {attendee.profiles?.email || 'N/A'}
+                                      </div>
                                     </TableCell>
                                     {(isInfoOfficer || hasRole("admin")) && (
                                       <>
-                                        <TableCell className="max-w-[120px] break-words">
-                                          {attendee.profiles?.department || 'N/A'}
+                                        <TableCell className="truncate">
+                                          <div className="max-w-full overflow-hidden text-ellipsis">
+                                            {attendee.profiles?.department || 'N/A'}
+                                          </div>
                                         </TableCell>
-                                        <TableCell className="max-w-[120px] break-words">
-                                          {attendee.profiles?.program || 'N/A'}
+                                        <TableCell className="truncate">
+                                          <div className="max-w-full overflow-hidden text-ellipsis">
+                                            {attendee.profiles?.program || 'N/A'}
+                                          </div>
                                         </TableCell>
-                                        <TableCell className="max-w-[120px] break-words">
-                                          {attendee.profiles?.student_number || 'N/A'}
+                                        <TableCell className="truncate">
+                                          <div className="max-w-full overflow-hidden text-ellipsis">
+                                            {attendee.profiles?.student_number || 'N/A'}
+                                          </div>
                                         </TableCell>
-                                        <TableCell className="max-w-[80px] break-words">
-                                          {attendee.profiles?.year || 'N/A'}
+                                        <TableCell className="truncate">
+                                          <div className="max-w-full overflow-hidden text-ellipsis">
+                                            {attendee.profiles?.year || 'N/A'}
+                                          </div>
                                         </TableCell>
                                         <TableCell>{formatDate(attendee.check_in_time)}</TableCell>
-                                        <TableCell>
-                                          {attendee.rating ? `${attendee.rating}/5` : 'No rating'}
+                                        <TableCell className="text-center">
+                                          {attendee.rating ? `${attendee.rating}/5` : '-'}
                                         </TableCell>
-                                        <TableCell className="max-w-[200px]">
-                                          <div className="whitespace-normal break-words">
+                                        <TableCell>
+                                          <div className="max-w-full overflow-hidden text-ellipsis whitespace-normal">
                                             {attendee.feedback || 'No feedback'}
                                           </div>
                                         </TableCell>
@@ -422,8 +433,8 @@ const Scanner = () => {
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-campus-accent"></div>
                           </div>
                         ) : interestedUsers.length > 0 ? (
-                          <div className="border rounded-md overflow-x-auto">
-                            <Table>
+                          <div className="overflow-x-auto w-full">
+                            <Table className="w-full">
                               <TableHeader>
                                 <TableRow>
                                   <TableHead className="w-1/2">Name</TableHead>
@@ -433,11 +444,15 @@ const Scanner = () => {
                               <TableBody>
                                 {interestedUsers.map((user) => (
                                   <TableRow key={user.id}>
-                                    <TableCell className="font-medium max-w-[300px] break-words">
-                                      {user.name || 'N/A'}
+                                    <TableCell className="font-medium truncate">
+                                      <div className="max-w-full overflow-hidden text-ellipsis">
+                                        {user.name || 'N/A'}
+                                      </div>
                                     </TableCell>
-                                    <TableCell className="max-w-[300px] break-words">
-                                      {user.email || 'N/A'}
+                                    <TableCell className="truncate">
+                                      <div className="max-w-full overflow-hidden text-ellipsis">
+                                        {user.email || 'N/A'}
+                                      </div>
                                     </TableCell>
                                   </TableRow>
                                 ))}
