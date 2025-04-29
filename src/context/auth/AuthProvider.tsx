@@ -28,6 +28,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (profileError) throw profileError;
       
+      console.log("Fetched profile data:", profileData);
+      
       // Create a profile object that matches our Profile type
       const profileWithAvatar: Profile = {
         id: profileData.id,
@@ -39,7 +41,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         events_attended: profileData.events_attended,
         events_upcoming: profileData.events_upcoming,
         notifications: profileData.notifications,
-        created_at: profileData.created_at
+        created_at: profileData.created_at,
+        department: profileData.department,
+        program: profileData.program,
+        student_number: profileData.student_number
       };
       
       setProfile(profileWithAvatar);
@@ -88,6 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Refresh user profile
   const refreshProfile = async () => {
     if (user) {
+      console.log("Refreshing profile for user:", user.id);
       await fetchProfileData(user.id);
     }
   };
