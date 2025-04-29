@@ -63,6 +63,8 @@ export function ProfileForm() {
     }
     
     try {
+      console.log("Submitting profile update with values:", values);
+      
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -75,7 +77,10 @@ export function ProfileForm() {
         })
         .eq("id", profile.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Update error:", error);
+        throw error;
+      }
       
       await refreshProfile();
       toast.success("Profile updated successfully");
