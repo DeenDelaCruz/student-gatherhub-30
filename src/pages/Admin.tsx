@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/tooltip";
 import { clearVisitorRecords, deleteVisitorRecord } from "@/utils/adminUtils";
 import { EventStatistics } from "@/components/admin/EventStatistics";
-import { TopRatedEvents } from "@/components/admin/TopRatedEvents";
 
 const Admin = () => {
   const { hasRole } = useAuth();
@@ -618,22 +617,13 @@ const Admin = () => {
           <p className="text-gray-500 mt-1">System statistics and management</p>
         </motion.div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="lg:col-span-2"
           >
             <EventStatistics events={eventsWithStats} />
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <TopRatedEvents events={eventsWithStats} />
           </motion.div>
         </div>
         
