@@ -1,9 +1,14 @@
+
 import * as XLSX from 'xlsx';
 
 interface ExportableUser {
   event: string;
   name: string | null;
   email: string | null;
+  department: string | null;
+  program: string | null;
+  student_number: string | null;
+  year: string | null;
   check_in_time: string | null;
   status: string;
   rating?: number | null;
@@ -54,6 +59,10 @@ export const exportUsersToExcel = (
       event: eventTitle,
       name: attendee.name,
       email: attendee.email,
+      department: attendee.department || 'N/A',
+      program: attendee.program || 'N/A',
+      student_number: attendee.student_number || 'N/A',
+      year: attendee.year || 'N/A',
       check_in_time: attendee.check_in_time,
       rating: attendee.rating || 'No rating',
       feedback: attendee.feedback || 'No feedback'
@@ -67,6 +76,10 @@ export const exportUsersToExcel = (
     { wch: 30 }, // Event
     { wch: 30 }, // Name
     { wch: 40 }, // Email
+    { wch: 30 }, // Department
+    { wch: 30 }, // Program
+    { wch: 20 }, // Student Number
+    { wch: 10 }, // Year
     { wch: 25 }, // Check-in Time
     { wch: 15 }, // Rating
     { wch: 50 }, // Feedback
@@ -82,7 +95,11 @@ export const exportUsersToExcel = (
     .map(user => ({
       event: eventTitle,
       name: user.name,
-      email: user.email
+      email: user.email,
+      department: user.department || 'N/A',
+      program: user.program || 'N/A',
+      student_number: user.student_number || 'N/A',
+      year: user.year || 'N/A'
     }));
   
   // Create interested users worksheet
@@ -93,6 +110,10 @@ export const exportUsersToExcel = (
     { wch: 30 }, // Event
     { wch: 30 }, // Name
     { wch: 40 }, // Email
+    { wch: 30 }, // Department
+    { wch: 30 }, // Program
+    { wch: 20 }, // Student Number
+    { wch: 10 }, // Year
   ];
   interestedSheet['!cols'] = interestedCols;
   
@@ -107,3 +128,4 @@ export const exportUsersToExcel = (
   // Write to file and trigger download
   XLSX.writeFile(wb, actualFilename);
 };
+

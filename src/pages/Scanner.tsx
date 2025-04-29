@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -202,14 +203,18 @@ const Scanner = () => {
       year: attendee.profiles?.year || 'N/A',
       check_in_time: attendee.check_in_time ? new Date(attendee.check_in_time).toLocaleString() : null,
       status: "Attended",
-      rating: attendee.rating || 'No rating',
-      feedback: attendee.feedback || 'No feedback'
+      rating: attendee.rating || null,
+      feedback: attendee.feedback || null
     }));
 
     const exportInterested = interestedUsers.map(user => ({
       event: selectedEventTitle,
       name: user.name || 'N/A',
       email: user.email || 'N/A',
+      department: user.profiles?.department || 'N/A',
+      program: user.profiles?.program || 'N/A',
+      student_number: user.profiles?.student_number || 'N/A',
+      year: user.profiles?.year || 'N/A',
       check_in_time: null,
       status: "Interested",
       rating: null,
