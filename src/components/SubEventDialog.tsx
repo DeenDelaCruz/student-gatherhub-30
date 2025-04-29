@@ -25,7 +25,7 @@ import { SubEvent } from "@/types/sub-event";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/auth";
 import { toast } from "sonner";
-import { format, parse } from "date-fns";
+import { format, parse, set } from "date-fns";
 
 const subEventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -50,18 +50,12 @@ export const SubEventDialog = ({ isOpen, onClose, onSubmit, subEvent }: SubEvent
   const [isUploading, setIsUploading] = useState(false);
   
   // Create separate state for date and time inputs
-  const [dateInput, setDateInput] = useState(subEvent ? new Date(subEvent.date_time).toISOString().split('T')[0] : '');
-  const [timeInput, setTimeInput] = useState(subEvent ? format(new Date(subEvent.date_time), 'HH:mm') : '');
+  const [dateInput, setDateInput] = useState('');
+  const [timeInput, setTimeInput] = useState('');
   
   const form = useForm<SubEventFormData>({
     resolver: zodResolver(subEventSchema),
-    defaultValues: subEvent ? {
-      title: subEvent.title,
-      description: subEvent.description || "",
-      date_time: new Date(subEvent.date_time).toISOString().slice(0, 16),
-      location: subEvent.location || "",
-      image_url: subEvent.image_url || "",
-    } : {
+    defaultValues: {
       title: "",
       description: "",
       date_time: "",
@@ -77,11 +71,23 @@ export const SubEventDialog = ({ isOpen, onClose, onSubmit, subEvent }: SubEvent
       setDateInput(format(eventDate, 'yyyy-MM-dd'));
       setTimeInput(format(eventDate, 'HH:mm'));
       
-      // Set the combined date_time in the form
-      form.setValue('date_time', eventDate.toISOString().slice(0, 16));
+      form.reset({
+        title: subEvent.title,
+        description: subEvent.description || "",
+        date_time: eventDate.toISOString().slice(0, 16),
+        location: subEvent.location || "",
+        image_url: subEvent.image_url || "",
+      });
     } else {
       setDateInput('');
       setTimeInput('');
+      form.reset({
+        title: "",
+        description: "",
+        date_time: "",
+        location: "",
+        image_url: "",
+      });
     }
   }, [subEvent, form]);
 
@@ -104,9 +110,17 @@ export const SubEventDialog = ({ isOpen, onClose, onSubmit, subEvent }: SubEvent
     if (!date || !time) return;
     
     try {
-      // Create a combined date-time string in ISO format
-      const isoDateTime = `${date}T${time}`;
-      form.setValue('date_time', isoDateTime);
+      // Parse date and time strings to create a proper Date object
+      const [year, month, day] = date.split('-').map(Number);
+      const [hours, minutes] = time.split(':').map(Number);
+      
+      // Month is 0-indexed in JavaScript Date
+      const dateObj = new Date(year, month - 1, day, hours, minutes);
+      
+      // Set the combined date_time in the form using ISO format
+      form.setValue('date_time', dateObj.toISOString());
+      
+      console.log('Updated date_time:', dateObj.toISOString());
     } catch (error) {
       console.error("Error updating combined date time:", error);
     }
