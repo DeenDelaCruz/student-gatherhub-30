@@ -158,12 +158,12 @@ const Notifications = () => {
   const getIconForType = (type: string) => {
     switch(type) {
       case 'event':
-        return <CalendarCheck size={18} className="text-blue-600" />;
+        return <CalendarCheck size={18} className="text-blue-400" />;
       case 'reminder':
-        return <Bell size={18} className="text-amber-600" />;
+        return <Bell size={18} className="text-amber-400" />;
       case 'info':
       default:
-        return <InfoIcon size={18} className="text-green-600" />;
+        return <InfoIcon size={18} className="text-green-400" />;
     }
   };
 
@@ -223,26 +223,38 @@ const Notifications = () => {
             {notifications.map((notification, index) => (
               <motion.div
                 key={notification.id}
-                className={`bg-white rounded-xl p-4 shadow-sm relative ${!notification.read ? 'border-l-4 border-campus-accent' : ''}`}
+                className={`bg-dark-200 dark:bg-dark-300 rounded-xl p-4 shadow-sm relative ${
+                  !notification.read 
+                    ? 'border-l-4 border-campus-accent' 
+                    : 'border border-dark-border'
+                }`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start">
-                  <div className={`bg-gray-100 rounded-full p-2 mr-3 ${!notification.read ? 'bg-campus-accent/10' : ''}`}>
+                  <div className={`${
+                    !notification.read 
+                      ? 'bg-campus-accent/20' 
+                      : 'bg-dark-300 dark:bg-dark-400'
+                    } rounded-full p-2 mr-3`}>
                     {getIconForType(notification.type)}
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
-                      <h3 className={`font-medium ${!notification.read ? 'text-campus-accent' : ''}`}>
+                      <h3 className={`font-medium ${
+                        !notification.read 
+                          ? 'text-campus-accent' 
+                          : 'text-white dark:text-gray-200'
+                      }`}>
                         {notification.title}
                       </h3>
-                      <span className="text-xs text-gray-500 ml-2">
+                      <span className="text-xs text-gray-400 ml-2">
                         {getTimeAgo(notification.created_at)}
                       </span>
                     </div>
-                    <p className="text-gray-600 text-sm mt-1">{notification.message}</p>
+                    <p className="text-gray-300 dark:text-gray-300 text-sm mt-1">{notification.message}</p>
                     {!notification.read && (
                       <button
                         onClick={(e) => {

@@ -1,10 +1,50 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    --background: 0 0% 100%;
+    --foreground: 225 25% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 225 25% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 225 25% 20%;
+
+    --primary: 225 25% 20%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 225 25% 20%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 225 20% 50%;
+
+    --accent: 264 70% 70%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 346 85% 61%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 225 20% 90%;
+    --input: 225 20% 90%;
+    --ring: 264 70% 70%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 225 25% 20%;
+    --sidebar-primary: 264 70% 70%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 225 25% 20%;
+    --sidebar-border: 225 20% 90%;
+    --sidebar-ring: 264 70% 70%;
+  }
+
+  .dark {
     --background: 225 25% 9%;
     --foreground: 0 0% 98%;
 
@@ -33,8 +73,6 @@
     --input: 225 20% 15%;
     --ring: 264 70% 70%;
 
-    --radius: 0.75rem;
-
     --sidebar-background: 225 25% 9%;
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 264 70% 70%;
@@ -48,15 +86,25 @@
 
 @layer base {
   * {
-    @apply border-border selection:bg-[#8E6BF5]/30 selection:text-white;
+    @apply border-border selection:bg-[#8E6BF5]/30 selection:text-white dark:selection:text-gray-900;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  body.dark {
     background-image: 
       radial-gradient(circle at 10% 10%, rgba(142, 107, 245, 0.05), transparent 20%),
       radial-gradient(circle at 90% 90%, rgba(255, 107, 149, 0.04), transparent 25%);
+    min-height: 100vh;
+  }
+  
+  body:not(.dark) {
+    background-image: 
+      radial-gradient(circle at 10% 10%, rgba(142, 107, 245, 0.03), transparent 20%),
+      radial-gradient(circle at 90% 90%, rgba(255, 107, 149, 0.02), transparent 25%);
     min-height: 100vh;
   }
   
@@ -80,24 +128,19 @@
   }
   
   .glass-card {
-    background: rgba(20, 22, 33, 0.8);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius);
-    transition: all 0.3s ease;
+    @apply bg-white/90 dark:bg-[rgba(20,22,33,0.8)] backdrop-filter backdrop-blur-[16px] border border-gray-100 dark:border-white/5 rounded-xl transition-all duration-300;
   }
   
   .glass-card:hover {
-    background: rgba(26, 28, 39, 0.9);
-    box-shadow: 0 8px 32px rgba(142, 107, 245, 0.1);
+    @apply bg-white/95 dark:bg-[rgba(26,28,39,0.9)] shadow-lg dark:shadow-[0_8px_32px_rgba(142,107,245,0.1)];
   }
   
   .neo-border {
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    @apply border border-gray-200 dark:border-white/5;
   }
   
   .text-gradient {
-    @apply bg-gradient-to-br from-white via-white/90 to-white/70 bg-clip-text text-transparent;
+    @apply bg-gradient-to-br from-gray-800 via-gray-700 to-gray-600 dark:from-white dark:via-white/90 dark:to-white/70 bg-clip-text text-transparent;
   }
   
   .accent-gradient {
@@ -106,10 +149,12 @@
   
   .accent-border {
     border: 1px solid transparent;
-    background: linear-gradient(to right, #14162180, #14162180) padding-box,
-                linear-gradient(135deg, #8E6BF5, #FF6B95) border-box;
+    @apply bg-gradient-to-r from-white/80 to-white/80 dark:from-[#14162180] dark:to-[#14162180] bg-clip-padding;
+    background-image: linear-gradient(to right, #fff 0%, #fff 100%), linear-gradient(135deg, #8E6BF5, #FF6B95);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
   }
-
+  
   .auth-card {
     background: rgba(20, 22, 33, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.05);

@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss"
 
 const config = {
@@ -69,7 +68,9 @@ const config = {
           bg: "#0F1015",
           accent: "#8E6BF5",
           purple: "#8E6BF5",
-          pink: "#FF6B95"
+          pink: "#FF6B95",
+          "light-bg": "#F8F9FC",
+          "light-header": "#FFFFFF"
         },
         status: {
           active: "#10B981",
@@ -90,6 +91,16 @@ const config = {
           card: "#141621CC",
           glass: "#14162199",
           border: "rgba(255, 255, 255, 0.05)"
+        },
+        light: {
+          100: "#FFFFFF",
+          200: "#F8F9FC",
+          300: "#F1F3F9",
+          400: "#E5E7F0",
+          500: "#D0D5E1",
+          card: "#FFFFFFCC",
+          glass: "#FFFFFF99",
+          border: "rgba(0, 0, 0, 0.05)"
         }
       },
       borderRadius: {

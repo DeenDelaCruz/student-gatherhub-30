@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { useRoutes } from "react-router-dom";
 import { Suspense } from "react";
+import { ThemeProvider } from "@/components/theme-provider";
 
 // Loading fallback
 const PageLoader = () => (
@@ -21,14 +22,16 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <Router>
-      <AuthProvider>
-        <Toaster position="top-center" />
-        <Suspense fallback={<PageLoader />}>
-          <AppRoutes />
-        </Suspense>
-      </AuthProvider>
-    </Router>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <Router>
+        <AuthProvider>
+          <Toaster position="top-center" />
+          <Suspense fallback={<PageLoader />}>
+            <AppRoutes />
+          </Suspense>
+        </AuthProvider>
+      </Router>
+    </ThemeProvider>
   );
 };
 

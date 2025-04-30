@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 import {
   Form,
   FormControl,
@@ -98,9 +98,9 @@ export function ProfileForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-300">Full Name</FormLabel>
+              <FormLabel className="text-gray-300 dark:text-gray-600">Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Your name" {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
+                <Input placeholder="Your name" {...field} value={field.value || ""} className="bg-dark-300 dark:bg-gray-100 border-white/10 dark:border-gray-300 text-white dark:text-gray-800" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -112,9 +112,9 @@ export function ProfileForm() {
           name="year"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-300">Year</FormLabel>
+              <FormLabel className="text-gray-300 dark:text-gray-600">Year</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Freshman, Sophomore..." {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
+                <Input placeholder="e.g. Freshman, Sophomore..." {...field} value={field.value || ""} className="bg-dark-300 dark:bg-gray-100 border-white/10 dark:border-gray-300 text-white dark:text-gray-800" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -126,9 +126,9 @@ export function ProfileForm() {
           name="department"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-300">College Department</FormLabel>
+              <FormLabel className="text-gray-300 dark:text-gray-600">College Department</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Computer Science" {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
+                <Input placeholder="e.g. Computer Science" {...field} value={field.value || ""} className="bg-dark-300 dark:bg-gray-100 border-white/10 dark:border-gray-300 text-white dark:text-gray-800" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -140,9 +140,9 @@ export function ProfileForm() {
           name="program"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-300">Program</FormLabel>
+              <FormLabel className="text-gray-300 dark:text-gray-600">Program</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. BS Computer Science" {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
+                <Input placeholder="e.g. BS Computer Science" {...field} value={field.value || ""} className="bg-dark-300 dark:bg-gray-100 border-white/10 dark:border-gray-300 text-white dark:text-gray-800" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -154,16 +154,16 @@ export function ProfileForm() {
           name="student_number"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-300">Student Number</FormLabel>
+              <FormLabel className="text-gray-300 dark:text-gray-600">Student Number</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. 2022-12345" {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
+                <Input placeholder="e.g. 2022-12345" {...field} value={field.value || ""} className="bg-dark-300 dark:bg-gray-100 border-white/10 dark:border-gray-300 text-white dark:text-gray-800" />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         
-        <Button type="submit" className="w-full bg-campus-accent hover:bg-campus-accent/90">
+        <Button type="submit" className="w-full bg-campus-accent hover:bg-campus-accent/90 dark:bg-campus-accent dark:text-white">
           Save Changes
         </Button>
       </form>

@@ -11,6 +11,7 @@ import { supabase, getEventInterestCount } from "@/integrations/supabase/client"
 import { Event, convertSupabaseEventsToEvents } from "@/types/event";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, ArrowDownAZ, ArrowUpAZ, ChevronDown } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -190,12 +191,15 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
-      <Header onSearch={handleSearch} />
+    <div className="min-h-screen bg-campus-bg dark:bg-campus-bg flex flex-col pb-20">
+      <Header />
       
       <main className="flex-1 p-4">
         <div className="welcome-section mb-5 animate-fade-in">
-          <h1 className="text-xl font-medium">Hello, {profile?.name || "User"}!</h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-medium">Hello, {profile?.name || "User"}!</h1>
+            <ThemeToggle />
+          </div>
         </div>
         
         <Calendar 
@@ -206,14 +210,14 @@ const Index = () => {
         />
         
         <div className="events-section">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200 dark:border-gray-800">
             <div className="flex items-center gap-4">
               <h2 className="text-lg font-medium">
                 All {activeFilter} events
               </h2>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="flex items-center gap-1 bg-white/10 dark:bg-dark-300/50 border-white/10 dark:border-white/5">
                     {sortOption.includes('asc') ? <ArrowUpAZ className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />}
                     <span>Sort</span>
                     <ChevronDown className="h-4 w-4 opacity-50" />
