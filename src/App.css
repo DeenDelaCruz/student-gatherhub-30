@@ -36,17 +36,141 @@
 
 .card {
   padding: 2em;
-  background: rgba(26, 31, 44, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(20, 22, 33, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius);
   transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .card:hover {
-  box-shadow: 0 8px 32px rgba(142, 107, 245, 0.1);
+  box-shadow: 0 8px 32px rgba(142, 107, 245, 0.15);
   border-color: rgba(142, 107, 245, 0.3);
+  transform: translateY(-2px);
 }
 
 .read-the-docs {
   color: #888;
+}
+
+/* Auth page specific styles */
+.auth-card {
+  background: rgba(20, 22, 33, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.auth-card:hover {
+  box-shadow: 0 12px 40px rgba(142, 107, 245, 0.15);
+  border-color: rgba(142, 107, 245, 0.2);
+}
+
+.profile-card {
+  background: linear-gradient(145deg, rgba(26, 30, 44, 0.95) 0%, rgba(32, 33, 45, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.admin-badge {
+  background: linear-gradient(135deg, #8E6BF5 0%, #FF6B95 100%);
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 10px rgba(142, 107, 245, 0.3);
+}
+
+.calendar-day {
+  background: rgba(30, 34, 48, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+  background: rgba(142, 107, 245, 0.2);
+  border-color: rgba(142, 107, 245, 0.4);
+}
+
+.calendar-day.active {
+  background: rgba(142, 107, 245, 0.3);
+  border-color: rgba(142, 107, 245, 0.6);
+  box-shadow: 0 0 15px rgba(142, 107, 245, 0.2);
+}
+
+.info-button {
+  background: #8E6BF5;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(142, 107, 245, 0.3);
+}
+
+.info-button:hover {
+  background: #7d5be0;
+  box-shadow: 0 4px 12px rgba(142, 107, 245, 0.4);
+  transform: translateY(-1px);
+}
+
+.edit-button {
+  background: rgba(40, 44, 58, 0.8);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.edit-button:hover {
+  background: rgba(50, 54, 68, 0.95);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.event-card {
+  background: linear-gradient(145deg, rgba(26, 30, 44, 0.95) 0%, rgba(32, 33, 45, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+}
+
+.event-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.filter-button {
+  background: rgba(20, 22, 33, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 9999px;
+  padding: 0.4rem 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.filter-button.active {
+  background: rgba(142, 107, 245, 0.2);
+  border-color: rgba(142, 107, 245, 0.4);
+  color: white;
+}
+
+.filter-button:hover {
+  background: rgba(50, 54, 68, 0.8);
+  border-color: rgba(142, 107, 245, 0.3);
 }

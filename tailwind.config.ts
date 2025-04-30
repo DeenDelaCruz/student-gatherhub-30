@@ -64,9 +64,9 @@ const config = {
           ring: 'hsl(var(--sidebar-ring))'
         },
         campus: {
-          DEFAULT: "#1A1F2C",
-          header: "#1A1F2C",
-          bg: "#121212",
+          DEFAULT: "#141621",
+          header: "#141621",
+          bg: "#0F1015",
           accent: "#8E6BF5",
           purple: "#8E6BF5",
           pink: "#FF6B95"
@@ -80,6 +80,16 @@ const config = {
           high: "#8E6BF5",
           medium: "#FF6B95",
           low: "#9CA3AF"
+        },
+        dark: {
+          100: "#141621",
+          200: "#191B28", 
+          300: "#1E2044",
+          400: "#222333",
+          500: "#282A3A",
+          card: "#141621CC",
+          glass: "#14162199",
+          border: "rgba(255, 255, 255, 0.05)"
         }
       },
       borderRadius: {
@@ -134,7 +144,9 @@ const config = {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'glass-gradient': 'linear-gradient(to bottom right, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))',
+        'glass-gradient': 'linear-gradient(to bottom right, rgba(20, 22, 33, 0.7), rgba(20, 22, 33, 0.5))',
+        'card-gradient': 'linear-gradient(145deg, rgba(20, 22, 33, 0.85) 0%, rgba(25, 27, 40, 0.85) 100%)',
+        'auth-gradient': 'linear-gradient(145deg, rgba(20, 22, 33, 0.9) 0%, rgba(30, 32, 53, 0.8) 100%)',
       }
     }
   },

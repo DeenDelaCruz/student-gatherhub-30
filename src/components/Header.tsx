@@ -16,12 +16,12 @@ const Header = ({ onSearch }: HeaderProps) => {
   };
 
   return (
-    <header className="w-full bg-gradient-to-r from-[#1A1F2C] to-[#222222] py-4 px-6 flex items-center justify-between shadow-lg backdrop-blur-xl border-b border-white/10 animate-fade-in z-10">
+    <header className="w-full bg-gradient-to-r from-[#14162199] to-[#1A1F2C99] py-4 px-6 flex items-center justify-between shadow-lg backdrop-blur-xl border-b border-white/5 animate-fade-in z-10">
       <div className="flex items-center">
         <div className="flex items-center gap-2">
-          <div className="bg-gradient-to-br from-[#8E6BF5] to-[#FF6B95] rounded-xl p-0.5 shadow-lg hover:shadow-[#8E6BF5]/20 transition-all duration-300 group">
-            <div className="bg-[#1A1F2C] rounded-[0.65rem] px-3 py-1.5">
-              <div className="text-white font-bold text-xl tracking-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#8E6BF5] group-hover:to-[#FF6B95] transition-all duration-300">
+          <div className="bg-gradient-to-br from-[#8E6BF5] to-[#FF6B95] rounded-xl p-0.5 shadow-lg shadow-[#8E6BF5]/10 hover:shadow-[#8E6BF5]/20 transition-all duration-500 group">
+            <div className="bg-[#14162180] rounded-[0.65rem] px-3 py-1.5 backdrop-blur-md">
+              <div className="text-white font-bold text-xl tracking-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#8E6BF5] group-hover:to-[#FF6B95] transition-all duration-500">
                 EventEra
               </div>
             </div>
@@ -34,7 +34,7 @@ const Header = ({ onSearch }: HeaderProps) => {
             type="text"
             name="search"
             placeholder="Search for campus events..."
-            className="w-full bg-white/10 border border-white/10 backdrop-blur-lg text-white rounded-full py-2 px-5 pl-5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#8E6BF5]/50 focus:border-[#8E6BF5]/50 transition-all placeholder:text-gray-400"
+            className="w-full bg-[#14162199] border border-white/5 backdrop-blur-lg text-white rounded-full py-2 px-5 pl-5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#8E6BF5]/50 focus:border-[#8E6BF5]/50 transition-all placeholder:text-gray-400"
           />
           <button
             type="submit"

@@ -27,7 +27,7 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
-    <Card className="w-full h-full flex flex-col bg-gradient-to-b from-[#1A1F2C]/90 to-[#222222]/90 backdrop-blur-xl border border-white/10 rounded-xl hover:shadow-lg hover:shadow-[#8E6BF5]/10 transition-all duration-300">
+    <Card className="w-full h-full flex flex-col bg-gradient-to-b from-[#14162199] to-[#191B2899] backdrop-blur-xl border border-white/5 rounded-xl hover:shadow-lg hover:shadow-[#8E6BF5]/10 transition-all duration-500 group">
       {subEvent.image_url && (
         <div className="relative h-48 w-full overflow-hidden rounded-t-xl">
           <img
@@ -36,7 +36,7 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
             className="w-full h-full object-cover cursor-zoom-in hover:scale-105 transition-transform duration-500"
             onClick={() => setLightboxOpen(true)}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1A1F2C]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#14162199] to-transparent" />
           <Button
             className="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white shadow-lg border border-white/10"
             size="sm"
@@ -46,7 +46,7 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
           </Button>
         </div>
       )}
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="text-xl bg-gradient-to-br from-white via-white/90 to-white/70 bg-clip-text text-transparent font-bold">{subEvent.title}</CardTitle>
         <CardDescription className="flex items-center gap-2 text-sm text-gray-300">
           <Calendar className="h-4 w-4 flex-shrink-0 text-[#8E6BF5]" />
@@ -63,12 +63,12 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
         <p className="text-sm text-gray-400">{subEvent.description || "No description available."}</p>
       </CardContent>
       {canManage && (
-        <CardFooter className="gap-2 pt-4 border-t border-white/10 mt-auto">
+        <CardFooter className="gap-2 pt-4 border-t border-white/5 mt-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onEdit(subEvent)}
-            className="flex items-center gap-1 bg-transparent border border-white/10 hover:bg-[#8E6BF5]/20 hover:border-[#8E6BF5]/50 text-white transition-all duration-300"
+            className="flex items-center gap-1 bg-[#14162180] border border-white/5 hover:bg-[#8E6BF5]/20 hover:border-[#8E6BF5]/50 text-white transition-all duration-300"
           >
             <Edit className="h-4 w-4" /> Edit
           </Button>

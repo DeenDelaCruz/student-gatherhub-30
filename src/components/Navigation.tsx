@@ -86,7 +86,7 @@ const Navigation = () => {
   const navItems = getNavItems();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#1A1F2C] to-[#222222] border-t border-white/10 py-3 px-4 backdrop-blur-xl z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#14162199] to-[#1A1F2C99] border-t border-white/5 py-3 px-4 backdrop-blur-xl z-50">
       <div className="max-w-md mx-auto flex justify-around items-center">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -107,11 +107,11 @@ const Navigation = () => {
                 </span>
               )}
               <div className={cn(
-                "relative p-2 rounded-lg transition-all duration-300",
-                isActive ? "bg-white/10 shadow-lg" : "bg-transparent group-hover:bg-white/5"
+                "relative p-2 rounded-lg transition-all duration-500",
+                isActive ? "bg-[#1e204466] shadow-lg" : "bg-transparent group-hover:bg-[#1e204433]"
               )}>
                 <item.icon size={20} className={cn(
-                  "transition-all duration-300",
+                  "transition-all duration-500",
                   isActive ? "text-[#9b87f5]" : "text-current"
                 )} />
                 {isActive && (

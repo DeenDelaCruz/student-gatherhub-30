@@ -80,20 +80,20 @@
   }
   
   .glass-card {
-    background: rgba(26, 31, 44, 0.7);
+    background: rgba(20, 22, 33, 0.8);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: var(--radius);
     transition: all 0.3s ease;
   }
   
   .glass-card:hover {
-    background: rgba(26, 31, 44, 0.8);
+    background: rgba(26, 28, 39, 0.9);
     box-shadow: 0 8px 32px rgba(142, 107, 245, 0.1);
   }
   
   .neo-border {
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
   
   .text-gradient {
@@ -106,8 +106,36 @@
   
   .accent-border {
     border: 1px solid transparent;
-    background: linear-gradient(to right, #1A1F2C, #1A1F2C) padding-box,
+    background: linear-gradient(to right, #14162180, #14162180) padding-box,
                 linear-gradient(135deg, #8E6BF5, #FF6B95) border-box;
+  }
+
+  .auth-card {
+    background: rgba(20, 22, 33, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(16px);
+    transition: all 0.5s ease;
+  }
+  
+  .auth-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 50px rgba(142, 107, 245, 0.15);
+    border-color: rgba(142, 107, 245, 0.2);
+  }
+  
+  .auth-input {
+    background: rgba(26, 28, 39, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: white;
+    transition: all 0.3s ease;
+  }
+  
+  .auth-input:focus {
+    background: rgba(30, 32, 45, 0.8);
+    border-color: rgba(142, 107, 245, 0.4);
+    box-shadow: 0 0 0 2px rgba(142, 107, 245, 0.1);
   }
 }
 
