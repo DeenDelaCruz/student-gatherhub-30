@@ -4,8 +4,9 @@ import { createRoutes } from "@/routes";
 import { AuthProvider } from "@/context/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { useRoutes } from "react-router-dom";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
+import { useTheme } from "next-themes";
 
 // Loading fallback
 const PageLoader = () => (
@@ -17,6 +18,15 @@ const PageLoader = () => (
 // AppRoutes component to use the useRoutes hook
 const AppRoutes = () => {
   const routes = createRoutes();
+  const { theme } = useTheme();
+  
+  // Apply theme class to the body
+  useEffect(() => {
+    if (theme) {
+      document.body.className = theme;
+    }
+  }, [theme]);
+  
   return useRoutes(routes);
 };
 
