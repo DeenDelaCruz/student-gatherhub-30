@@ -63,6 +63,8 @@ export const validateQrCodeData = (qrData: string): boolean => {
     return typeof parsed === 'object' && parsed !== null && 'eventId' in parsed;
   } catch (error) {
     // If parsing fails, the QR code data is not in the expected format
+    console.log('QR validation error:', error);
+    console.log('Failed QR data:', qrData);
     return false;
   }
 };
@@ -168,3 +170,100 @@ export const isMobileDevice = (): boolean => {
   const userAgent = navigator.userAgent || navigator.vendor;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
 };
+
+/**
+ * Try multiple approaches to process an image for QR scanning
+ * This function takes an image file and tries different image processing
+ * techniques to improve QR code detection chances.
+ * 
+ * @param file The image file to process
+ * @param scanner The Html5Qrcode instance
+ * @returns Promise resolving to scan result
+ */
+export const processImageWithMultipleApproaches = async (file: File, scanner: any): Promise<string> => {
+  console.log("Attempting to process image with multiple techniques");
+  
+  try {
+    // First try: Direct file scan
+    try {
+      console.log("Approach 1: Direct file scan");
+      const result = await scanner.scanFileV2(file);
+      if (result && result.decodedText) {
+        console.log("Direct file scan successful");
+        return result.decodedText;
+      }
+    } catch (err) {
+      console.log("Direct scan failed, trying alternative methods");
+    }
+    
+    // Second try: Create image and process with varying sizes
+    const img = await createImageFromFile(file);
+    console.log("Image loaded, dimensions:", img.width, "x", img.height);
+    
+    // Try different resolutions
+    const resolutions = [1200, 800, 600, 400];
+    for (const resolution of resolutions) {
+      try {
+        console.log(`Approach 2: Trying resolution ${resolution}px`);
+        const canvas = resizeImage(img, resolution);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        
+        // Create a file from the data URL
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const processedFile = new File([blob], "processed-image.jpg", { type: "image/jpeg" });
+        
+        const result = await scanner.scanFileV2(processedFile);
+        if (result && result.decodedText) {
+          console.log(`Successful scan at resolution ${resolution}px`);
+          return result.decodedText;
+        }
+      } catch (err) {
+        console.log(`Failed at resolution ${resolution}px:`, err);
+      }
+    }
+    
+    // Third try: Try with different image processing
+    console.log("Approach 3: Applying image processing");
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      throw new Error("Could not get canvas context");
+    }
+    
+    // Apply contrast enhancement
+    ctx.filter = 'contrast(1.4) brightness(1.1)';
+    ctx.drawImage(img, 0, 0);
+    
+    const enhancedDataUrl = canvas.toDataURL("image/jpeg", 1.0);
+    const res = await fetch(enhancedDataUrl);
+    const blob = await res.blob();
+    const enhancedFile = new File([blob], "enhanced-image.jpg", { type: "image/jpeg" });
+    
+    try {
+      const result = await scanner.scanFileV2(enhancedFile);
+      if (result && result.decodedText) {
+        console.log("Enhanced image scan successful");
+        return result.decodedText;
+      }
+    } catch (err) {
+      console.log("Enhanced image scan failed:", err);
+    }
+    
+    // If all attempts fail, throw an error
+    throw new Error("Failed to detect QR code after multiple attempts");
+    
+  } catch (error) {
+    console.error("All QR detection methods failed:", error);
+    throw error;
+  } finally {
+    // Clean up any resources
+    if (scanner && scanner.getState() !== Html5QrcodeScannerState.NOT_STARTED) {
+      await scanner.stop();
+    }
+  }
+};
+

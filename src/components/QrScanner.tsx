@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,8 @@ import {
   createImageFromFile,
   resizeImage,
   isMobileDevice,
-  checkAndRequestStoragePermission
+  checkAndRequestStoragePermission,
+  processImageWithMultipleApproaches
 } from '@/utils/capacitorUtils';
 import {
   Dialog,
@@ -246,7 +248,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           fileInputRef.current.value = '';
         }
       }
-    }, 15000); // 15 second timeout
+    }, 20000); // 20 second timeout (extended for better compatibility)
     
     const file = e.target.files?.[0];
     if (!file) {
@@ -322,46 +324,36 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       // Ensure we have a clean scanner instance
       await cleanupScanner();
       
-      // Use a new approach for file scanning that's more reliable
-      console.log("Processing image using alternate approach");
-      
-      // First, create an image element from the file
-      const img = await createImageFromFile(file);
-      
-      // Resize the image to make processing more reliable
-      const canvas = resizeImage(img, 1200);
-      
-      // Get the image data URL
-      const imageUrl = canvas.toDataURL("image/jpeg", 0.8);
-      
       // Create a new scanner instance
       const html5QrCode = new Html5Qrcode(scannerContainerId, { verbose: isMobileDevice() ? false : true });
       scannerRef.current = html5QrCode;
       
-      // Scan the image data URL
-      console.log("Scanning image data URL");
-      const result = await html5QrCode.scanFileV2(file);
+      console.log("Processing image with enhanced approaches");
+      toast.info("Processing image", {
+        description: "Trying multiple methods to scan the QR code..."
+      });
       
-      console.log("QR code successfully found in image:", result);
+      const decodedText = await processImageWithMultipleApproaches(file, html5QrCode);
+      
+      console.log("QR code successfully found in image:", decodedText);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
       
       setIsLocalProcessing(false);
-      processQrData(result.decodedText);
+      processQrData(decodedText);
       
       // Clean up resources
-      URL.revokeObjectURL(img.src);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     } catch (error: any) {
       console.error("Error scanning QR code from image:", error);
       
-      setError("Could not detect a valid QR code in this image");
+      setError("Could not detect a valid QR code in this image. Please try a clearer image or different angle.");
       toast.error("No QR code found", {
-        description: "The image doesn't contain a valid QR code or we couldn't read it"
+        description: "The image doesn't contain a valid QR code or we couldn't read it. Try a clearer image with good lighting."
       });
       
       setIsLocalProcessing(false);
