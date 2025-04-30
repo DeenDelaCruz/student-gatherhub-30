@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,9 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         description: "The QR code didn't contain valid data"
       });
     }
+    
+    // Always ensure we're no longer in processing state
+    setIsLocalProcessing(false);
   };
 
   const initializeScanner = async () => {
@@ -137,6 +141,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     }
     setIsScanning(false);
     setIsUploadMode(false);
+    setIsLocalProcessing(false); // Ensure we reset local processing state
     onCancel();
   };
 
@@ -154,35 +159,43 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      setIsLocalProcessing(false);
+      return;
+    }
 
     setError(null);
     setIsLocalProcessing(true);
     
+    // Make sure we have a scanner instance
     if (!scannerRef.current) {
       scannerRef.current = new Html5Qrcode(scannerContainerId);
     }
     
     console.log("Processing file upload:", file.name, file.type);
     
-    scannerRef.current.scanFile(file, true)
-      .then(decodedText => {
-        console.log("QR Code from image:", decodedText);
-        processQrData(decodedText);
-      })
-      .catch(err => {
-        console.error("Error scanning uploaded image:", err);
-        setError("Could not find a valid QR code in the image");
-        toast.error("QR scan failed", {
-          description: "Could not find a valid QR code in the image"
+    // Add a timeout to ensure UI updates
+    setTimeout(() => {
+      scannerRef.current?.scanFile(file, true)
+        .then(decodedText => {
+          console.log("QR Code from image:", decodedText);
+          processQrData(decodedText);
+        })
+        .catch(err => {
+          console.error("Error scanning uploaded image:", err);
+          setError("Could not find a valid QR code in the image");
+          toast.error("QR scan failed", {
+            description: "Could not find a valid QR code in the image"
+          });
+          setIsLocalProcessing(false); // Ensure we reset processing state on error
+        })
+        .finally(() => {
+          // Reset file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         });
-      })
-      .finally(() => {
-        setIsLocalProcessing(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';  // Reset file input
-        }
-      });
+    }, 100);
   };
 
   const triggerFileInput = () => {
