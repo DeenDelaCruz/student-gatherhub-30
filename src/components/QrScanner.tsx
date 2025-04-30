@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -47,25 +46,33 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   const processQrData = (decodedText: string) => {
     console.log("Processing QR data:", decodedText);
     
-    if (typeof decodedText === 'string' && decodedText.trim()) {
-      // Validate QR code format
-      if (validateQrCodeData(decodedText.trim())) {
-        onScanComplete(decodedText.trim());
+    try {
+      if (typeof decodedText === 'string' && decodedText.trim()) {
+        // Validate QR code format
+        if (validateQrCodeData(decodedText.trim())) {
+          onScanComplete(decodedText.trim());
+        } else {
+          setError("Invalid QR code format for event check-in");
+          toast.error("Invalid QR code", {
+            description: "This QR code is not in the correct format for event check-in"
+          });
+        }
       } else {
-        setError("Invalid QR code format for event check-in");
+        setError("Invalid QR code data received");
         toast.error("Invalid QR code", {
-          description: "This QR code is not in the correct format for event check-in"
+          description: "The QR code didn't contain valid data"
         });
       }
-    } else {
-      setError("Invalid QR code data received");
-      toast.error("Invalid QR code", {
-        description: "The QR code didn't contain valid data"
+    } catch (err) {
+      console.error("Error in processQrData:", err);
+      setError("Failed to process QR code");
+      toast.error("Processing error", {
+        description: "Failed to process the QR code data"
       });
+    } finally {
+      // Always ensure we're no longer in processing state
+      setIsLocalProcessing(false);
     }
-    
-    // Always ensure we're no longer in processing state
-    setIsLocalProcessing(false);
   };
 
   const initializeScanner = async () => {
@@ -142,6 +149,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     setIsScanning(false);
     setIsUploadMode(false);
     setIsLocalProcessing(false); // Ensure we reset local processing state
+    setError(null);
     onCancel();
   };
 
@@ -158,27 +166,40 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   };
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setIsLocalProcessing(false);
-      return;
-    }
+    try {
+      const file = e.target.files?.[0];
+      if (!file) {
+        console.log("No file selected");
+        setIsLocalProcessing(false);
+        return;
+      }
 
-    setError(null);
-    setIsLocalProcessing(true);
-    
-    // Make sure we have a scanner instance
-    if (!scannerRef.current) {
-      scannerRef.current = new Html5Qrcode(scannerContainerId);
-    }
-    
-    console.log("Processing file upload:", file.name, file.type);
-    
-    // Add a timeout to ensure UI updates
-    setTimeout(() => {
-      scannerRef.current?.scanFile(file, true)
+      console.log("File selected:", file.name, file.type);
+      setError(null);
+      setIsLocalProcessing(true);
+      
+      // Check file type
+      if (!file.type.includes('image/')) {
+        setError("Please select an image file");
+        toast.error("Invalid file type", {
+          description: "Please select an image file"
+        });
+        setIsLocalProcessing(false);
+        return;
+      }
+      
+      // Make sure we have a scanner instance
+      if (!scannerRef.current) {
+        console.log("Creating new scanner instance");
+        scannerRef.current = new Html5Qrcode(scannerContainerId);
+      }
+      
+      console.log("Processing file upload:", file.name, file.type);
+      
+      // Use Promise to handle the file scanning
+      scannerRef.current.scanFile(file, true)
         .then(decodedText => {
-          console.log("QR Code from image:", decodedText);
+          console.log("QR Code from image detected:", decodedText);
           processQrData(decodedText);
         })
         .catch(err => {
@@ -187,7 +208,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           toast.error("QR scan failed", {
             description: "Could not find a valid QR code in the image"
           });
-          setIsLocalProcessing(false); // Ensure we reset processing state on error
+          setIsLocalProcessing(false);
         })
         .finally(() => {
           // Reset file input
@@ -195,7 +216,14 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
             fileInputRef.current.value = '';
           }
         });
-    }, 100);
+    } catch (err) {
+      console.error("Unexpected error in file upload:", err);
+      setError("An unexpected error occurred");
+      toast.error("Upload error", {
+        description: "Failed to process the uploaded image"
+      });
+      setIsLocalProcessing(false);
+    }
   };
 
   const triggerFileInput = () => {
