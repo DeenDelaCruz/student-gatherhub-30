@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -125,35 +124,52 @@ export const getUniqueRecentVisitors = async (limit: number = 10): Promise<any[]
       console.error("Error with RPC function, falling back to direct query:", rpcError);
       
       // Fallback to a direct query that ensures uniqueness by user_id
-      const { data, error } = await supabase
+      // First get distinct user_ids with their most recent visit times
+      const { data: distinctUserData, error: distinctError } = await supabase
         .from('user_visits')
-        .select(`
-          user_id,
-          visit_time,
-          profiles(
-            name,
-            email
-          )
-        `)
+        .select('user_id, visit_time')
         .order('visit_time', { ascending: false });
       
-      if (error) throw error;
+      if (distinctError) throw distinctError;
       
-      // Process the results to get unique users with their most recent visit
+      if (!distinctUserData || distinctUserData.length === 0) {
+        return [];
+      }
+      
+      // Create a map to keep only the most recent visit per user
       const userMap = new Map();
-      data?.forEach(visit => {
+      distinctUserData.forEach(visit => {
         if (!userMap.has(visit.user_id)) {
-          userMap.set(visit.user_id, {
-            user_id: visit.user_id,
-            visit_time: visit.visit_time,
-            name: visit.profiles?.name || 'Unknown',
-            email: visit.profiles?.email || 'No email'
-          });
+          userMap.set(visit.user_id, visit);
         }
       });
       
-      // Convert map values to array and limit to requested count
-      return Array.from(userMap.values()).slice(0, limit);
+      // Get the unique user_ids
+      const uniqueUserIds = Array.from(userMap.values()).map(visit => visit.user_id);
+      
+      // Fetch the profile information for these users
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .in('id', uniqueUserIds);
+      
+      if (profileError) throw profileError;
+      
+      // Combine the visit time with profile information
+      const result = profileData?.map(profile => {
+        const visit = userMap.get(profile.id);
+        return {
+          user_id: profile.id,
+          visit_time: visit?.visit_time,
+          name: profile.name || 'Unknown',
+          email: profile.email || 'No email'
+        };
+      }) || [];
+      
+      // Sort by visit time (most recent first) and limit to requested count
+      return result
+        .sort((a, b) => new Date(b.visit_time).getTime() - new Date(a.visit_time).getTime())
+        .slice(0, limit);
     }
   } catch (error) {
     console.error("Error getting unique recent visitors:", error);
