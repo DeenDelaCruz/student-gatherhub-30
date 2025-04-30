@@ -233,7 +233,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       clearTimeout(timeoutRef.current);
     }
     
-    // Set a timeout to prevent infinite processing
+    // Set a timeout to prevent infinite processing - extend to 30 seconds
     timeoutRef.current = window.setTimeout(() => {
       if (isLocalProcessing) {
         console.log("Upload processing timeout triggered");
@@ -248,7 +248,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           fileInputRef.current.value = '';
         }
       }
-    }, 20000); // 20 second timeout (extended for better compatibility)
+    }, 30000); // Extended to 30 seconds for more time to try advanced processing
     
     const file = e.target.files?.[0];
     if (!file) {
@@ -324,13 +324,13 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       // Ensure we have a clean scanner instance
       await cleanupScanner();
       
-      // Create a new scanner instance
-      const html5QrCode = new Html5Qrcode(scannerContainerId, { verbose: isMobileDevice() ? false : true });
+      // Create a new scanner instance with verbose debugging for development
+      const html5QrCode = new Html5Qrcode(scannerContainerId, { verbose: true });
       scannerRef.current = html5QrCode;
       
       console.log("Processing image with enhanced approaches");
       toast.info("Processing image", {
-        description: "Trying multiple methods to scan the QR code..."
+        description: "Analyzing QR code with multiple detection methods..."
       });
       
       const decodedText = await processImageWithMultipleApproaches(file, html5QrCode);
@@ -351,9 +351,9 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     } catch (error: any) {
       console.error("Error scanning QR code from image:", error);
       
-      setError("Could not detect a valid QR code in this image. Please try a clearer image or different angle.");
+      setError("Could not detect a valid QR code in this image. Please try a clearer image or different image.");
       toast.error("No QR code found", {
-        description: "The image doesn't contain a valid QR code or we couldn't read it. Try a clearer image with good lighting."
+        description: "The image doesn't contain a recognizable QR code. Try uploading a clearer image with good lighting."
       });
       
       setIsLocalProcessing(false);

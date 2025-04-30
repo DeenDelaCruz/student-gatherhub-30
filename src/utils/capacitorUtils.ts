@@ -1,3 +1,4 @@
+
 import { Capacitor } from '@capacitor/core';
 import { Html5QrcodeScannerState } from 'html5-qrcode';
 
@@ -172,6 +173,73 @@ export const isMobileDevice = (): boolean => {
 };
 
 /**
+ * Enhanced image processing: Apply various image transformations to improve QR detection
+ * @param img The image to process
+ * @returns Array of canvases with different processing applied
+ */
+export const applyImageProcessing = (img: HTMLImageElement): HTMLCanvasElement[] => {
+  const processedCanvases: HTMLCanvasElement[] = [];
+  
+  // Canvas 1: Original resized image (medium resolution)
+  const canvas1 = resizeImage(img, 800);
+  processedCanvases.push(canvas1);
+  
+  // Canvas 2: High contrast version
+  const canvas2 = document.createElement('canvas');
+  canvas2.width = img.width;
+  canvas2.height = img.height;
+  const ctx2 = canvas2.getContext('2d');
+  if (ctx2) {
+    ctx2.filter = 'contrast(1.5) brightness(1.2)';
+    ctx2.drawImage(img, 0, 0);
+    processedCanvases.push(canvas2);
+  }
+  
+  // Canvas 3: Grayscale version
+  const canvas3 = document.createElement('canvas');
+  canvas3.width = img.width;
+  canvas3.height = img.height;
+  const ctx3 = canvas3.getContext('2d');
+  if (ctx3) {
+    ctx3.filter = 'grayscale(1)';
+    ctx3.drawImage(img, 0, 0);
+    processedCanvases.push(canvas3);
+  }
+  
+  // Canvas 4: High resolution version
+  const canvas4 = resizeImage(img, 1200);
+  processedCanvases.push(canvas4);
+  
+  // Canvas 5: Low resolution version for challenging images
+  const canvas5 = resizeImage(img, 400);
+  processedCanvases.push(canvas5);
+  
+  // Canvas 6: Sharpened version
+  const canvas6 = document.createElement('canvas');
+  canvas6.width = img.width;
+  canvas6.height = img.height;
+  const ctx6 = canvas6.getContext('2d');
+  if (ctx6) {
+    // Apply a simple sharpening algorithm
+    ctx6.drawImage(img, 0, 0);
+    const imageData = ctx6.getImageData(0, 0, canvas6.width, canvas6.height);
+    const data = imageData.data;
+    
+    // Simple sharpening: increase contrast between adjacent pixels
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = Math.min(255, Math.max(0, data[i] * 1.2 - 20));     // R
+      data[i + 1] = Math.min(255, Math.max(0, data[i + 1] * 1.2 - 20)); // G
+      data[i + 2] = Math.min(255, Math.max(0, data[i + 2] * 1.2 - 20)); // B
+    }
+    
+    ctx6.putImageData(imageData, 0, 0);
+    processedCanvases.push(canvas6);
+  }
+  
+  return processedCanvases;
+};
+
+/**
  * Try multiple approaches to process an image for QR scanning
  * This function takes an image file and tries different image processing
  * techniques to improve QR code detection chances.
@@ -181,76 +249,151 @@ export const isMobileDevice = (): boolean => {
  * @returns Promise resolving to scan result
  */
 export const processImageWithMultipleApproaches = async (file: File, scanner: any): Promise<string> => {
-  console.log("Attempting to process image with multiple techniques");
+  console.log("Attempting to process image with enhanced techniques");
   
   try {
-    // First try: Direct file scan
+    // First try: Direct file scan with aggressive config
     try {
-      console.log("Approach 1: Direct file scan");
-      const result = await scanner.scanFileV2(file);
+      console.log("Approach 1: Direct file scan with adjusted config");
+      
+      // Start with direct scan but with enhanced configuration
+      const config = { 
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true 
+        } 
+      };
+      
+      const result = await scanner.scanFileV2(file, config);
       if (result && result.decodedText) {
-        console.log("Direct file scan successful");
+        console.log("Direct file scan successful with adjusted config");
         return result.decodedText;
       }
     } catch (err) {
       console.log("Direct scan failed, trying alternative methods");
     }
     
-    // Second try: Create image and process with varying sizes
+    // Load the image for processing
     const img = await createImageFromFile(file);
     console.log("Image loaded, dimensions:", img.width, "x", img.height);
     
-    // Try different resolutions
-    const resolutions = [1200, 800, 600, 400];
-    for (const resolution of resolutions) {
+    // Try different processed versions of the image
+    const processedCanvases = applyImageProcessing(img);
+    console.log(`Generated ${processedCanvases.length} processed versions of the image`);
+    
+    // Try each processed canvas
+    let scanAttempt = 0;
+    for (const canvas of processedCanvases) {
+      scanAttempt++;
       try {
-        console.log(`Approach 2: Trying resolution ${resolution}px`);
-        const canvas = resizeImage(img, resolution);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        console.log(`Approach ${scanAttempt+1}: Trying processed image variation`);
         
-        // Create a file from the data URL
+        // Convert canvas to a file
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
         const res = await fetch(dataUrl);
         const blob = await res.blob();
-        const processedFile = new File([blob], "processed-image.jpg", { type: "image/jpeg" });
+        const processedFile = new File([blob], `processed-image-${scanAttempt}.jpg`, { type: "image/jpeg" });
         
-        const result = await scanner.scanFileV2(processedFile);
-        if (result && result.decodedText) {
-          console.log(`Successful scan at resolution ${resolution}px`);
-          return result.decodedText;
+        // Attempt to scan with both APIs
+        const configs = [
+          { experimentalFeatures: { useBarCodeDetectorIfSupported: false } },
+          { experimentalFeatures: { useBarCodeDetectorIfSupported: true } },
+        ];
+        
+        for (const config of configs) {
+          try {
+            const result = await scanner.scanFileV2(processedFile, config);
+            if (result && result.decodedText) {
+              console.log(`Successful scan with processed image ${scanAttempt}`);
+              return result.decodedText;
+            }
+          } catch (innerErr) {
+            // Continue to next config
+          }
         }
       } catch (err) {
-        console.log(`Failed at resolution ${resolution}px:`, err);
+        console.log(`Failed with processed image ${scanAttempt}:`, err);
       }
     }
     
-    // Third try: Try with different image processing
-    console.log("Approach 3: Applying image processing");
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      throw new Error("Could not get canvas context");
-    }
-    
-    // Apply contrast enhancement
-    ctx.filter = 'contrast(1.4) brightness(1.1)';
-    ctx.drawImage(img, 0, 0);
-    
-    const enhancedDataUrl = canvas.toDataURL("image/jpeg", 1.0);
-    const res = await fetch(enhancedDataUrl);
-    const blob = await res.blob();
-    const enhancedFile = new File([blob], "enhanced-image.jpg", { type: "image/jpeg" });
-    
+    // Try splitting the image into segments for QR codes that may be smaller or in corners
     try {
-      const result = await scanner.scanFileV2(enhancedFile);
-      if (result && result.decodedText) {
-        console.log("Enhanced image scan successful");
-        return result.decodedText;
+      console.log("Approach 8: Analyzing image segments");
+      
+      // Create a smaller version to work with
+      const workingCanvas = resizeImage(img, 800);
+      const segments = [
+        // Top-left quadrant
+        { x: 0, y: 0, width: workingCanvas.width/2, height: workingCanvas.height/2 },
+        // Top-right quadrant
+        { x: workingCanvas.width/2, y: 0, width: workingCanvas.width/2, height: workingCanvas.height/2 },
+        // Bottom-left quadrant
+        { x: 0, y: workingCanvas.height/2, width: workingCanvas.width/2, height: workingCanvas.height/2 },
+        // Bottom-right quadrant
+        { x: workingCanvas.width/2, y: workingCanvas.height/2, width: workingCanvas.width/2, height: workingCanvas.height/2 },
+        // Center region (larger)
+        { x: workingCanvas.width/4, y: workingCanvas.height/4, width: workingCanvas.width/2, height: workingCanvas.height/2 },
+      ];
+      
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        const segmentCanvas = document.createElement('canvas');
+        segmentCanvas.width = segment.width;
+        segmentCanvas.height = segment.height;
+        
+        const ctx = segmentCanvas.getContext('2d');
+        if (ctx) {
+          // Draw the segment portion of the image
+          ctx.drawImage(
+            workingCanvas, 
+            segment.x, segment.y, segment.width, segment.height,
+            0, 0, segment.width, segment.height
+          );
+          
+          // Convert to file
+          const dataUrl = segmentCanvas.toDataURL("image/jpeg", 1.0);
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          const segmentFile = new File([blob], `segment-${i}.jpg`, { type: "image/jpeg" });
+          
+          try {
+            const result = await scanner.scanFileV2(segmentFile);
+            if (result && result.decodedText) {
+              console.log(`Successful scan with image segment ${i}`);
+              return result.decodedText;
+            }
+          } catch (err) {
+            console.log(`Failed with image segment ${i}`);
+          }
+        }
       }
     } catch (err) {
-      console.log("Enhanced image scan failed:", err);
+      console.log("Segment approach failed:", err);
+    }
+    
+    // Last attempt: Try direct URL string detection (sometimes QR codes are just plain text)
+    try {
+      console.log("Final approach: Manual text pattern detection");
+      const canvas = resizeImage(img, 800);
+      const dataUrl = canvas.toDataURL("image/png");
+      
+      // Check if the image data itself contains a JSON pattern
+      if (dataUrl.includes('eventId')) {
+        console.log("Found potential eventId string in raw data");
+        const match = dataUrl.match(/{[^}]*"eventId"[^}]*}/);
+        if (match && match[0]) {
+          try {
+            const jsonObj = JSON.parse(match[0]);
+            if (jsonObj && jsonObj.eventId) {
+              console.log("Successfully extracted eventId from raw data");
+              return JSON.stringify(jsonObj);
+            }
+          } catch (e) {
+            console.log("Pattern found but not valid JSON");
+          }
+        }
+      }
+    } catch (err) {
+      console.log("Text pattern detection failed:", err);
     }
     
     // If all attempts fail, throw an error
