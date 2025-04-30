@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, getEventInterestCount, isUserInterestedInEvent, markEventInterest, removeEventInterest, getEventAverageRating, getEventRatingCount, getSubEvents, createSubEvent, updateSubEvent, deleteSubEvent } from "@/integrations/supabase/client";
@@ -461,7 +462,7 @@ const EventDetails = () => {
       <div className="min-h-screen bg-campus-bg flex flex-col pb-20">
         <Header />
         <main className="flex-1 p-4">
-          <div className="text-center py-12">
+          <div className="text-center py-12 text-white">
             <h2 className="text-xl font-medium">Event not found</h2>
             <Button onClick={handleBack} className="mt-4">Go Back</Button>
           </div>
@@ -481,12 +482,12 @@ const EventDetails = () => {
         <Button 
           variant="ghost" 
           onClick={handleBack}
-          className="mb-4 hover:bg-gray-100"
+          className="mb-4 hover:bg-dark-200/50 text-white"
         >
           ← Back
         </Button>
         
-        <div className="bg-white rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-dark-200 rounded-xl overflow-hidden shadow-lg border border-white/5">
           <div className="relative h-48 w-full overflow-hidden">
             <img 
               src={event?.image_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"} 
@@ -508,19 +509,19 @@ const EventDetails = () => {
             </Button>
           </div>
           
-          <div className="p-4">
+          <div className="p-4 text-white">
             {eventUpdates.length > 0 && (
               <div className="mb-4 space-y-2">
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Recent Updates</h3>
+                <h3 className="text-sm font-medium text-gray-300 mb-1">Recent Updates</h3>
                 {eventUpdates.map((update) => (
                   <div 
                     key={update.id} 
-                    className="bg-gray-100 p-3 rounded-lg flex items-start gap-2"
+                    className="bg-dark-300 p-3 rounded-lg flex items-start gap-2"
                   >
-                    <Bell className="h-5 w-5 text-gray-600 mt-0.5 flex-shrink-0" />
+                    <Bell className="h-5 w-5 text-gray-300 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-sm text-gray-800">{update.title}</p>
-                      <p className="text-sm text-gray-600">{update.message}</p>
+                      <p className="font-medium text-sm text-gray-100">{update.title}</p>
+                      <p className="text-sm text-gray-300">{update.message}</p>
                     </div>
                   </div>
                 ))}
@@ -528,7 +529,7 @@ const EventDetails = () => {
             )}
             
             <div className="flex justify-between items-start mb-2">
-              <h1 className="text-2xl font-bold">{event?.title}</h1>
+              <h1 className="text-2xl font-bold text-white">{event?.title}</h1>
               
               {canEdit && (
                 <div className="flex gap-2">
@@ -536,7 +537,7 @@ const EventDetails = () => {
                     size="sm" 
                     variant="outline" 
                     onClick={handleEdit}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 border-white/10 bg-dark-300 hover:bg-dark-400"
                   >
                     <Edit className="h-4 w-4" />
                     Edit
@@ -546,7 +547,7 @@ const EventDetails = () => {
                     size="sm" 
                     variant="outline" 
                     onClick={handleToggleActive}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 border-white/10 bg-dark-300 hover:bg-dark-400"
                     disabled={isUpdating}
                   >
                     {event?.is_active ? (
@@ -567,32 +568,32 @@ const EventDetails = () => {
             </div>
             
             {event && !event.is_active && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center text-amber-800">
+              <div className="mb-4 p-3 bg-amber-900/30 border border-amber-700/30 rounded-md flex items-center text-amber-300">
                 <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
                 <p>This event is no longer active and registration is closed.</p>
               </div>
             )}
             
-            <div className="flex items-center mb-2 text-gray-600">
+            <div className="flex items-center mb-2 text-gray-300">
               <CalendarClock className="h-4 w-4 mr-2" />
               <span>{event?.event_date ? format(new Date(event.event_date), 'MMMM d, yyyy - h:mm a') : ''}</span>
             </div>
             
             {event?.location && (
-              <div className="flex items-center mb-2 text-gray-600">
+              <div className="flex items-center mb-2 text-gray-300">
                 <MapPin className="h-4 w-4 mr-2" />
                 <span>{event.location}</span>
               </div>
             )}
             
-            <div className="flex items-center mb-4 text-gray-600">
+            <div className="flex items-center mb-4 text-gray-300">
               <Users className="h-4 w-4 mr-2" />
               <span>{interestedCount} interested</span>
             </div>
             
             <div className="mb-6 mt-4">
               <h2 className="font-medium mb-2">Description</h2>
-              <p className="text-gray-700 whitespace-pre-line">
+              <p className="text-gray-300 whitespace-pre-line">
                 {event?.description ? convertUrlsToLinks(event.description) : "No description available."}
               </p>
             </div>
@@ -600,7 +601,7 @@ const EventDetails = () => {
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4">
                 <RatingStars rating={Math.round(averageRating)} readonly size={20} />
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-300">
                   {averageRating.toFixed(1)} ({ratingCount} {ratingCount === 1 ? 'rating' : 'ratings'})
                 </span>
                 
@@ -609,6 +610,7 @@ const EventDetails = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleOpenRatingDialog}
+                    className="border-white/10 bg-dark-300 hover:bg-dark-400"
                   >
                     Rate this event
                   </Button>
@@ -631,7 +633,7 @@ const EventDetails = () => {
                 <Button 
                   variant="outline" 
                   onClick={handleAddToGoogleCalendar}
-                  className="bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
+                  className="bg-dark-300 border-blue-600/30 text-blue-400 hover:bg-blue-900/30"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Add to Google Calendar
@@ -641,9 +643,9 @@ const EventDetails = () => {
           </div>
         </div>
         
-        <div className="mt-8 bg-white rounded-xl shadow-sm p-6">
+        <div className="mt-8 bg-dark-200 border border-white/5 rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">Sub-Events</h2>
+            <h2 className="text-xl font-semibold text-white">Sub-Events</h2>
             {canManageSubEvents && event?.is_active && (
               <Button
                 onClick={() => {
@@ -658,8 +660,8 @@ const EventDetails = () => {
           </div>
           
           {subEvents.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No sub-events have been added yet.</p>
+            <div className="text-center py-12 bg-dark-300/50 rounded-lg">
+              <p className="text-gray-400">No sub-events have been added yet.</p>
               {canManageSubEvents && event?.is_active && (
                 <Button
                   onClick={() => {
@@ -667,7 +669,7 @@ const EventDetails = () => {
                     setIsSubEventDialogOpen(true);
                   }}
                   variant="outline"
-                  className="mt-4"
+                  className="mt-4 border-white/10 bg-dark-300 hover:bg-dark-400"
                 >
                   Create the first sub-event
                 </Button>
