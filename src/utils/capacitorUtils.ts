@@ -1,5 +1,5 @@
-
 import { Capacitor } from '@capacitor/core';
+import { Html5QrcodeScannerState } from 'html5-qrcode';
 
 /**
  * Checks and requests camera permissions for barcode scanning
@@ -266,4 +266,3 @@ export const processImageWithMultipleApproaches = async (file: File, scanner: an
     }
   }
 };
-
