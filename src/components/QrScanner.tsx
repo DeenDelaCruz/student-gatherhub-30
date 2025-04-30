@@ -12,8 +12,16 @@ import {
   isHeicHeifFile,
   createImageFromFile,
   resizeImage,
-  isMobileDevice
+  isMobileDevice,
+  checkAndRequestStoragePermission
 } from '@/utils/capacitorUtils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface QrScannerProps {
   onScanComplete: (data: string) => void;
@@ -24,9 +32,11 @@ interface QrScannerProps {
 const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
   const [hasPermissions, setHasPermissions] = useState<boolean | null>(null);
+  const [hasStoragePermissions, setHasStoragePermissions] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploadMode, setIsUploadMode] = useState(false);
   const [isLocalProcessing, setIsLocalProcessing] = useState(false);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerContainerId = "qr-reader-container";
@@ -193,9 +203,21 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     // Clean up any existing scanner instance
     await cleanupScanner();
     
-    setIsUploadMode(true);
-    setIsScanning(false);
-    setError(null);
+    // Check for storage permission before entering upload mode
+    const hasPermission = await checkAndRequestStoragePermission();
+    
+    if (hasPermission) {
+      setIsUploadMode(true);
+      setIsScanning(false);
+      setError(null);
+      setHasStoragePermissions(true);
+    } else {
+      setHasStoragePermissions(false);
+      setShowPermissionDialog(true);
+      toast.error("Storage permission required", {
+        description: "Please allow storage access to upload QR code images"
+      });
+    }
   };
 
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -362,6 +384,19 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     }
   };
 
+  const retryStoragePermission = async () => {
+    const hasPermission = await checkAndRequestStoragePermission();
+    if (hasPermission) {
+      setHasStoragePermissions(true);
+      setShowPermissionDialog(false);
+      setIsUploadMode(true);
+    } else {
+      toast.error("Storage access denied", {
+        description: "Please enable storage access in your device settings"
+      });
+    }
+  };
+
   if (hasPermissions === null) {
     return (
       <div className="text-center p-4">
@@ -372,93 +407,110 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   }
 
   return (
-    <div className="scanner-viewport relative mb-6 rounded-xl overflow-hidden bg-black/5 aspect-square flex items-center justify-center">
-      {isProcessing || isLocalProcessing ? (
-        <div className="text-gray-500 flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <p>Processing...</p>
-        </div>
-      ) : isScanning ? (
-        <div className="relative w-full h-full flex flex-col items-center">
-          <div 
-            id={scannerContainerId} 
-            className="w-full h-full"
-          ></div>
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg"></div>
+    <>
+      <div className="scanner-viewport relative mb-6 rounded-xl overflow-hidden bg-black/5 aspect-square flex items-center justify-center">
+        {isProcessing || isLocalProcessing ? (
+          <div className="text-gray-500 flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p>Processing...</p>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleCancel}
-            className="absolute bottom-4 bg-white"
-          >
-            <X className="mr-1" size={16} />
-            Cancel
-          </Button>
-        </div>
-      ) : isUploadMode ? (
-        <div className="flex flex-col items-center p-4">
-          <Upload className="h-12 w-12 text-gray-400 mb-2" />
-          <p className="text-gray-400 mb-4">Upload a QR code image</p>
-          
-          <input 
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept="image/*"
-            onChange={handleFileUpload}
-            capture="environment"
-          />
-          
-          <div className="flex flex-col gap-3 w-full max-w-xs">
-            <Button onClick={triggerFileInput} className="w-full">
-              Select Image
+        ) : isScanning ? (
+          <div className="relative w-full h-full flex flex-col items-center">
+            <div 
+              id={scannerContainerId} 
+              className="w-full h-full"
+            ></div>
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg"></div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleCancel}
+              className="absolute bottom-4 bg-white"
+            >
+              <X className="mr-1" size={16} />
+              Cancel
             </Button>
+          </div>
+        ) : isUploadMode ? (
+          <div className="flex flex-col items-center p-4">
+            <Upload className="h-12 w-12 text-gray-400 mb-2" />
+            <p className="text-gray-400 mb-4">Upload a QR code image</p>
             
-            <Button variant="outline" onClick={() => setIsUploadMode(false)}>
-              Back
-            </Button>
+            <input 
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={handleFileUpload}
+              capture="environment"
+            />
+            
+            <div className="flex flex-col gap-3 w-full max-w-xs">
+              <Button onClick={triggerFileInput} className="w-full">
+                Select Image
+              </Button>
+              
+              <Button variant="outline" onClick={() => setIsUploadMode(false)}>
+                Back
+              </Button>
+            </div>
+            
+            {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
           </div>
-          
-          {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center p-4">
-          {hasPermissions === false ? (
-            <>
-              <p className="text-red-500 mb-2">Camera permission denied</p>
-              <p className="text-sm text-gray-500 mb-4">
-                {error || "Please enable camera access in your browser settings or use image upload instead."}
-              </p>
-              <Button onClick={toggleUploadMode} className="mb-2">Upload QR Image</Button>
-              <Button variant="outline" onClick={onCancel}>Go Back</Button>
-            </>
-          ) : (
-            <>
-              <Camera className="h-12 w-12 text-gray-400 mb-2" />
-              <p className="text-gray-400 mb-4">Choose scan method</p>
-              
-              <div className="flex flex-col gap-3 w-full max-w-xs">
-                <Button onClick={startScan} className="w-full">
-                  Use Camera
-                </Button>
+        ) : (
+          <div className="flex flex-col items-center p-4">
+            {hasPermissions === false ? (
+              <>
+                <p className="text-red-500 mb-2">Camera permission denied</p>
+                <p className="text-sm text-gray-500 mb-4">
+                  {error || "Please enable camera access in your browser settings or use image upload instead."}
+                </p>
+                <Button onClick={toggleUploadMode} className="mb-2">Upload QR Image</Button>
+                <Button variant="outline" onClick={onCancel}>Go Back</Button>
+              </>
+            ) : (
+              <>
+                <Camera className="h-12 w-12 text-gray-400 mb-2" />
+                <p className="text-gray-400 mb-4">Choose scan method</p>
                 
-                <Button 
-                  variant="outline" 
-                  onClick={toggleUploadMode}
-                  className="w-full"
-                >
-                  Upload QR Image
-                </Button>
-              </div>
-              
-              {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
-            </>
-          )}
-        </div>
-      )}
-    </div>
+                <div className="flex flex-col gap-3 w-full max-w-xs">
+                  <Button onClick={startScan} className="w-full">
+                    Use Camera
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={toggleUploadMode}
+                    className="w-full"
+                  >
+                    Upload QR Image
+                  </Button>
+                </div>
+                
+                {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      
+      <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Storage Permission Required</DialogTitle>
+            <DialogDescription>
+              We need access to your device storage to upload QR code images. Please grant permission to continue.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setShowPermissionDialog(false)}>Cancel</Button>
+            <Button onClick={retryStoragePermission}>Grant Permission</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

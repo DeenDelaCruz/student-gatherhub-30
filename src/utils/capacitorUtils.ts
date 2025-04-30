@@ -17,6 +17,21 @@ export const checkAndRequestCameraPermission = async (): Promise<boolean> => {
 };
 
 /**
+ * Checks and requests storage permissions for file access
+ * @returns Promise resolving to boolean indicating if permission was granted
+ */
+export const checkAndRequestStoragePermission = async (): Promise<boolean> => {
+  try {
+    // For web, we don't need explicit storage permission as file upload dialog handles this
+    // This is a placeholder for when we implement native mobile functionality
+    return true;
+  } catch (error) {
+    console.error('Error checking storage permission:', error);
+    return false;
+  }
+};
+
+/**
  * Prepares the app UI for barcode scanning (hides web content)
  * This is a no-op in the web version
  */
