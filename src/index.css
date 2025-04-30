@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -87,12 +86,20 @@
 
 @layer base {
   * {
-    @apply border-border selection:bg-[#8E6BF5]/30 selection:text-white dark:selection:text-white light:selection:text-gray-900;
+    @apply border-border;
   }
-
+  
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  .dark ::selection {
+    @apply bg-[#8E6BF5]/30 text-white;
+  }
+  
+  .light ::selection {
+    @apply bg-[#8E6BF5]/30 text-gray-900;
   }
   
   body.dark {
