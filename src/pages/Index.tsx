@@ -11,7 +11,6 @@ import { supabase, getEventInterestCount } from "@/integrations/supabase/client"
 import { Event, convertSupabaseEventsToEvents } from "@/types/event";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, ArrowDownAZ, ArrowUpAZ, ChevronDown } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -133,7 +132,9 @@ const Index = () => {
     
     if (searchTerm.trim()) {
       filtered = filtered.filter(event => 
-        event.title.toLowerCase().includes(searchTerm.toLowerCase())
+        event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (event.location && event.location.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
     
@@ -143,12 +144,24 @@ const Index = () => {
     
     filtered = sortEvents(filtered, sortOption);
     
-    console.log(`Filtered events: ${filtered.length} (activeFilter: ${activeFilter})`);
+    console.log(`Filtered events: ${filtered.length} (activeFilter: ${activeFilter}, searchTerm: ${searchTerm})`);
     setFilteredEvents(filtered);
   }, [events, searchTerm, activeFilter, sortOption]);
 
   const handleSearch = (term: string) => {
+    console.log("Search term received:", term);
     setSearchTerm(term);
+    
+    // Show feedback to user
+    if (term.trim()) {
+      toast(`Searching for "${term}"...`);
+    } else {
+      // If search is cleared, reset to show all events
+      const resetFiltered = events.filter(event => 
+        activeFilter === "active" ? event.is_active : !event.is_active
+      );
+      setFilteredEvents(resetFiltered);
+    }
   };
 
   const handleDateSelect = (date: Date) => {
@@ -192,13 +205,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-campus-bg dark:bg-campus-bg flex flex-col pb-20">
-      <Header />
+      <Header onSearch={handleSearch} />
       
       <main className="flex-1 p-4">
         <div className="welcome-section mb-5 animate-fade-in">
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-medium">Hello, {profile?.name || "User"}!</h1>
-            <ThemeToggle />
           </div>
         </div>
         
@@ -214,6 +226,11 @@ const Index = () => {
             <div className="flex items-center gap-4">
               <h2 className="text-lg font-medium">
                 All {activeFilter} events
+                {searchTerm && (
+                  <span className="ml-2 text-sm text-gray-400">
+                    matching "{searchTerm}"
+                  </span>
+                )}
               </h2>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
