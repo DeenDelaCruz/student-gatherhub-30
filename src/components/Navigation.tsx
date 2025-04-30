@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import { Calendar, QrCode, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -85,30 +86,48 @@ const Navigation = () => {
   const navItems = getNavItems();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-4 flex justify-around items-center z-50 nav-blur">
-      {navItems.map((item) => {
-        const isActive = location.pathname === item.path;
-        return (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={cn(
-              "flex flex-col items-center p-2 transition-all relative",
-              isActive 
-                ? "text-campus-accent" 
-                : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            {item.badge && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {item.badge > 9 ? '9+' : item.badge}
+    <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#1A1F2C] to-[#222222] border-t border-white/10 py-3 px-4 backdrop-blur-xl z-50">
+      <div className="max-w-md mx-auto flex justify-around items-center">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={cn(
+                "flex flex-col items-center p-2 transition-all relative group",
+                isActive 
+                  ? "text-[#9b87f5]" 
+                  : "text-gray-400 hover:text-gray-200"
+              )}
+            >
+              {item.badge && (
+                <span className="absolute -top-1 -right-1 bg-[#FF6B95] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {item.badge > 9 ? '9+' : item.badge}
+                </span>
+              )}
+              <div className={cn(
+                "relative p-2 rounded-lg transition-all duration-300",
+                isActive ? "bg-white/10 shadow-lg" : "bg-transparent group-hover:bg-white/5"
+              )}>
+                <item.icon size={20} className={cn(
+                  "transition-all duration-300",
+                  isActive ? "text-[#9b87f5]" : "text-current"
+                )} />
+                {isActive && (
+                  <span className="absolute inset-0 bg-[#9b87f5]/10 animate-pulse rounded-lg" />
+                )}
+              </div>
+              <span className={cn(
+                "text-xs mt-1 font-medium transition-all", 
+                isActive ? "text-[#9b87f5]" : "text-current"
+              )}>
+                {item.label}
               </span>
-            )}
-            <item.icon size={24} className={cn(isActive ? "animate-pulse-light" : "")} />
-            <span className="text-xs mt-1">{item.label}</span>
-          </Link>
-        );
-      })}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 };
