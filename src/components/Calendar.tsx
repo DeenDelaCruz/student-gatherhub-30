@@ -104,19 +104,19 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
   const isCurrentMonth = isSameMonth(currentDate, new Date());
   
   return (
-    <div className="bg-[#14162199] backdrop-blur-xl border border-white/5 rounded-3xl p-6 mb-5 shadow-lg animate-slide-in">
+    <div className="bg-[#14162199] backdrop-blur-xl border border-white/5 rounded-3xl p-6 mb-5 shadow-lg animate-slide-in dark:bg-[#14162199] dark:border-white/5 light:bg-white/80 light:border-black/5">
       <div className="flex justify-between items-center mb-5">
         <div className="flex items-center">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={goToPreviousMonth}
-            className="mr-1 text-white hover:bg-white/5"
+            className="mr-1 text-white dark:text-white light:text-gray-800 hover:bg-white/5 dark:hover:bg-white/5 light:hover:bg-black/5"
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
           
-          <h2 className="font-semibold text-xl text-white">
+          <h2 className="font-semibold text-xl text-white dark:text-white light:text-gray-800">
             {format(currentDate, "MMMM yyyy")}
           </h2>
           
@@ -124,7 +124,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
             variant="ghost" 
             size="icon" 
             onClick={goToNextMonth}
-            className="ml-1 text-white hover:bg-white/5"
+            className="ml-1 text-white dark:text-white light:text-gray-800 hover:bg-white/5 dark:hover:bg-white/5 light:hover:bg-black/5"
           >
             <ChevronRight className="h-5 w-5" />
           </Button>
@@ -134,21 +134,21 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
               variant="outline"
               size="sm"
               onClick={goToCurrentMonth}
-              className="ml-2 text-xs bg-transparent border-white/10 hover:bg-white/5 text-white"
+              className="ml-2 text-xs bg-transparent border-white/10 hover:bg-white/5 text-white dark:text-white light:text-gray-800 dark:border-white/10 light:border-black/10 dark:hover:bg-white/5 light:hover:bg-black/5"
             >
               Today
             </Button>
           )}
         </div>
         
-        <div className="flex bg-[#1A1F2C99] rounded-full border border-white/5">
+        <div className="flex bg-[#1A1F2C99] rounded-full border border-white/5 dark:bg-[#1A1F2C99] dark:border-white/5 light:bg-gray-100/80 light:border-black/5">
           <button
             onClick={() => handleFilterChange("active")}
             className={cn(
               "py-1 px-4 text-sm rounded-full transition-all",
               activeFilterType === "active" 
-                ? "bg-[#8E6BF5] text-white" 
-                : "text-gray-400 hover:text-gray-200"
+                ? "bg-[#8E6BF5] text-white dark:text-white light:text-white" 
+                : "text-gray-400 dark:text-gray-400 light:text-gray-600 hover:text-gray-200 dark:hover:text-gray-200 light:hover:text-gray-800"
             )}
           >
             Active
@@ -158,8 +158,8 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
             className={cn(
               "py-1 px-4 text-sm rounded-full transition-all",
               activeFilterType === "inactive" 
-                ? "bg-[#8E6BF5] text-white" 
-                : "text-gray-400 hover:text-gray-200"
+                ? "bg-[#8E6BF5] text-white dark:text-white light:text-white" 
+                : "text-gray-400 dark:text-gray-400 light:text-gray-600 hover:text-gray-200 dark:hover:text-gray-200 light:hover:text-gray-800"
             )}
           >
             Inactive
@@ -170,7 +170,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
       {/* Weekdays header */}
       <div className="calendar-grid mb-2">
         {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
-          <div key={index} className="text-center text-sm text-gray-400">
+          <div key={index} className="text-center text-sm text-gray-400 dark:text-gray-400 light:text-gray-600">
             {day}
           </div>
         ))}
@@ -195,10 +195,10 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
                 "h-9 w-9 flex items-center justify-center rounded-full text-sm transition-all mx-auto",
                 isToday(day) && "border border-campus-accent text-campus-accent",
                 hasEvent && matchesFilter 
-                  ? "bg-[#8E6BF5]/30 text-white font-medium" 
+                  ? "bg-[#8E6BF5]/30 text-white dark:text-white light:text-gray-800 font-medium" 
                   : hasEvent 
-                    ? "bg-[#1E2044] text-white" 
-                    : "text-white hover:bg-[#1A1F2C]"
+                    ? "bg-[#1E2044] text-white dark:bg-[#1E2044] dark:text-white light:bg-[#F0F4FF] light:text-gray-800" 
+                    : "text-white dark:text-white light:text-gray-800 hover:bg-[#1A1F2C] dark:hover:bg-[#1A1F2C] light:hover:bg-gray-100"
               )}
             >
               {format(day, "d")}
