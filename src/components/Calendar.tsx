@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   format, 
@@ -103,19 +104,19 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
   const isCurrentMonth = isSameMonth(currentDate, new Date());
   
   return (
-    <div className="bg-white rounded-3xl p-6 mb-5 shadow-sm animate-slide-in">
+    <div className="bg-[#14162199] backdrop-blur-xl border border-white/5 rounded-3xl p-6 mb-5 shadow-lg animate-slide-in">
       <div className="flex justify-between items-center mb-5">
         <div className="flex items-center">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={goToPreviousMonth}
-            className="mr-1"
+            className="mr-1 text-white hover:bg-white/5"
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
           
-          <h2 className="font-semibold text-xl">
+          <h2 className="font-semibold text-xl text-white">
             {format(currentDate, "MMMM yyyy")}
           </h2>
           
@@ -123,7 +124,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
             variant="ghost" 
             size="icon" 
             onClick={goToNextMonth}
-            className="ml-1"
+            className="ml-1 text-white hover:bg-white/5"
           >
             <ChevronRight className="h-5 w-5" />
           </Button>
@@ -133,21 +134,21 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
               variant="outline"
               size="sm"
               onClick={goToCurrentMonth}
-              className="ml-2 text-xs"
+              className="ml-2 text-xs bg-transparent border-white/10 hover:bg-white/5 text-white"
             >
               Today
             </Button>
           )}
         </div>
         
-        <div className="flex bg-gray-100 rounded-full">
+        <div className="flex bg-[#1A1F2C99] rounded-full border border-white/5">
           <button
             onClick={() => handleFilterChange("active")}
             className={cn(
               "py-1 px-4 text-sm rounded-full transition-all",
               activeFilterType === "active" 
-                ? "bg-black text-white" 
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-[#8E6BF5] text-white" 
+                : "text-gray-400 hover:text-gray-200"
             )}
           >
             Active
@@ -157,8 +158,8 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
             className={cn(
               "py-1 px-4 text-sm rounded-full transition-all",
               activeFilterType === "inactive" 
-                ? "bg-black text-white" 
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-[#8E6BF5] text-white" 
+                : "text-gray-400 hover:text-gray-200"
             )}
           >
             Inactive
@@ -169,7 +170,7 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
       {/* Weekdays header */}
       <div className="calendar-grid mb-2">
         {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
-          <div key={index} className="text-center text-sm text-gray-500">
+          <div key={index} className="text-center text-sm text-gray-400">
             {day}
           </div>
         ))}
@@ -194,10 +195,10 @@ const Calendar = ({ onDateSelect, events = [], onFilterChange, filterType: exter
                 "h-9 w-9 flex items-center justify-center rounded-full text-sm transition-all mx-auto",
                 isToday(day) && "border border-campus-accent text-campus-accent",
                 hasEvent && matchesFilter 
-                  ? "bg-[#9FCBDE] text-black font-medium" // Updated highlight with new color #9FCBDE
+                  ? "bg-[#8E6BF5]/30 text-white font-medium" 
                   : hasEvent 
-                    ? "bg-gray-200 text-black" // Dimmed background for non-matching event days 
-                    : "text-black hover:bg-gray-100" // Regular days
+                    ? "bg-[#1E2044] text-white" 
+                    : "text-white hover:bg-[#1A1F2C]"
               )}
             >
               {format(day, "d")}

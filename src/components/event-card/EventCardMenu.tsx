@@ -70,7 +70,7 @@ const EventCardMenu = ({
         <Button 
           variant="outline" 
           size="sm" 
-          className="text-xs h-7 px-2 text-blue-400 bg-[#14162180] border border-white/5 hover:bg-blue-900/20 hover:border-blue-400/20"
+          className="text-xs h-7 px-2 text-[#8E6BF5] bg-[#14162180] border border-white/5 hover:bg-[#8E6BF5]/10 hover:border-[#8E6BF5]/20"
           onClick={handleEditEvent}
         >
           <Edit className="h-3 w-3 mr-1" /> Edit
@@ -80,7 +80,7 @@ const EventCardMenu = ({
       <Button 
         variant="outline" 
         size="sm" 
-        className="text-xs h-7 px-2 bg-[#14162180] border border-white/5 hover:bg-white/5"
+        className="text-xs h-7 px-2 bg-[#14162180] border border-white/5 hover:bg-white/5 text-white"
         onClick={handleViewAttendees}
       >
         <Users className="h-3 w-3 mr-1" /> {interestedCount}
@@ -89,7 +89,7 @@ const EventCardMenu = ({
       <Button 
         variant="outline" 
         size="sm" 
-        className="text-xs h-7 px-2 bg-[#14162180] border border-white/5 hover:bg-white/5"
+        className="text-xs h-7 px-2 bg-[#14162180] border border-white/5 hover:bg-white/5 text-white"
         onClick={handleViewAttendees}
       >
         <UserCheck className="h-3 w-3 mr-1" /> {checkedInCount}
@@ -98,7 +98,7 @@ const EventCardMenu = ({
       <Button 
         variant="outline" 
         size="sm" 
-        className="text-xs h-7 px-2 bg-[#14162180] border border-white/5 hover:bg-white/5"
+        className="text-xs h-7 px-2 bg-[#14162180] border border-white/5 hover:bg-white/5 text-white"
         onClick={handleGenerateQR}
       >
         <QrCode className="h-3 w-3 mr-1" /> QR
@@ -108,11 +108,11 @@ const EventCardMenu = ({
         <Button 
           variant="outline" 
           size="sm" 
-          className="text-xs h-7 px-2 bg-[#14162180] border border-white/5 hover:bg-white/5"
+          className="text-xs h-7 px-2 bg-[#14162180] border border-white/5 hover:bg-white/5 text-white"
           onClick={toggleEventStatus}
         >
           {active ? (
-            <><ToggleRight className="h-3 w-3 mr-1 text-green-400" /> Active</>
+            <><ToggleRight className="h-3 w-3 mr-1 text-status-active" /> Active</>
           ) : (
             <><ToggleLeft className="h-3 w-3 mr-1 text-gray-400" /> Inactive</>
           )}

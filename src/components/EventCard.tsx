@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -221,7 +220,7 @@ const EventCard = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className={cn(
-          "bg-white rounded-xl overflow-hidden mb-4 shadow-sm hover:shadow-md transition-all",
+          "bg-[#14162199] backdrop-blur-xl border border-white/5 rounded-xl overflow-hidden mb-4 shadow-lg hover:shadow-[#8E6BF5]/10 transition-all",
           !active && !isInformationOfficer ? "opacity-60 cursor-default" : "cursor-pointer",
           className
         )}
@@ -246,12 +245,12 @@ const EventCard = ({
           )}
         </div>
         <div className="p-3">
-          <h3 className="font-medium text-gray-900">{title}</h3>
+          <h3 className="font-medium text-white">{title}</h3>
           
           {isPastEvent && averageRating > 0 && (
             <div className="mt-1 flex items-center gap-2">
               <RatingStars rating={Math.round(averageRating)} readonly size={16} />
-              <span className="text-xs text-gray-600">
+              <span className="text-xs text-gray-400">
                 ({ratingCount})
               </span>
             </div>
@@ -263,13 +262,13 @@ const EventCard = ({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="text-xs h-7 px-2"
+                  className="text-xs h-7 px-2 bg-[#1A1F2C99] border-white/5 text-white hover:bg-white/5"
                   onClick={handleViewDetails}
                 >
                   <Eye className="h-3 w-3 mr-1" /> View
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0 bg-white rounded-xl shadow-lg">
+              <PopoverContent className="w-80 p-0 bg-[#14162199] backdrop-blur-xl border border-white/5 rounded-xl shadow-lg text-white">
                 <div className="relative h-36 w-full overflow-hidden">
                   <img 
                     src={imageSrc} 
@@ -289,29 +288,29 @@ const EventCard = ({
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="text-lg font-medium mb-2">{title}</h3>
+                  <h3 className="text-lg font-medium mb-2 text-white">{title}</h3>
                   
                   {date && (
-                    <div className="flex items-center mb-2 text-sm text-gray-600">
+                    <div className="flex items-center mb-2 text-sm text-gray-300">
                       <CalendarClock className="h-3 w-3 mr-1" />
                       <span>{format(date, 'MMMM d, yyyy - h:mm a')}</span>
                     </div>
                   )}
                   
                   {location && (
-                    <div className="flex items-center mb-2 text-sm text-gray-600">
+                    <div className="flex items-center mb-2 text-sm text-gray-300">
                       <span className="font-medium mr-1">Location:</span> {location}
                     </div>
                   )}
                   
-                  <div className="flex items-center mb-2 text-sm text-gray-600">
+                  <div className="flex items-center mb-2 text-sm text-gray-300">
                     <Users className="h-3 w-3 mr-1" />
                     <span>{interestedCount} interested</span>
                   </div>
                   
                   {description && (
                     <div className="mt-2 mb-3">
-                      <p className="text-sm text-gray-700 line-clamp-3">
+                      <p className="text-sm text-gray-300 line-clamp-3">
                         {convertUrlsToLinks(description)}
                       </p>
                     </div>
@@ -320,7 +319,7 @@ const EventCard = ({
                   <div className="flex gap-2 mt-3">
                     <Button 
                       size="sm" 
-                      className="w-full"
+                      className="w-full bg-[#8E6BF5] text-white hover:bg-[#7d5be0]"
                       onClick={(e) => {
                         e.stopPropagation();
                         setPopoverOpen(false);
@@ -334,7 +333,7 @@ const EventCard = ({
                       <Button 
                         size="sm"
                         variant="outline"
-                        className="flex-shrink-0 text-blue-600 border-blue-600 hover:bg-blue-50"
+                        className="flex-shrink-0 text-white border-white/10 hover:bg-white/5"
                         onClick={handleAddToGoogleCalendar}
                       >
                         <Calendar className="h-3 w-3" />
@@ -351,7 +350,7 @@ const EventCard = ({
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="text-xs h-7 px-2 text-blue-500"
+                    className="text-xs h-7 px-2 bg-[#1A1F2C99] border-white/5 text-[#8E6BF5] hover:bg-[#8E6BF5]/10"
                     onClick={handleEditEvent}
                   >
                     <Edit className="h-3 w-3 mr-1" /> Edit
@@ -361,7 +360,7 @@ const EventCard = ({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="text-xs h-7 px-2"
+                  className="text-xs h-7 px-2 bg-[#1A1F2C99] border-white/5 text-white hover:bg-white/5"
                   onClick={handleViewAttendees}
                 >
                   <Users className="h-3 w-3 mr-1" /> {interestedCount}
@@ -370,7 +369,7 @@ const EventCard = ({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="text-xs h-7 px-2"
+                  className="text-xs h-7 px-2 bg-[#1A1F2C99] border-white/5 text-white hover:bg-white/5"
                   onClick={handleViewAttendees}
                 >
                   <UserCheck className="h-3 w-3 mr-1" /> {checkedInCount}
@@ -379,7 +378,7 @@ const EventCard = ({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="text-xs h-7 px-2"
+                  className="text-xs h-7 px-2 bg-[#1A1F2C99] border-white/5 text-white hover:bg-white/5"
                   onClick={handleGenerateQR}
                 >
                   <QrCode className="h-3 w-3 mr-1" /> QR
@@ -389,13 +388,13 @@ const EventCard = ({
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="text-xs h-7 px-2"
+                    className="text-xs h-7 px-2 bg-[#1A1F2C99] border-white/5 text-white hover:bg-white/5"
                     onClick={toggleEventStatus}
                   >
                     {active ? (
-                      <><ToggleRight className="h-3 w-3 mr-1" /> Active</>
+                      <><ToggleRight className="h-3 w-3 mr-1 text-status-active" /> Active</>
                     ) : (
-                      <><ToggleLeft className="h-3 w-3 mr-1" /> Inactive</>
+                      <><ToggleLeft className="h-3 w-3 mr-1 text-gray-400" /> Inactive</>
                     )}
                   </Button>
                 )}
