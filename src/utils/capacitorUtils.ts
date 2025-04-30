@@ -1,3 +1,4 @@
+
 /**
  * This file is being kept for backward compatibility.
  * We've transitioned away from using Capacitor for QR scanning.
@@ -71,4 +72,34 @@ export const extractQrCodeData = (qrData: string): { eventId: string } | null =>
   } catch (error) {
     return null;
   }
+};
+
+/**
+ * Helper function to check if a file is an image
+ * @param file The file to check
+ * @returns Boolean indicating if the file is an image
+ */
+export const isImageFile = (file: File): boolean => {
+  // Check by MIME type first
+  if (file.type.startsWith('image/')) {
+    return true;
+  }
+  
+  // Also check by extension for cases where MIME type might not be detected correctly
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.heic', '.heif'];
+  return imageExtensions.some(ext => 
+    file.name.toLowerCase().endsWith(ext)
+  );
+};
+
+/**
+ * Helper function to check if a file is a HEIC/HEIF image
+ * @param file The file to check
+ * @returns Boolean indicating if the file is a HEIC/HEIF image
+ */
+export const isHeicHeifFile = (file: File): boolean => {
+  return file.name.toLowerCase().endsWith('.heic') || 
+         file.name.toLowerCase().endsWith('.heif') || 
+         file.type === 'image/heic' || 
+         file.type === 'image/heif';
 };
