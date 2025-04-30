@@ -43,10 +43,21 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
+.light .card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
 .card:hover {
   box-shadow: 0 8px 32px rgba(142, 107, 245, 0.15);
   border-color: rgba(142, 107, 245, 0.3);
   transform: translateY(-2px);
+}
+
+.light .card:hover {
+  box-shadow: 0 8px 32px rgba(142, 107, 245, 0.1);
+  border-color: rgba(142, 107, 245, 0.2);
 }
 
 .read-the-docs {
@@ -63,9 +74,19 @@
   transition: all 0.3s ease;
 }
 
+.light .auth-card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
 .auth-card:hover {
   box-shadow: 0 12px 40px rgba(142, 107, 245, 0.15);
   border-color: rgba(142, 107, 245, 0.2);
+}
+
+.light .auth-card:hover {
+  box-shadow: 0 12px 40px rgba(142, 107, 245, 0.1);
 }
 
 .profile-card {
@@ -75,6 +96,12 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   backdrop-filter: blur(10px);
+}
+
+.light .profile-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.95) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 .admin-badge {
@@ -94,6 +121,11 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 50%;
   transition: all 0.2s ease;
+}
+
+.light .calendar-day {
+  background: rgba(248, 249, 252, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .calendar-day:hover {
@@ -134,9 +166,20 @@
   transition: all 0.2s ease;
 }
 
+.light .edit-button {
+  background: rgba(248, 249, 252, 0.8);
+  color: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 .edit-button:hover {
   background: rgba(50, 54, 68, 0.95);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+.light .edit-button:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 .event-card {
@@ -148,9 +191,19 @@
   transition: all 0.3s ease;
 }
 
+.light .event-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.95) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
 .event-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.light .event-card:hover {
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
 }
 
 .filter-button {
@@ -164,13 +217,31 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+.light .filter-button {
+  background: rgba(248, 249, 252, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
 .filter-button.active {
   background: rgba(142, 107, 245, 0.2);
   border-color: rgba(142, 107, 245, 0.4);
   color: white;
 }
 
+.light .filter-button.active {
+  background: rgba(142, 107, 245, 0.2);
+  border-color: rgba(142, 107, 245, 0.4);
+  color: rgba(0, 0, 0, 0.8);
+}
+
 .filter-button:hover {
   background: rgba(50, 54, 68, 0.8);
+  border-color: rgba(142, 107, 245, 0.3);
+}
+
+.light .filter-button:hover {
+  background: rgba(255, 255, 255, 0.8);
   border-color: rgba(142, 107, 245, 0.3);
 }
