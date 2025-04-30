@@ -49,13 +49,15 @@ const Admin = () => {
   const [clearingRecords, setClearingRecords] = useState<boolean>(false);
   const [eventsWithStats, setEventsWithStats] = useState<any[]>([]);
 
-  const fetchVisitorsDirectly = async () => {
+  const fetchVisitorsData = async () => {
     try {
+      setLoadingVisitors(true);
+      
       const visitors = await getUniqueRecentVisitors(10);
       setRecentVisitors(visitors);
       setLoadingVisitors(false);
     } catch (error) {
-      console.error("Error fetching visitors directly:", error);
+      console.error("Error fetching visitors data:", error);
       setRecentVisitors([]);
       setLoadingVisitors(false);
     }
@@ -207,7 +209,7 @@ const Admin = () => {
       }
     };
     
-    const fetchRecentVisitors = async () => {
+    const fetchRecentVisitorsData = async () => {
       try {
         setLoadingVisitors(true);
         
@@ -223,9 +225,7 @@ const Admin = () => {
           return;
         }
         
-        const visitors = await getUniqueRecentVisitors(10);
-        setRecentVisitors(visitors);
-        setLoadingVisitors(false);
+        await fetchVisitorsData();
       } catch (error) {
         console.error("Error in fetchRecentVisitors:", error);
         setRecentVisitors([]);
@@ -267,12 +267,12 @@ const Admin = () => {
     };
     
     fetchStats();
-    fetchRecentVisitors();
+    fetchRecentVisitorsData();
     fetchEventsWithStats();
     
     const interval = setInterval(() => {
       fetchStats();
-      fetchRecentVisitors();
+      fetchRecentVisitorsData();
     }, 15000);
     
     return () => clearInterval(interval);
@@ -503,7 +503,7 @@ const Admin = () => {
 
   const handleVisitorDeleted = () => {
     setLoadingVisitors(true);
-    fetchRecentVisitors();
+    fetchVisitorsData();
   };
 
   const handleDeleteVisitorRecord = async (userId: string) => {

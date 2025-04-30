@@ -130,7 +130,7 @@ export const getUniqueRecentVisitors = async (limit: number = 10): Promise<any[]
         .select(`
           user_id,
           visit_time,
-          profiles:user_id (
+          profiles(
             name,
             email
           )
