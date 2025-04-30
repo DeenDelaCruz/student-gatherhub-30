@@ -183,7 +183,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     setError(null);
   };
 
-  // Revised file upload function with updated file type validation
+  // Completely reimplemented file upload function to handle all image formats including HEIC
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     console.log("File upload triggered");
     
@@ -223,8 +223,13 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     
     console.log("File selected:", file.name, file.type, file.size);
     
-    // Only check file size, allow any image/* MIME type
-    if (!file.type.startsWith('image/')) {
+    // Accept any file that has an image/* MIME type or has image-like extension
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.heic', '.heif'];
+    const hasImageExtension = imageExtensions.some(ext => 
+      file.name.toLowerCase().endsWith(ext)
+    );
+    
+    if (!file.type.startsWith('image/') && !hasImageExtension) {
       setError("Please select an image file");
       toast.error("Invalid file type", {
         description: "Please select an image file"
@@ -234,10 +239,11 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       return;
     }
     
-    if (file.size > 10 * 1024 * 1024) { // Increased to 10MB
-      setError("Image is too large (maximum 10MB)");
+    // More generous file size limit (15MB)
+    if (file.size > 15 * 1024 * 1024) {
+      setError("Image is too large (maximum 15MB)");
       toast.error("File too large", {
-        description: "Please select a smaller image (maximum 10MB)"
+        description: "Please select a smaller image (maximum 15MB)"
       });
       setIsLocalProcessing(false);
       clearTimeout(timeoutRef.current as number);
@@ -260,91 +266,78 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       }
       
       const imageUrl = event.target.result as string;
+      console.log("Image loaded as data URL");
       
-      // Create a new image to ensure it loads properly
-      const img = new Image();
-      img.onload = () => {
-        console.log("Image loaded successfully, dimensions:", img.width, "x", img.height);
-        
-        // Ensure clean scanner instance
-        try {
-          // Clean up existing scanner if needed
-          if (scannerRef.current) {
-            if (scannerRef.current.isScanning) {
-              console.log("Stopping existing scanner");
-              scannerRef.current.stop().catch(console.error);
-            }
-            console.log("Clearing existing scanner");
-            scannerRef.current.clear();
-            scannerRef.current = null;
+      // Always create a completely new scanner instance
+      try {
+        // Clean up existing scanner to avoid conflicts
+        if (scannerRef.current) {
+          if (scannerRef.current.isScanning) {
+            console.log("Stopping existing scanner");
+            scannerRef.current.stop().catch(console.error);
           }
-          
-          // Create a new instance for scanning
-          console.log("Creating new scanner instance for file");
-          const html5QrCode = new Html5Qrcode(scannerContainerId);
-          scannerRef.current = html5QrCode;
-          
-          // Use a more direct approach to scan the file
-          console.log("Starting file scan");
-          html5QrCode.scanFile(file, /* verbose= */ true)
-            .then(decodedText => {
-              console.log("QR code successfully scanned from image:", decodedText);
-              clearTimeout(timeoutRef.current as number);
-              setIsLocalProcessing(false);
-              processQrData(decodedText);
-              
-              // Reset file input for next use
-              if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-              }
-            })
-            .catch(error => {
-              console.error("Error scanning file:", error);
-              clearTimeout(timeoutRef.current as number);
+          console.log("Clearing existing scanner");
+          scannerRef.current.clear();
+          scannerRef.current = null;
+        }
+        
+        // Create a new instance for scanning
+        console.log("Creating new scanner instance for file");
+        const html5QrCode = new Html5Qrcode(scannerContainerId);
+        scannerRef.current = html5QrCode;
+        
+        // Try using the scanFile method with verbose logging
+        console.log("Starting file scan with verbose logging");
+        html5QrCode.scanFile(file, true)
+          .then(decodedText => {
+            console.log("QR code successfully scanned from image:", decodedText);
+            clearTimeout(timeoutRef.current as number);
+            setIsLocalProcessing(false);
+            processQrData(decodedText);
+            
+            // Reset file input for next use
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+          })
+          .catch(error => {
+            console.error("Error scanning file:", error);
+            
+            // If it's a HEIC/HEIF file, provide a more specific error message
+            if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+              setError("HEIC/HEIF format detected. This format cannot be processed directly. Please convert it to JPEG or PNG before uploading.");
+              toast.error("Unsupported format", {
+                description: "HEIC/HEIF images need to be converted to JPEG or PNG format first."
+              });
+            } else {
               setError("Could not detect a valid QR code in this image");
               toast.error("Scan failed", {
                 description: "No valid QR code found in the image"
               });
-              setIsLocalProcessing(false);
-              
-              // Reset file input for next use
-              if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-              }
-            });
-        } catch (err) {
-          console.error("Unexpected error during scan setup:", err);
-          clearTimeout(timeoutRef.current as number);
-          setError("Failed to process the image");
-          toast.error("Processing error", {
-            description: "An unexpected error occurred while processing the image"
+            }
+            
+            clearTimeout(timeoutRef.current as number);
+            setIsLocalProcessing(false);
+            
+            // Reset file input for next use
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
           });
-          setIsLocalProcessing(false);
-          
-          // Reset file input for next use
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        }
-      };
-      
-      img.onerror = () => {
-        console.error("Failed to load image");
+      } catch (err) {
+        console.error("Unexpected error during scan setup:", err);
         clearTimeout(timeoutRef.current as number);
-        setError("The selected file is not a valid image");
-        toast.error("Invalid image", {
-          description: "The file could not be loaded as an image"
+        setError("Failed to process the image");
+        toast.error("Processing error", {
+          description: "An unexpected error occurred while processing the image"
         });
         setIsLocalProcessing(false);
         
-        // Reset file input
+        // Reset file input for next use
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-      };
-      
-      // Set the source to load the image
-      img.src = imageUrl;
+      }
     };
     
     reader.onerror = () => {
