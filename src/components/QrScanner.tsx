@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,9 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerContainerId = "qr-reader-container";
   const { user } = useAuth();
+  
+  // Add a timeout ref to track and clear timeouts
+  const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
@@ -36,9 +40,15 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       });
       
     return () => {
+      // Clean up scanner when component unmounts
       if (scannerRef.current && scannerRef.current.isScanning) {
         scannerRef.current.stop()
           .catch(err => console.error("Error stopping scanner on unmount:", err));
+      }
+      
+      // Clear any pending timeouts
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
   }, []);
@@ -56,12 +66,14 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           toast.error("Invalid QR code", {
             description: "This QR code is not in the correct format for event check-in"
           });
+          setIsLocalProcessing(false);
         }
       } else {
         setError("Invalid QR code data received");
         toast.error("Invalid QR code", {
           description: "The QR code didn't contain valid data"
         });
+        setIsLocalProcessing(false);
       }
     } catch (err) {
       console.error("Error in processQrData:", err);
@@ -69,8 +81,6 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       toast.error("Processing error", {
         description: "Failed to process the QR code data"
       });
-    } finally {
-      // Always ensure we're no longer in processing state
       setIsLocalProcessing(false);
     }
   };
@@ -146,27 +156,42 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       scannerRef.current.stop()
         .catch(err => console.error("Error stopping scanner:", err));
     }
+    
+    // Clear any pending timeouts
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
     setIsScanning(false);
     setIsUploadMode(false);
-    setIsLocalProcessing(false); // Ensure we reset local processing state
+    setIsLocalProcessing(false);
     setError(null);
     onCancel();
   };
 
   const toggleUploadMode = () => {
     if (isProcessing) return;
-    setIsUploadMode(true);
-    setIsScanning(false);
-    setError(null);
     
+    // Clear any existing scanner instance
     if (scannerRef.current && scannerRef.current.isScanning) {
       scannerRef.current.stop()
         .catch(err => console.error("Error stopping scanner:", err));
     }
+    
+    setIsUploadMode(true);
+    setIsScanning(false);
+    setError(null);
   };
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     try {
+      // Reset state first
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      setError(null);
+      
       const file = e.target.files?.[0];
       if (!file) {
         console.log("No file selected");
@@ -174,8 +199,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         return;
       }
 
-      console.log("File selected:", file.name, file.type);
-      setError(null);
+      console.log("File selected:", file.name, file.type, file.size);
       setIsLocalProcessing(true);
       
       // Check file type
@@ -188,34 +212,129 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         return;
       }
       
-      // Make sure we have a scanner instance
-      if (!scannerRef.current) {
-        console.log("Creating new scanner instance");
-        scannerRef.current = new Html5Qrcode(scannerContainerId);
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image is too large (maximum 5MB)");
+        toast.error("File too large", {
+          description: "Please select a smaller image (maximum 5MB)"
+        });
+        setIsLocalProcessing(false);
+        return;
       }
       
-      console.log("Processing file upload:", file.name, file.type);
+      // Create a new scanner instance each time to avoid stale state
+      if (scannerRef.current) {
+        // Try to clean up the previous instance
+        try {
+          if (scannerRef.current.isScanning) {
+            scannerRef.current.stop().catch(console.error);
+          }
+          scannerRef.current.clear();
+        } catch (err) {
+          console.error("Error cleaning up previous scanner:", err);
+        }
+      }
       
-      // Use Promise to handle the file scanning
-      scannerRef.current.scanFile(file, true)
-        .then(decodedText => {
-          console.log("QR Code from image detected:", decodedText);
-          processQrData(decodedText);
-        })
-        .catch(err => {
-          console.error("Error scanning uploaded image:", err);
-          setError("Could not find a valid QR code in the image");
-          toast.error("QR scan failed", {
-            description: "Could not find a valid QR code in the image"
+      console.log("Creating new scanner instance for file upload");
+      scannerRef.current = new Html5Qrcode(scannerContainerId);
+      
+      // Set a timeout to prevent indefinite processing
+      timeoutRef.current = window.setTimeout(() => {
+        if (isLocalProcessing) {
+          console.log("QR scan timed out");
+          setError("Scan timed out. Please try a clearer image.");
+          toast.error("Scan timed out", {
+            description: "Could not read QR code. Please try a clearer image."
           });
           setIsLocalProcessing(false);
-        })
-        .finally(() => {
+          
           // Reset file input
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
+        }
+      }, 10000); // 10 second timeout
+      
+      console.log("Processing file upload:", file.name);
+      
+      // Create a file reader to pre-check the image
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Now attempt to scan the file
+          scannerRef.current!.scanFile(file, true)
+            .then(decodedText => {
+              // Clear timeout since we got a result
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+              }
+              
+              console.log("QR Code from image detected:", decodedText);
+              processQrData(decodedText);
+            })
+            .catch(err => {
+              // Clear timeout since we got a result
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+              }
+              
+              console.error("Error scanning uploaded image:", err);
+              setError("Could not find a valid QR code in the image");
+              toast.error("QR scan failed", {
+                description: "Could not find a valid QR code in the image"
+              });
+              setIsLocalProcessing(false);
+            })
+            .finally(() => {
+              // Reset file input
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            });
+        };
+        img.onerror = () => {
+          // Clear timeout since we got a result
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          
+          console.error("Error loading image");
+          setError("Error loading image. Please try another file.");
+          toast.error("Image error", {
+            description: "Could not load the selected image"
+          });
+          setIsLocalProcessing(false);
+          
+          // Reset file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        };
+        img.src = e.target?.result as string;
+      };
+      
+      reader.onerror = () => {
+        // Clear timeout since we got a result
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        
+        console.error("Error reading file");
+        setError("Error reading file. Please try another image.");
+        toast.error("File error", {
+          description: "Could not read the selected file"
         });
+        setIsLocalProcessing(false);
+        
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      };
+      
+      // Start reading the file
+      reader.readAsDataURL(file);
     } catch (err) {
       console.error("Unexpected error in file upload:", err);
       setError("An unexpected error occurred");
@@ -223,6 +342,11 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
         description: "Failed to process the uploaded image"
       });
       setIsLocalProcessing(false);
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
