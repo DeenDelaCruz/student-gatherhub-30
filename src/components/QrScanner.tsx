@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -184,7 +183,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     setError(null);
   };
 
-  // Completely revised file upload function with simpler logic
+  // Revised file upload function with updated file type validation
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     console.log("File upload triggered");
     
@@ -224,8 +223,8 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     
     console.log("File selected:", file.name, file.type, file.size);
     
-    // Basic validations
-    if (!file.type.includes('image/')) {
+    // Only check file size, allow any image/* MIME type
+    if (!file.type.startsWith('image/')) {
       setError("Please select an image file");
       toast.error("Invalid file type", {
         description: "Please select an image file"
@@ -235,10 +234,10 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       return;
     }
     
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image is too large (maximum 5MB)");
+    if (file.size > 10 * 1024 * 1024) { // Increased to 10MB
+      setError("Image is too large (maximum 10MB)");
       toast.error("File too large", {
-        description: "Please select a smaller image (maximum 5MB)"
+        description: "Please select a smaller image (maximum 10MB)"
       });
       setIsLocalProcessing(false);
       clearTimeout(timeoutRef.current as number);
@@ -287,7 +286,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           
           // Use a more direct approach to scan the file
           console.log("Starting file scan");
-          html5QrCode.scanFile(file, false)
+          html5QrCode.scanFile(file, /* verbose= */ true)
             .then(decodedText => {
               console.log("QR code successfully scanned from image:", decodedText);
               clearTimeout(timeoutRef.current as number);
