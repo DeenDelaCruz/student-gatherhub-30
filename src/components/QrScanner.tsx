@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
 import { Loader2, Camera, X, Upload } from 'lucide-react';
 import { useAuth } from '@/context/auth';
@@ -9,7 +9,10 @@ import { toast } from 'sonner';
 import { 
   validateQrCodeData, 
   isImageFile,
-  isHeicHeifFile
+  isHeicHeifFile,
+  createImageFromFile,
+  resizeImage,
+  isMobileDevice
 } from '@/utils/capacitorUtils';
 
 interface QrScannerProps {
@@ -32,6 +35,19 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   // Add a timeout ref to track and clear timeouts
   const timeoutRef = useRef<number | null>(null);
 
+  // Cleanup function to ensure we properly stop scanner instances
+  const cleanupScanner = async () => {
+    try {
+      if (scannerRef.current && scannerRef.current.getState() !== Html5QrcodeScannerState.NOT_STARTED) {
+        console.log("Cleaning up scanner instance");
+        await scannerRef.current.stop();
+        scannerRef.current = null;
+      }
+    } catch (err) {
+      console.error("Error cleaning up scanner:", err);
+    }
+  };
+
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       .then(() => {
@@ -45,10 +61,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       
     return () => {
       // Clean up scanner when component unmounts
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop()
-          .catch(err => console.error("Error stopping scanner on unmount:", err));
-      }
+      cleanupScanner();
       
       // Clear any pending timeouts
       if (timeoutRef.current) {
@@ -92,12 +105,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
   const initializeScanner = async () => {
     try {
       // Ensure any existing scanner is cleaned up first
-      if (scannerRef.current) {
-        if (scannerRef.current.isScanning) {
-          await scannerRef.current.stop();
-        }
-        scannerRef.current = null;
-      }
+      await cleanupScanner();
       
       const html5QrCode = new Html5Qrcode(scannerContainerId);
       scannerRef.current = html5QrCode;
@@ -163,11 +171,8 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     }
   }, [isScanning]);
 
-  const handleCancel = () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      scannerRef.current.stop()
-        .catch(err => console.error("Error stopping scanner:", err));
-    }
+  const handleCancel = async () => {
+    await cleanupScanner();
     
     // Clear any pending timeouts
     if (timeoutRef.current) {
@@ -182,21 +187,18 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
     onCancel();
   };
 
-  const toggleUploadMode = () => {
+  const toggleUploadMode = async () => {
     if (isProcessing) return;
     
-    // Clear any existing scanner instance
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      scannerRef.current.stop()
-        .catch(err => console.error("Error stopping scanner:", err));
-    }
+    // Clean up any existing scanner instance
+    await cleanupScanner();
     
     setIsUploadMode(true);
     setIsScanning(false);
     setError(null);
   };
 
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     console.log("File upload triggered");
     
     // Reset states
@@ -223,7 +225,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
           fileInputRef.current.value = '';
         }
       }
-    }, 20000); // 20 second timeout
+    }, 15000); // 15 second timeout
     
     const file = e.target.files?.[0];
     if (!file) {
@@ -257,11 +259,11 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       return;
     }
     
-    // File size check (20MB limit)
-    if (file.size > 20 * 1024 * 1024) {
-      setError("Image is too large (maximum 20MB)");
+    // File size check (25MB limit)
+    if (file.size > 25 * 1024 * 1024) {
+      setError("Image is too large (maximum 25MB)");
       toast.error("File too large", {
-        description: "Please select a smaller image (maximum 20MB)"
+        description: "Please select a smaller image (maximum 25MB)"
       });
       setIsLocalProcessing(false);
       if (timeoutRef.current) {
@@ -295,61 +297,52 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
       return;
     }
     
-    // Ensure we have a clean scanner instance
-    if (scannerRef.current) {
-      if (scannerRef.current.isScanning) {
-        scannerRef.current.stop().catch(err => {
-          console.error("Error stopping existing scanner:", err);
-        });
-      }
-      scannerRef.current = null;
-    }
-    
-    // Create a new scanner instance
     try {
-      const html5QrCode = new Html5Qrcode(scannerContainerId);
+      // Ensure we have a clean scanner instance
+      await cleanupScanner();
+      
+      // Use a new approach for file scanning that's more reliable
+      console.log("Processing image using alternate approach");
+      
+      // First, create an image element from the file
+      const img = await createImageFromFile(file);
+      
+      // Resize the image to make processing more reliable
+      const canvas = resizeImage(img, 1200);
+      
+      // Get the image data URL
+      const imageUrl = canvas.toDataURL("image/jpeg", 0.8);
+      
+      // Create a new scanner instance
+      const html5QrCode = new Html5Qrcode(scannerContainerId, { verbose: isMobileDevice() ? false : true });
       scannerRef.current = html5QrCode;
       
-      console.log("Scanning file for QR code:", file.name);
+      // Scan the image data URL
+      console.log("Scanning image data URL");
+      const result = await html5QrCode.scanFileV2(file);
       
-      html5QrCode.scanFile(file, /* showImage */ false)
-        .then(decodedText => {
-          console.log("QR code successfully found in image:", decodedText);
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-          }
-          setIsLocalProcessing(false);
-          processQrData(decodedText);
-          
-          // Clean up
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        })
-        .catch(error => {
-          console.error("Error scanning QR code from image:", error);
-          setError("Could not detect a valid QR code in this image");
-          toast.error("No QR code found", {
-            description: "The image doesn't contain a valid QR code or we couldn't read it"
-          });
-          setIsLocalProcessing(false);
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-          }
-          
-          // Reset file input
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        });
-    } catch (err) {
-      console.error("Unexpected error in file upload handler:", err);
-      setError("An unexpected error occurred while processing the image");
-      toast.error("Processing error", {
-        description: "An unexpected error occurred while processing the image"
+      console.log("QR code successfully found in image:", result);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
+      setIsLocalProcessing(false);
+      processQrData(result.decodedText);
+      
+      // Clean up resources
+      URL.revokeObjectURL(img.src);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
+      console.error("Error scanning QR code from image:", error);
+      
+      setError("Could not detect a valid QR code in this image");
+      toast.error("No QR code found", {
+        description: "The image doesn't contain a valid QR code or we couldn't read it"
       });
+      
       setIsLocalProcessing(false);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -415,6 +408,7 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
             className="hidden"
             accept="image/*"
             onChange={handleFileUpload}
+            capture="environment"
           />
           
           <div className="flex flex-col gap-3 w-full max-w-xs">
