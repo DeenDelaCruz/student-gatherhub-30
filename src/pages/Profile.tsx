@@ -78,7 +78,7 @@ const Profile = () => {
       
       <main className="flex-1 p-4">
         <motion.div 
-          className="profile-card bg-white rounded-3xl p-6 shadow-sm mb-6"
+          className="profile-card bg-dark-200 rounded-3xl p-6 shadow-md mb-6 border border-white/5"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -89,18 +89,18 @@ const Profile = () => {
                 <User size={32} className="text-campus-accent" />
               </div>
               <div>
-                <h2 className="text-xl font-medium">{profile?.name || "Loading..."}</h2>
-                <p className="text-gray-500 text-sm">{profile?.email || "Loading..."}</p>
+                <h2 className="text-xl font-medium text-white">{profile?.name || "Loading..."}</h2>
+                <p className="text-gray-400 text-sm">{profile?.email || "Loading..."}</p>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {roles && roles.map((role, index) => (
                     <span 
                       key={index} 
                       className={`inline-block text-xs px-2 py-1 rounded-full ${
                         role === 'admin' 
-                          ? 'bg-red-100 text-red-800' 
+                          ? 'bg-red-900/50 text-red-200' 
                           : role === 'information_officer' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-green-100 text-green-800'
+                            ? 'bg-blue-900/50 text-blue-200' 
+                            : 'bg-green-900/50 text-green-200'
                       }`}
                     >
                       {role.replace('_', ' ')}
@@ -111,7 +111,7 @@ const Profile = () => {
             </div>
 
             <Tabs value={currentTab} className="w-auto" onValueChange={(val) => setCurrentTab(val as 'info' | 'edit')}>
-              <TabsList className="bg-campus-bg/50">
+              <TabsList className="bg-dark-300">
                 <TabsTrigger value="info" className="data-[state=active]:bg-campus-accent data-[state=active]:text-white">
                   Info
                 </TabsTrigger>
@@ -141,30 +141,30 @@ const Profile = () => {
               className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
             >
               {profile.year && (
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Year</p>
-                  <p className="font-medium">{profile.year}</p>
+                <div className="bg-dark-300 p-3 rounded-lg">
+                  <p className="text-xs text-gray-400">Year</p>
+                  <p className="font-medium text-white">{profile.year}</p>
                 </div>
               )}
               
               {profile.department && (
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Department</p>
-                  <p className="font-medium">{profile.department}</p>
+                <div className="bg-dark-300 p-3 rounded-lg">
+                  <p className="text-xs text-gray-400">Department</p>
+                  <p className="font-medium text-white">{profile.department}</p>
                 </div>
               )}
               
               {profile.program && (
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Program</p>
-                  <p className="font-medium">{profile.program}</p>
+                <div className="bg-dark-300 p-3 rounded-lg">
+                  <p className="text-xs text-gray-400">Program</p>
+                  <p className="font-medium text-white">{profile.program}</p>
                 </div>
               )}
               
               {profile.student_number && (
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500">Student Number</p>
-                  <p className="font-medium">{profile.student_number}</p>
+                <div className="bg-dark-300 p-3 rounded-lg">
+                  <p className="text-xs text-gray-400">Student Number</p>
+                  <p className="font-medium text-white">{profile.student_number}</p>
                 </div>
               )}
             </motion.div>
@@ -181,17 +181,17 @@ const Profile = () => {
             <div 
               key={index}
               onClick={item.onClick}
-              className="bg-white rounded-xl shadow-sm mb-3 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+              className="bg-dark-200 rounded-xl shadow-md mb-3 p-4 flex items-center justify-between hover:bg-dark-300 transition-colors cursor-pointer border border-white/5"
             >
               <div className="flex items-center">
-                <div className="bg-gray-100 rounded-full p-2 mr-3">
-                  <item.icon size={18} className="text-gray-600" />
+                <div className="bg-dark-400 rounded-full p-2 mr-3">
+                  <item.icon size={18} className="text-gray-300" />
                 </div>
-                <span>{item.label}</span>
+                <span className="text-white">{item.label}</span>
               </div>
               <div className="flex items-center">
                 {typeof item.count !== 'undefined' && (
-                  <span className="mr-2 bg-campus-accent/10 text-campus-accent text-xs px-2 py-1 rounded-full">
+                  <span className="mr-2 bg-campus-accent/20 text-campus-accent text-xs px-2 py-1 rounded-full">
                     {item.count}
                   </span>
                 )}
@@ -207,16 +207,16 @@ const Profile = () => {
               className="mb-4"
             >
               <div className="flex justify-between mb-2 mt-1 px-1">
-                <h3 className="text-md font-medium">My Events</h3>
-                <div className="flex bg-gray-100 rounded-full overflow-hidden">
+                <h3 className="text-md font-medium text-white">My Events</h3>
+                <div className="flex bg-dark-300 rounded-full overflow-hidden">
                   <button 
-                    className={`text-xs px-3 py-1 ${activeTab === 'attended' ? 'bg-campus-accent text-white' : 'text-gray-600'}`}
+                    className={`text-xs px-3 py-1 ${activeTab === 'attended' ? 'bg-campus-accent text-white' : 'text-gray-300'}`}
                     onClick={() => setActiveTab('attended')}
                   >
                     Attended
                   </button>
                   <button 
-                    className={`text-xs px-3 py-1 ${activeTab === 'interested' ? 'bg-campus-accent text-white' : 'text-gray-600'}`}
+                    className={`text-xs px-3 py-1 ${activeTab === 'interested' ? 'bg-campus-accent text-white' : 'text-gray-300'}`}
                     onClick={() => setActiveTab('interested')}
                   >
                     Interested
@@ -230,12 +230,12 @@ const Profile = () => {
                     attendedEvents.map((event) => (
                       <Card 
                         key={event.id}
-                        className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border border-white/5"
                         onClick={() => navigateToEventDetails(event.id)}
                       >
                         <div className="flex p-3">
                           {event.image_url ? (
-                            <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0">
+                            <div className="w-16 h-16 bg-dark-300 rounded-md overflow-hidden mr-3 flex-shrink-0">
                               <img 
                                 src={event.image_url} 
                                 alt={event.title} 
@@ -243,20 +243,20 @@ const Profile = () => {
                               />
                             </div>
                           ) : (
-                            <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
+                            <div className="w-16 h-16 bg-dark-300 rounded-md overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
                               <Calendar size={24} className="text-gray-400" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm line-clamp-1">{event.title}</h4>
-                            <div className="flex items-center mt-1 text-xs text-gray-500">
+                            <h4 className="font-medium text-sm line-clamp-1 text-white">{event.title}</h4>
+                            <div className="flex items-center mt-1 text-xs text-gray-400">
                               <Clock size={12} className="mr-1" />
                               <span>
                                 {format(new Date(event.event_date), 'MMM d, yyyy')}
                               </span>
                             </div>
                             {event.location && (
-                              <div className="flex items-center mt-1 text-xs text-gray-500">
+                              <div className="flex items-center mt-1 text-xs text-gray-400">
                                 <MapPin size={12} className="mr-1" />
                                 <span className="truncate">{event.location}</span>
                               </div>
@@ -266,9 +266,9 @@ const Profile = () => {
                       </Card>
                     ))
                   ) : (
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center p-4 bg-dark-300 rounded-lg">
                       <Calendar className="mx-auto text-gray-400 mb-2" size={24} />
-                      <p className="text-gray-500 text-sm">You haven't attended any events yet</p>
+                      <p className="text-gray-400 text-sm">You haven't attended any events yet</p>
                     </div>
                   )}
                 </div>
@@ -278,12 +278,12 @@ const Profile = () => {
                     interestedEvents.map((event) => (
                       <Card 
                         key={event.id}
-                        className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border border-white/5"
                         onClick={() => navigateToEventDetails(event.id)}
                       >
                         <div className="flex p-3">
                           {event.image_url ? (
-                            <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0">
+                            <div className="w-16 h-16 bg-dark-300 rounded-md overflow-hidden mr-3 flex-shrink-0">
                               <img 
                                 src={event.image_url} 
                                 alt={event.title} 
@@ -291,20 +291,20 @@ const Profile = () => {
                               />
                             </div>
                           ) : (
-                            <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
+                            <div className="w-16 h-16 bg-dark-300 rounded-md overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center">
                               <Heart size={24} className="text-gray-400" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm line-clamp-1">{event.title}</h4>
-                            <div className="flex items-center mt-1 text-xs text-gray-500">
+                            <h4 className="font-medium text-sm line-clamp-1 text-white">{event.title}</h4>
+                            <div className="flex items-center mt-1 text-xs text-gray-400">
                               <Clock size={12} className="mr-1" />
                               <span>
                                 {format(new Date(event.event_date), 'MMM d, yyyy')}
                               </span>
                             </div>
                             {event.location && (
-                              <div className="flex items-center mt-1 text-xs text-gray-500">
+                              <div className="flex items-center mt-1 text-xs text-gray-400">
                                 <MapPin size={12} className="mr-1" />
                                 <span className="truncate">{event.location}</span>
                               </div>
@@ -314,9 +314,9 @@ const Profile = () => {
                       </Card>
                     ))
                   ) : (
-                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center p-4 bg-dark-300 rounded-lg">
                       <Heart className="mx-auto text-gray-400 mb-2" size={24} />
-                      <p className="text-gray-500 text-sm">You're not interested in any upcoming events</p>
+                      <p className="text-gray-400 text-sm">You're not interested in any upcoming events</p>
                     </div>
                   )}
                 </div>
@@ -327,15 +327,15 @@ const Profile = () => {
           {hasRole('admin') && (
             <div 
               onClick={() => navigate('/admin')}
-              className="bg-white rounded-xl shadow-sm mb-3 p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+              className="bg-dark-200 rounded-xl shadow-md mb-3 p-4 flex items-center justify-between hover:bg-dark-300 transition-colors cursor-pointer border border-white/5"
             >
               <div className="flex items-center">
-                <div className="bg-blue-100 rounded-full p-2 mr-3">
-                  <BarChart size={18} className="text-blue-600" />
+                <div className="bg-blue-900/30 rounded-full p-2 mr-3">
+                  <BarChart size={18} className="text-blue-400" />
                 </div>
-                <span>Admin Dashboard</span>
+                <span className="text-white">Admin Dashboard</span>
               </div>
-              <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Stats</span>
+              <span className="text-xs bg-blue-900/30 text-blue-400 px-2 py-1 rounded-full">Stats</span>
             </div>
           )}
           
@@ -347,7 +347,7 @@ const Profile = () => {
             <Button 
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="w-full mt-4 bg-white hover:bg-red-50 text-red-600 border border-red-200 hover:border-red-300"
+              className="w-full mt-4 bg-dark-300 hover:bg-red-900/30 text-red-400 border border-red-900/30 hover:border-red-900/50"
             >
               <LogOut size={18} className="mr-2" />
               {isLoggingOut ? "Logging out..." : "Logout"}

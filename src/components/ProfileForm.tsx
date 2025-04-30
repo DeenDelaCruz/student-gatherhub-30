@@ -98,9 +98,9 @@ export function ProfileForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name</FormLabel>
+              <FormLabel className="text-gray-300">Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="Your name" {...field} value={field.value || ""} />
+                <Input placeholder="Your name" {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -112,9 +112,9 @@ export function ProfileForm() {
           name="year"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Year</FormLabel>
+              <FormLabel className="text-gray-300">Year</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Freshman, Sophomore..." {...field} value={field.value || ""} />
+                <Input placeholder="e.g. Freshman, Sophomore..." {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -126,9 +126,9 @@ export function ProfileForm() {
           name="department"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>College Department</FormLabel>
+              <FormLabel className="text-gray-300">College Department</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Computer Science" {...field} value={field.value || ""} />
+                <Input placeholder="e.g. Computer Science" {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -140,9 +140,9 @@ export function ProfileForm() {
           name="program"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Program</FormLabel>
+              <FormLabel className="text-gray-300">Program</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. BS Computer Science" {...field} value={field.value || ""} />
+                <Input placeholder="e.g. BS Computer Science" {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -154,9 +154,9 @@ export function ProfileForm() {
           name="student_number"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Student Number</FormLabel>
+              <FormLabel className="text-gray-300">Student Number</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. 2022-12345" {...field} value={field.value || ""} />
+                <Input placeholder="e.g. 2022-12345" {...field} value={field.value || ""} className="bg-dark-300 border-white/10 text-white" />
               </FormControl>
               <FormMessage />
             </FormItem>
