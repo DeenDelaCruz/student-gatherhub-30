@@ -27,17 +27,17 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
-    <Card className="w-full h-full flex flex-col">
+    <Card className="w-full h-full flex flex-col glass-card hover:shadow-lg transition-shadow duration-300">
       {subEvent.image_url && (
-        <div className="relative h-48 w-full overflow-hidden">
+        <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
           <img
             src={subEvent.image_url}
             alt={subEvent.title}
-            className="w-full h-full object-cover cursor-zoom-in"
+            className="w-full h-full object-cover cursor-zoom-in hover:scale-105 transition-transform duration-300"
             onClick={() => setLightboxOpen(true)}
           />
           <Button
-            className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white shadow-lg"
+            className="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white shadow-lg"
             size="sm"
             onClick={() => setLightboxOpen(true)}
           >
@@ -46,7 +46,7 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
         </div>
       )}
       <CardHeader>
-        <CardTitle className="text-xl">{subEvent.title}</CardTitle>
+        <CardTitle className="text-xl text-gradient">{subEvent.title}</CardTitle>
         <CardDescription className="flex items-center gap-2 text-sm">
           <Calendar className="h-4 w-4 flex-shrink-0" />
           {format(new Date(subEvent.date_time), 'MMMM d, yyyy - h:mm a')}
@@ -59,15 +59,15 @@ export const SubEventCard = ({ subEvent, onEdit, onDelete }: SubEventCardProps) 
         )}
       </CardHeader>
       <CardContent className="flex-grow">
-        <p className="text-sm text-gray-600">{subEvent.description || "No description available."}</p>
+        <p className="text-sm text-gray-400">{subEvent.description || "No description available."}</p>
       </CardContent>
       {canManage && (
-        <CardFooter className="gap-2 pt-4 border-t mt-auto">
+        <CardFooter className="gap-2 pt-4 border-t border-white/10 mt-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onEdit(subEvent)}
-            className="flex items-center gap-1"
+            className="flex items-center gap-1 neo-border bg-transparent hover:bg-white/5"
           >
             <Edit className="h-4 w-4" /> Edit
           </Button>

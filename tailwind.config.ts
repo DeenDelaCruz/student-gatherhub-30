@@ -66,8 +66,8 @@ const config = {
         campus: {
           DEFAULT: "#161616",
           header: "#1A1A1A",
-          bg: "#F5F5F5",
-          accent: "#4A6FFF",
+          bg: "#121212",
+          accent: "#6366F1",
           purple: "#8E6BF5",
           pink: "#FF6B95"
         },
