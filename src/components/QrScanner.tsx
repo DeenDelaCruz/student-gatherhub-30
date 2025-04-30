@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -444,7 +443,6 @@ const QrScanner = ({ onScanComplete, isProcessing, onCancel }: QrScannerProps) =
               className="hidden"
               accept="image/*"
               onChange={handleFileUpload}
-              capture="environment"
             />
             
             <div className="flex flex-col gap-3 w-full max-w-xs">
