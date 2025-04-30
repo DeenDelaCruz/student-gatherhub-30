@@ -1,4 +1,3 @@
-
 /**
  * This file is being kept for backward compatibility.
  * We've transitioned away from using Capacitor for QR scanning.
@@ -40,23 +39,36 @@ export const stopScanner = () => {
 };
 
 /**
- * Validates if a string is a valid QR code format for event check-in
- * @param data The decoded QR code data string
+ * Validates the format of a QR code data string for event check-in
+ * @param qrData The QR code data string to validate
  * @returns Boolean indicating if the data is valid
  */
-export const validateQrCodeData = (data: string): boolean => {
+export const validateQrCodeData = (qrData: string): boolean => {
   try {
-    // Try to parse as JSON
-    const parsed = JSON.parse(data);
+    // Try to parse the QR code data as JSON
+    const parsed = JSON.parse(qrData);
     
-    // Check if it has the expected event check-in format
-    return typeof parsed === 'object' && 
-           parsed !== null && 
-           typeof parsed.eventId === 'string' && 
-           parsed.eventId.length > 0;
+    // Valid event QR codes should have an eventId property
+    return typeof parsed === 'object' && parsed !== null && 'eventId' in parsed;
   } catch (error) {
-    console.error('QR code validation error:', error);
+    // If parsing fails, the QR code data is not in the expected format
     return false;
   }
 };
 
+/**
+ * Safely extracts data from a QR code scan
+ * @param qrData The raw QR code data string 
+ * @returns The extracted data object or null if invalid
+ */
+export const extractQrCodeData = (qrData: string): { eventId: string } | null => {
+  try {
+    const parsed = JSON.parse(qrData);
+    if (typeof parsed === 'object' && parsed !== null && 'eventId' in parsed) {
+      return { eventId: parsed.eventId };
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+};
