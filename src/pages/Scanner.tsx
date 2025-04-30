@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth";
@@ -273,7 +272,7 @@ const Scanner = () => {
                       <div>
                         <h3 className="text-lg font-semibold">Scan Event QR Code</h3>
                         <p className="text-gray-500 text-sm mt-1">
-                          Scan the event QR code to mark your attendance
+                          Scan the event QR code with your camera to mark your attendance
                         </p>
                       </div>
                       
