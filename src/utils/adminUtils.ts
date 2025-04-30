@@ -111,3 +111,52 @@ export const deleteVisitorRecord = async (userId: string): Promise<boolean> => {
     return false;
   }
 };
+
+// New function to get only the most recent visit per user
+export const getUniqueRecentVisitors = async (limit: number = 10): Promise<any[]> => {
+  try {
+    // Try using the RPC function first
+    try {
+      const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: limit });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (rpcError) {
+      console.error("Error with RPC function, falling back to direct query:", rpcError);
+      
+      // Fallback to a direct query that ensures uniqueness by user_id
+      const { data, error } = await supabase
+        .from('user_visits')
+        .select(`
+          user_id,
+          visit_time,
+          profiles:user_id (
+            name,
+            email
+          )
+        `)
+        .order('visit_time', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Process the results to get unique users with their most recent visit
+      const userMap = new Map();
+      data?.forEach(visit => {
+        if (!userMap.has(visit.user_id)) {
+          userMap.set(visit.user_id, {
+            user_id: visit.user_id,
+            visit_time: visit.visit_time,
+            name: visit.profiles?.name || 'Unknown',
+            email: visit.profiles?.email || 'No email'
+          });
+        }
+      });
+      
+      // Convert map values to array and limit to requested count
+      return Array.from(userMap.values()).slice(0, limit);
+    }
+  } catch (error) {
+    console.error("Error getting unique recent visitors:", error);
+    return [];
+  }
+};

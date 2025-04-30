@@ -30,7 +30,7 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
-import { clearVisitorRecords, deleteVisitorRecord } from "@/utils/adminUtils";
+import { clearVisitorRecords, deleteVisitorRecord, getUniqueRecentVisitors } from "@/utils/adminUtils";
 import { EventStatistics } from "@/components/admin/EventStatistics";
 
 const Admin = () => {
@@ -51,46 +51,8 @@ const Admin = () => {
 
   const fetchVisitorsDirectly = async () => {
     try {
-      const { data: visitData, error: visitError } = await supabase
-        .from('user_visits')
-        .select('user_id, visit_time, user_name')
-        .order('visit_time', { ascending: false })
-        .limit(10);
-      
-      if (visitError) {
-        console.error("Error fetching visits directly:", visitError);
-        setRecentVisitors([]);
-        setLoadingVisitors(false);
-        return;
-      }
-      
-      if (visitData && visitData.length > 0) {
-        const userIds = visitData.map(visit => visit.user_id);
-        
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, email')
-          .in('id', userIds);
-          
-        if (profileError) {
-          console.error("Error fetching visitor profiles:", profileError);
-          setRecentVisitors([]);
-        } else {
-          const visitors = visitData.map(visit => {
-            const profile = profileData?.find(p => p.id === visit.user_id);
-            return {
-              user_id: visit.user_id,
-              visit_time: visit.visit_time,
-              name: visit.user_name || 'Unknown',
-              email: profile?.email || 'No email'
-            };
-          });
-          setRecentVisitors(visitors);
-        }
-      } else {
-        setRecentVisitors([]);
-      }
-      
+      const visitors = await getUniqueRecentVisitors(10);
+      setRecentVisitors(visitors);
       setLoadingVisitors(false);
     } catch (error) {
       console.error("Error fetching visitors directly:", error);
@@ -133,7 +95,7 @@ const Admin = () => {
             
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
-              .select('id, name, email, year')
+              .select('id, email')
               .in('id', officerIds);
               
             if (profileError) {
@@ -261,20 +223,9 @@ const Admin = () => {
           return;
         }
         
-        try {
-          const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
-          
-          if (error) {
-            console.error("Error calling get_recent_visitors function:", error);
-            fetchVisitorsDirectly();
-          } else {
-            setRecentVisitors(data || []);
-            setLoadingVisitors(false);
-          }
-        } catch (functionError) {
-          console.error("RPC function error:", functionError);
-          fetchVisitorsDirectly();
-        }
+        const visitors = await getUniqueRecentVisitors(10);
+        setRecentVisitors(visitors);
+        setLoadingVisitors(false);
       } catch (error) {
         console.error("Error in fetchRecentVisitors:", error);
         setRecentVisitors([]);
@@ -552,41 +503,6 @@ const Admin = () => {
 
   const handleVisitorDeleted = () => {
     setLoadingVisitors(true);
-    const fetchRecentVisitors = async () => {
-      try {
-        const { count, error: tableCheckError } = await supabase
-          .from('user_visits')
-          .select('*', { count: 'exact', head: true })
-          .limit(1);
-          
-        if (tableCheckError) {
-          console.error("Error checking user_visits table:", tableCheckError);
-          setRecentVisitors([]);
-          setLoadingVisitors(false);
-          return;
-        }
-        
-        try {
-          const { data, error } = await supabase.rpc('get_recent_visitors', { limit_param: 10 });
-          
-          if (error) {
-            console.error("Error calling get_recent_visitors function:", error);
-            fetchVisitorsDirectly();
-          } else {
-            setRecentVisitors(data || []);
-            setLoadingVisitors(false);
-          }
-        } catch (functionError) {
-          console.error("RPC function error:", functionError);
-          fetchVisitorsDirectly();
-        }
-      } catch (error) {
-        console.error("Error in fetchRecentVisitors:", error);
-        setRecentVisitors([]);
-        setLoadingVisitors(false);
-      }
-    };
-    
     fetchRecentVisitors();
   };
 
