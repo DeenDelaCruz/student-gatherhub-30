@@ -6,18 +6,27 @@ import { Toaster } from "@/components/ui/sonner";
 import { useRoutes } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
+import PageLoader from "@/components/ui/page-loader";
 
-// Lazy load components
-const PageLoader = lazy(() => import("@/components/ui/page-loader"));
+/**
+ * Main application component
+ */
+function App() {
+  const routes = createRoutes();
+  const routeElements = useRoutes(routes);
+  
+  return (
+    <Router>
+      <ThemeProvider>
+        <AuthProvider>
+          <Suspense fallback={<PageLoader />}>
+            {routeElements}
+          </Suspense>
+          <Toaster />
+        </AuthProvider>
+      </ThemeProvider>
+    </Router>
+  );
+}
 
-// Create a dedicated PageLoader component
-<lov-write file_path="src/components/ui/page-loader.tsx">
-import React from "react";
-
-const PageLoader: React.FC = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-campus-accent"></div>
-  </div>
-);
-
-export default PageLoader;
+export default App;
