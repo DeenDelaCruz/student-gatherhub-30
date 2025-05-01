@@ -4,24 +4,33 @@ import { createRoutes } from "@/routes";
 import { AuthProvider } from "@/context/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { useRoutes } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import PageLoader from "@/components/ui/page-loader";
+
+/**
+ * Routes component that uses the useRoutes hook inside the Router context
+ */
+const AppRoutes = () => {
+  const routes = createRoutes();
+  const routeElements = useRoutes(routes);
+  
+  return (
+    <Suspense fallback={<PageLoader />}>
+      {routeElements}
+    </Suspense>
+  );
+};
 
 /**
  * Main application component
  */
 function App() {
-  const routes = createRoutes();
-  const routeElements = useRoutes(routes);
-  
   return (
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <Suspense fallback={<PageLoader />}>
-            {routeElements}
-          </Suspense>
+          <AppRoutes />
           <Toaster />
         </AuthProvider>
       </ThemeProvider>
