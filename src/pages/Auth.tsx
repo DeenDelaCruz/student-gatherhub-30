@@ -129,7 +129,7 @@ const Auth = () => {
           transition={{ delay: 0.5 }}
           className="w-full max-w-md"
         >
-          <div className="backdrop-blur-xl bg-indigo-950 rounded-2xl p-8 border border-[#1E2042] shadow-2xl">
+          <div className="backdrop-blur-xl bg-indigo-950/5 rounded-2xl p-8 border border-[#1E2042] shadow-2xl">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold text-white mb-2">
                 Welcome to EventEra
