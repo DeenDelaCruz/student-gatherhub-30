@@ -136,7 +136,7 @@
   }
   
   .text-gradient {
-    @apply dark:from-white dark:via-white/90 dark:to-white/70 light:from-gray-800 light:via-gray-700 light:to-gray-600 bg-clip-text text-transparent bg-gradient-to-br;
+    @apply dark:bg-gradient-to-br dark:from-white dark:via-white/90 dark:to-white/70 light:bg-gradient-to-br light:from-gray-800 light:via-gray-700 light:to-gray-600 bg-clip-text text-transparent;
   }
   
   .accent-gradient {
