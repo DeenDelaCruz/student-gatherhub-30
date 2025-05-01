@@ -169,7 +169,7 @@ const EditEvent = () => {
       <Header />
       
       <main className="flex-1 p-4">
-        <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6">
+        <div className="max-w-2xl mx-auto bg-dark-200 rounded-xl shadow-sm p-6">
           <h1 className="text-2xl font-medium mb-6">Edit Event</h1>
           {event && <EventForm event={event} isEditing={true} onEventUpdated={handleEventUpdated} />}
         </div>
