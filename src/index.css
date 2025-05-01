@@ -48,6 +48,18 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  html, body, #root {
+    width: 100%;
+    min-height: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
   
   body {
@@ -58,6 +70,8 @@
       radial-gradient(circle at 90% 90%, rgba(255, 107, 149, 0.04), transparent 25%);
     background-color: #0F1015;
     min-height: 100vh;
+    width: 100vw;
+    max-width: 100%;
   }
   
   ::selection {

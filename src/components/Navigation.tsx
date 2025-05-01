@@ -86,8 +86,8 @@ const Navigation = () => {
   const navItems = getNavItems();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#14162199] to-[#1A1F2C99] border-t border-white/5 py-3 px-4 backdrop-blur-xl z-50">
-      <div className="max-w-md mx-auto flex justify-around items-center">
+    <nav className="fixed bottom-0 left-0 right-0 w-full bg-gradient-to-r from-[#14162199] to-[#1A1F2C99] border-t border-white/5 py-3 px-4 backdrop-blur-xl z-50">
+      <div className="w-full mx-auto flex justify-around items-center">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (

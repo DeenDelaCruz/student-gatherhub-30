@@ -30,8 +30,10 @@ function App() {
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <AppRoutes />
-          <Toaster />
+          <div className="w-full min-h-screen">
+            <AppRoutes />
+            <Toaster />
+          </div>
         </AuthProvider>
       </ThemeProvider>
     </Router>
