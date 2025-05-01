@@ -1,4 +1,5 @@
 
+import * as React from "react"
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
 import { cn } from "@/lib/utils"
 
@@ -7,7 +8,7 @@ const Collapsible = CollapsiblePrimitive.Root
 const CollapsibleTrigger = CollapsiblePrimitive.CollapsibleTrigger
 
 interface CollapsibleContentProps extends React.ComponentPropsWithoutRef<typeof CollapsiblePrimitive.CollapsibleContent> {
-  forceMount?: boolean;
+  forceMount?: true | undefined;
 }
 
 const CollapsibleContent = React.forwardRef<
