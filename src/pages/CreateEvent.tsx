@@ -24,8 +24,8 @@ const CreateEvent = () => {
       <Header />
       
       <main className="flex-1 p-4">
-        <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6">
-          <h1 className="text-2xl font-medium mb-6">Create New Event</h1>
+        <div className="max-w-2xl mx-auto bg-dark-200 border border-dark-border rounded-xl shadow-sm p-6 text-white">
+          <h1 className="text-2xl font-medium mb-6 text-gradient">Create New Event</h1>
           <EventForm />
         </div>
       </main>

@@ -245,7 +245,7 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="title">Event Title *</Label>
+        <Label htmlFor="title" className="text-gray-300">Event Title *</Label>
         <Input
           id="title"
           name="title"
@@ -253,11 +253,12 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
           onChange={handleInputChange}
           placeholder="Enter event title"
           required
+          className="bg-dark-400 border-dark-border text-white"
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description" className="text-gray-300">Description</Label>
         <Textarea
           id="description"
           name="description"
@@ -265,11 +266,12 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
           onChange={handleInputChange}
           placeholder="Enter event description"
           rows={4}
+          className="bg-dark-400 border-dark-border text-white"
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="location">Location</Label>
+        <Label htmlFor="location" className="text-gray-300">Location</Label>
         <div className="relative">
           <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <Input
@@ -278,21 +280,21 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
             value={formData.location}
             onChange={handleInputChange}
             placeholder="Enter event location"
-            className="pl-10"
+            className="pl-10 bg-dark-400 border-dark-border text-white"
           />
         </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="event_date">Event Date *</Label>
+          <Label htmlFor="event_date" className="text-gray-300">Event Date *</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !formData.event_date && "text-muted-foreground"
+                  "w-full justify-start text-left font-normal bg-dark-400 border-dark-border hover:bg-dark-300",
+                  !formData.event_date && "text-gray-400"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -303,20 +305,20 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0 bg-dark-300 border-dark-border">
               <Calendar
                 mode="single"
                 selected={formData.event_date}
                 onSelect={handleDateChange}
                 initialFocus
-                className={cn("p-3 pointer-events-auto")}
+                className={cn("p-3 pointer-events-auto bg-dark-300 text-white")}
               />
             </PopoverContent>
           </Popover>
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="event_time">Event Time *</Label>
+          <Label htmlFor="event_time" className="text-gray-300">Event Time *</Label>
           <div className="relative">
             <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
@@ -324,7 +326,7 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
               type="time"
               value={time}
               onChange={handleTimeChange}
-              className="pl-10"
+              className="pl-10 bg-dark-400 border-dark-border text-white"
               required
             />
           </div>
@@ -332,21 +334,22 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
       </div>
       
       <div className="space-y-2">
-        <Label>Event Image</Label>
+        <Label className="text-gray-300">Event Image</Label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="image_url">Image URL</Label>
+            <Label htmlFor="image_url" className="text-gray-300">Image URL</Label>
             <Input
               id="image_url"
               name="image_url"
               value={formData.image_url}
               onChange={handleInputChange}
               placeholder="Enter image URL"
+              className="bg-dark-400 border-dark-border text-white"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="image_upload">Or upload an image</Label>
+            <Label htmlFor="image_upload" className="text-gray-300">Or upload an image</Label>
             <div className="flex items-center gap-2">
               {/* Hidden file input */}
               <input
@@ -362,13 +365,13 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
                 type="button" 
                 variant="outline" 
                 onClick={triggerFileInput}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-dark-400 border-dark-border hover:bg-dark-300"
               >
                 <Upload className="h-4 w-4" />
                 Choose File
               </Button>
               {isUploading && (
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-campus-purple"></div>
               )}
             </div>
           </div>
@@ -394,7 +397,7 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
           checked={formData.is_active}
           onCheckedChange={handleActiveToggle}
         />
-        <Label htmlFor="is_active">Event is active</Label>
+        <Label htmlFor="is_active" className="text-gray-300">Event is active</Label>
       </div>
       
       <div className="flex space-x-2">
@@ -402,13 +405,13 @@ const EventForm = ({ event, isEditing = false, onEventUpdated }: EventFormProps)
           type="button"
           variant="outline"
           onClick={() => navigate("/")}
-          className="flex-1"
+          className="flex-1 bg-dark-400 border-dark-border hover:bg-dark-300"
         >
           Cancel
         </Button>
         <Button 
           type="submit" 
-          className="flex-1"
+          className="flex-1 bg-campus-accent hover:bg-campus-accent/90 text-white"
           disabled={isSubmitting || isUploading}
         >
           {isSubmitting ? "Saving..." : isEditing ? "Update Event" : "Create Event"}
