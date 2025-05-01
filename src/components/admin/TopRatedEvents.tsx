@@ -44,35 +44,35 @@ export const TopRatedEvents = ({ events }: TopRatedEventsProps) => {
   }, [events]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="bg-dark-200 border-dark-border">
+      <CardHeader className="bg-dark-300 border-b border-dark-border">
+        <CardTitle className="flex items-center gap-2 text-white">
           <Star className="h-5 w-5 text-yellow-500" />
           Top Rated Events
         </CardTitle>
-        <CardDescription>Events with highest average ratings</CardDescription>
+        <CardDescription className="text-gray-400">Events with highest average ratings</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <div className="space-y-4">
           {topEvents.map((event, index) => (
             <div
               key={event.id}
-              className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+              className="flex items-center justify-between p-3 bg-dark-400 rounded-lg"
             >
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-muted-foreground">
+                <span className="text-sm font-medium text-gray-400">
                   #{index + 1}
                 </span>
-                <span className="font-medium">{event.title}</span>
+                <span className="font-medium text-gray-200">{event.title}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                <span className="font-medium">{event.averageRating.toFixed(1)}</span>
+                <span className="font-medium text-gray-200">{event.averageRating.toFixed(1)}</span>
               </div>
             </div>
           ))}
           {topEvents.length === 0 && (
-            <div className="text-center text-muted-foreground py-4">
+            <div className="text-center text-gray-500 py-4">
               No rated events yet
             </div>
           )}
