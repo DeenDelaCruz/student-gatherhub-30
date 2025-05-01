@@ -83,92 +83,95 @@ const Profile = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="bg-campus-accent/10 rounded-full p-4 mr-4">
-                <User size={32} className="text-campus-accent" />
-              </div>
-              <div>
-                <h2 className="text-xl font-medium text-white">{profile?.name || "Loading..."}</h2>
-                <p className="text-gray-400 text-sm">{profile?.email || "Loading..."}</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {roles && roles.map((role, index) => (
-                    <span 
-                      key={index} 
-                      className={`inline-block text-xs px-2 py-1 rounded-full ${
-                        role === 'admin' 
-                          ? 'bg-red-900/50 text-red-200' 
-                          : role === 'information_officer' 
-                            ? 'bg-blue-900/50 text-blue-200' 
-                            : 'bg-green-900/50 text-green-200'
-                      }`}
-                    >
-                      {role.replace('_', ' ')}
-                    </span>
-                  ))}
-                </div>
+          <div className="flex items-center">
+            <div className="bg-campus-accent/10 rounded-full p-4 mr-4">
+              <User size={32} className="text-campus-accent" />
+            </div>
+            <div>
+              <h2 className="text-xl font-medium text-white">{profile?.name || "Loading..."}</h2>
+              <p className="text-gray-400 text-sm">{profile?.email || "Loading..."}</p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {roles && roles.map((role, index) => (
+                  <span 
+                    key={index} 
+                    className={`inline-block text-xs px-2 py-1 rounded-full ${
+                      role === 'admin' 
+                        ? 'bg-red-900/50 text-red-200' 
+                        : role === 'information_officer' 
+                          ? 'bg-blue-900/50 text-blue-200' 
+                          : 'bg-green-900/50 text-green-200'
+                    }`}
+                  >
+                    {role.replace('_', ' ')}
+                  </span>
+                ))}
               </div>
             </div>
-
-            <Tabs value={currentTab} className="w-auto" onValueChange={(val) => setCurrentTab(val as 'info' | 'edit')}>
-              <TabsList className="bg-dark-300">
-                <TabsTrigger value="info" className="data-[state=active]:bg-campus-accent data-[state=active]:text-white">
-                  Info
-                </TabsTrigger>
-                <TabsTrigger value="edit" className="data-[state=active]:bg-campus-accent data-[state=active]:text-white">
-                  Edit
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
           </div>
 
-          {currentTab === 'edit' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              transition={{ duration: 0.3 }}
-              className="mt-6"
-            >
-              <ProfileForm />
-            </motion.div>
-          )}
-
-          {currentTab === 'info' && profile && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
-            >
-              {profile.year && (
-                <div className="bg-dark-300 p-3 rounded-lg">
-                  <p className="text-xs text-gray-400">Year</p>
-                  <p className="font-medium text-white">{profile.year}</p>
-                </div>
+          <Tabs 
+            value={currentTab} 
+            className="w-full mt-4" 
+            onValueChange={(val) => setCurrentTab(val as 'info' | 'edit')}
+          >
+            <TabsList className="bg-dark-300 w-full grid grid-cols-2">
+              <TabsTrigger value="info" className="data-[state=active]:bg-campus-accent data-[state=active]:text-white">
+                Info
+              </TabsTrigger>
+              <TabsTrigger value="edit" className="data-[state=active]:bg-campus-accent data-[state=active]:text-white">
+                Edit
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="edit" className="mt-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ProfileForm />
+              </motion.div>
+            </TabsContent>
+            
+            <TabsContent value="info" className="mt-4">
+              {profile && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  {profile.year && (
+                    <div className="bg-dark-300 p-3 rounded-lg">
+                      <p className="text-xs text-gray-400">Year</p>
+                      <p className="font-medium text-white">{profile.year}</p>
+                    </div>
+                  )}
+                  
+                  {profile.department && (
+                    <div className="bg-dark-300 p-3 rounded-lg">
+                      <p className="text-xs text-gray-400">Department</p>
+                      <p className="font-medium text-white">{profile.department}</p>
+                    </div>
+                  )}
+                  
+                  {profile.program && (
+                    <div className="bg-dark-300 p-3 rounded-lg">
+                      <p className="text-xs text-gray-400">Program</p>
+                      <p className="font-medium text-white">{profile.program}</p>
+                    </div>
+                  )}
+                  
+                  {profile.student_number && (
+                    <div className="bg-dark-300 p-3 rounded-lg">
+                      <p className="text-xs text-gray-400">Student Number</p>
+                      <p className="font-medium text-white">{profile.student_number}</p>
+                    </div>
+                  )}
+                </motion.div>
               )}
-              
-              {profile.department && (
-                <div className="bg-dark-300 p-3 rounded-lg">
-                  <p className="text-xs text-gray-400">Department</p>
-                  <p className="font-medium text-white">{profile.department}</p>
-                </div>
-              )}
-              
-              {profile.program && (
-                <div className="bg-dark-300 p-3 rounded-lg">
-                  <p className="text-xs text-gray-400">Program</p>
-                  <p className="font-medium text-white">{profile.program}</p>
-                </div>
-              )}
-              
-              {profile.student_number && (
-                <div className="bg-dark-300 p-3 rounded-lg">
-                  <p className="text-xs text-gray-400">Student Number</p>
-                  <p className="font-medium text-white">{profile.student_number}</p>
-                </div>
-              )}
-            </motion.div>
-          )}
+            </TabsContent>
+          </Tabs>
         </motion.div>
         
         <motion.div 
